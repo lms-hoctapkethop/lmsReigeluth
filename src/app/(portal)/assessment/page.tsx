@@ -100,7 +100,7 @@ export default function AssessmentPage() {
         {notice ? <p role="status" className="text-sm font-medium text-primary">{notice}</p> : null}
         {!queue?.latest ? <p className="rounded-lg bg-muted px-3 py-3 text-sm">Chưa có bài để chấm.</p> : null}
         {queue?.latest ? (
-          <article className="space-y-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+          <article className="surface space-y-4 p-5">
             <div>
               <h2 className="font-semibold">Lê An · lần nộp {queue.latest.versionNo}</h2>
               <p className="text-sm text-muted-foreground">
@@ -147,7 +147,7 @@ export default function AssessmentPage() {
       {notice ? <p role="status" className="text-sm text-primary">{notice}</p> : null}
       {!learn ? <Loading /> : null}
       {learn?.quiz.map((question, index) => (
-        <fieldset key={question.id} className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+        <fieldset key={question.id} className="surface p-4">
           <legend className="font-medium">{index + 1}. {question.prompt}</legend>
           <div className="mt-3 space-y-2">
             {question.choices.map((choice, choiceIndex) => (

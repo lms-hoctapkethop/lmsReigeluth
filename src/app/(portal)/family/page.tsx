@@ -63,7 +63,7 @@ export default function FamilyPage() {
       {error ? <ErrorNote message={error} /> : null}
       {notice ? <p role="status" className="text-sm text-primary">{notice}</p> : null}
       {data.canWrite ? (
-        <form className="space-y-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10" onSubmit={save}>
+        <form className="surface space-y-3 p-4" onSubmit={save}>
           <Label htmlFor="note">Cách tôi sẽ đồng hành tuần này</Label>
           <Textarea id="note" value={note} onChange={(event) => setNote(event.target.value)} />
           <Button type="submit">Xác nhận sẽ dành thời gian</Button>

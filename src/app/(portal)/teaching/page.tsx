@@ -37,7 +37,7 @@ export default function TeachingPage() {
       </div>
       <ul className="space-y-3">
         {data.roster.map((person) => (
-          <li key={person.name} className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+          <li key={person.name} className="surface p-4">
             <p className="font-medium">{person.name}</p>
             <p className="text-sm text-muted-foreground">Lớp {person.className} · {person.course}</p>
             <p className="mt-2 text-sm">{data.latest ? `Có lần nộp ${data.latest.versionNo}.` : "Chưa nộp bài thực hành."}</p>

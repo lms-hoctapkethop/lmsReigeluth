@@ -106,7 +106,7 @@ export default function PlansPage() {
       {data.plans.length === 0 ? <EmptyNote>Tuần này chưa có việc nào.</EmptyNote> : null}
       <ul className="space-y-3">
         {data.plans.map((plan) => (
-          <li key={plan.id} className="flex items-start gap-3 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+          <li key={plan.id} className="surface flex items-start gap-3 p-4">
             <Checkbox checked={plan.done} disabled={!data.canEdit} onCheckedChange={() => toggle(plan.id)} aria-label={plan.title} />
             <div>
               <p className={plan.done ? "font-medium line-through" : "font-medium"}>{plan.title}</p>

@@ -124,7 +124,7 @@ export default function LearnPage() {
             <TabsTrigger value="explore">Khám phá</TabsTrigger>
             <TabsTrigger value="practice">Thực hành</TabsTrigger>
           </TabsList>
-          <TabsContent value="explore" className="mt-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+          <TabsContent value="explore" className="surface mt-4 p-5">
             <h2 className="text-lg font-semibold">{data.explore.title}</h2>
             <div className="mt-3 space-y-3 leading-relaxed">
               {data.explore.body.map((paragraph) => (
@@ -140,7 +140,7 @@ export default function LearnPage() {
               <Badge className="mt-4" variant="secondary">Học sinh đã đọc</Badge>
             ) : null}
           </TabsContent>
-          <TabsContent value="practice" className="mt-4 space-y-4 rounded-xl bg-card p-5 ring-1 ring-foreground/10">
+          <TabsContent value="practice" className="surface mt-4 space-y-4 p-5">
             <h2 className="text-lg font-semibold">{data.practice.title}</h2>
             <p>{data.practice.prompt}</p>
             {data.canEdit && data.practice.draft ? (
@@ -178,7 +178,7 @@ export default function LearnPage() {
           </TabsContent>
         </Tabs>
       </div>
-      <aside className="h-fit rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+      <aside className="surface h-fit p-4">
         <h2 className="font-semibold">Cách hoàn thành</h2>
         <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
           <li>Đọc xong: ghi nhận đã tham gia.</li>

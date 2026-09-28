@@ -2,8 +2,6 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { ErrorNote, Loading } from "@/components/state"
 
 type Overview = {
@@ -35,69 +33,63 @@ export default function DashboardPage() {
   if (error) return <ErrorNote message={error} />
   if (!data) return <Loading />
 
+  const first = data.user.name.split(" ").slice(-1)[0]
   const planPercent = data.plans.total ? Math.round((data.plans.done / data.plans.total) * 100) : 0
+  const cards = [
+    { label: "Việc trong tuần", value: `${data.plans.done}/${data.plans.total}`, tone: "text-[#5b4dff]", note: "Kế hoạch đã xong" },
+    { label: "Mục tiêu xác nhận", value: `${data.outcomes.confirmed}/${data.outcomes.total}`, tone: "text-[#1f9d6a]", note: data.outcomes.confirmed ? "Đã có quyết định" : "Chưa đủ bằng chứng" },
+    { label: "Bài thực hành", value: data.submission ? `Lần ${data.submission.versionNo}` : "Chưa nộp", tone: "text-[#2563eb]", note: data.waitingReview ? "Đang chờ giáo viên" : data.submission ? "Đã có nhận xét" : "Nộp để nhận biên nhận" },
+    { label: "Luyện tập", value: data.quizCount ? `${data.quizCount} lượt` : "Chưa làm", tone: "text-[#d4880f]", note: "Không tự xác nhận mục tiêu" },
+  ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Tổng quan tuần này</h1>
-        <p className="mt-1 text-muted-foreground">{data.course.module}. Tiến độ thao tác và mục tiêu đã xác nhận được tính riêng.</p>
+        <h1 className="text-2xl font-semibold text-[#1c2434]">Chào {first}</h1>
+        <p className="mt-1 text-[#5d6780]">{data.course.module}. Việc đã làm và mục tiêu đã được xác nhận được tính riêng.</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <p className="text-sm text-muted-foreground">Việc trong kế hoạch</p>
-          <p className="mt-2 text-2xl font-semibold">
-            {data.plans.done}/{data.plans.total}
-          </p>
-          <Progress className="mt-3" value={planPercent} />
-          <Link className="mt-3 inline-block text-sm font-medium text-primary" href="/plans">
-            Mở kế hoạch
-          </Link>
-        </article>
-        <article className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <p className="text-sm text-muted-foreground">Mục tiêu đã xác nhận</p>
-          <p className="mt-2 text-2xl font-semibold">
-            {data.outcomes.confirmed}/{data.outcomes.total}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {data.outcomes.confirmed === 0 ? "Chưa đủ bằng chứng để ghi nhận đạt." : "Chỉ tính quyết định giáo viên đã công bố."}
-          </p>
-        </article>
-        <article className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <p className="text-sm text-muted-foreground">Bài thực hành</p>
-          {data.submission ? (
-            <>
-              <p className="mt-2 font-medium">Lần nộp {data.submission.versionNo}</p>
-              <p className="mt-1 text-sm">Mã biên nhận {data.submission.receipt}</p>
-              {data.waitingReview ? <Badge className="mt-3" variant="secondary">Đang chờ giáo viên</Badge> : <Badge className="mt-3">Đã có nhận xét</Badge>}
-            </>
-          ) : (
-            <p className="mt-2 text-sm text-muted-foreground">Chưa có bài nộp. Việc đọc và trắc nghiệm không thay cho bài này.</p>
-          )}
-        </article>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((card) => (
+          <article key={card.label} className="surface p-4">
+            <p className="text-sm text-[#5d6780]">{card.label}</p>
+            <p className={`mt-2 text-2xl font-semibold ${card.tone}`}>{card.value}</p>
+            <p className="mt-1 text-sm text-[#5d6780]">{card.note}</p>
+          </article>
+        ))}
       </div>
-      <section className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-        <h2 className="font-semibold">Việc nên làm tiếp</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          <li>{data.exploreDone ? "Đã đọc phần khám phá." : "Chưa đánh dấu đã đọc phần khám phá."}</li>
-          <li>{data.quizCount > 0 ? `Đã luyện tập trắc nghiệm ${data.quizCount} lần.` : "Chưa làm trắc nghiệm luyện tập."}</li>
-          <li>{data.familyNotes > 0 ? "Gia đình đã ghi một lần đồng hành." : "Gia đình chưa ghi nhận đồng hành."}</li>
-        </ul>
-        <div className="mt-4 flex flex-wrap gap-3">
-          {data.user.role === "teacher" ? (
-            <Link className="text-sm font-medium text-primary" href="/assessment">
-              Mở hàng chờ chấm
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.8fr)]">
+        <section className="surface p-5">
+          <p className="text-xs font-medium tracking-wide text-[#5b4dff] uppercase">Việc chính</p>
+          <h2 className="mt-2 text-lg font-semibold">Rẽ nhánh if–else</h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#5d6780]">
+            {data.exploreDone ? "Đã đọc phần khám phá." : "Bắt đầu bằng phần khám phá."}{" "}
+            {data.submission ? `Bài thực hành có biên nhận ${data.submission.receipt}.` : "Bài thực hành chưa được nộp."}
+          </p>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#ecebff]">
+            <div className="h-full rounded-full bg-[#5b4dff]" style={{ width: `${planPercent}%` }} />
+          </div>
+          <p className="mt-2 text-sm text-[#5d6780]">{planPercent}% việc trong kế hoạch tuần</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link className="rounded-xl bg-[#5b4dff] px-4 py-2 text-sm font-medium text-white" href={data.user.role === "teacher" ? "/assessment" : "/learn"}>
+              {data.user.role === "teacher" ? "Mở hàng chờ" : "Vào bài học"}
             </Link>
-          ) : (
-            <Link className="text-sm font-medium text-primary" href="/learn">
-              Vào bài học
+            <Link className="rounded-xl bg-[#ecebff] px-4 py-2 text-sm font-medium text-[#3a34b0]" href="/plans">
+              Xem kế hoạch
             </Link>
-          )}
-          <Link className="text-sm font-medium text-primary" href="/records">
-            Xem hồ sơ
+          </div>
+        </section>
+        <aside className="surface p-5">
+          <h2 className="font-semibold">Hỗ trợ</h2>
+          <ul className="mt-3 space-y-3 text-sm text-[#3d4660]">
+            <li className="rounded-xl bg-[#f4f7ff] px-3 py-2">{data.familyNotes > 0 ? "Gia đình đã ghi nhận đồng hành." : "Gia đình chưa ghi nhận đồng hành."}</li>
+            <li className="rounded-xl bg-[#f3fbf7] px-3 py-2">{data.exploreDone ? "Phần khám phá đã được đánh dấu." : "Phần khám phá vẫn đang mở."}</li>
+            <li className="rounded-xl bg-[#fff8ee] px-3 py-2">Đạt mục tiêu chỉ sau khi giáo viên công bố nhận xét.</li>
+          </ul>
+          <Link className="mt-4 inline-block text-sm font-medium text-[#5b4dff]" href="/records">
+            Mở hồ sơ tiến bộ
           </Link>
-        </div>
-      </section>
+        </aside>
+      </div>
     </div>
   )
 }

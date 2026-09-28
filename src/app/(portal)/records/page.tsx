@@ -37,7 +37,7 @@ export default function RecordsPage() {
       </div>
       <ul className="space-y-3">
         {data.outcomes.map((outcome) => (
-          <li key={outcome.id} className="rounded-xl bg-card p-4 ring-1 ring-foreground/10">
+          <li key={outcome.id} className="surface p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="font-medium">{outcome.title}</p>
               <Badge variant={outcome.status === "met" ? "default" : "secondary"}>{outcome.label}</Badge>
@@ -61,7 +61,7 @@ export default function RecordsPage() {
         <h2 className="font-semibold">Nhận xét đã công bố</h2>
         {data.reviews.length === 0 ? <EmptyNote>Chưa có nhận xét công bố.</EmptyNote> : null}
         {data.reviews.map((review) => (
-          <article key={review.publishedAt} className="rounded-xl bg-card p-4 text-sm ring-1 ring-foreground/10">
+          <article key={review.publishedAt} className="surface p-4 text-sm">
             <p className="font-medium">Lần nộp {review.versionNo} · {formatWhen(review.publishedAt)}</p>
             <ul className="mt-2 space-y-1">
               {review.criteria.map((criterion) => (
