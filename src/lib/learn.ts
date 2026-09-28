@@ -38,13 +38,45 @@ export function overview(db: Db, user: SessionUser) {
   const latest = db.versions.at(-1) ?? null
   const published = db.reviews.at(-1) ?? null
   const donePlans = db.plans.filter((item) => item.done).length
+  const pending = db.plans
+    .filter((item) => !item.done)
+    .sort((left, right) => left.due.localeCompare(right.due))
+  const next = pending[0] ?? null
+  const activityDone = [db.exploreDone, db.versions.length > 0, db.quizzes.length > 0].filter(Boolean).length
+  const note = published?.criteria.map((item) => item.note).find((item) => item.trim()) ?? ""
   return {
     user,
     ...context(),
     plans: { done: donePlans, total: db.plans.length },
+    weekTasks: db.plans.slice(0, 5).map((item) => ({
+      id: item.id,
+      title: item.title,
+      due: item.due,
+      source: item.source,
+      done: item.done,
+    })),
+    nextTask: next
+      ? {
+          title: next.title,
+          due: next.due,
+          reason:
+            next.source === "assigned"
+              ? "Việc được giao chưa hoàn thành, hạn gần nhất còn mở."
+              : "Việc cá nhân chưa hoàn thành.",
+          href: next.id === "plan-quiz" ? "/assessment" : next.id === "plan-record" ? "/records" : "/learn",
+        }
+      : null,
+    activities: { done: activityDone, total: 3 },
     outcomes: { confirmed, total: outcomes.length, items: outcomes },
     submission: latest
       ? { versionNo: latest.versionNo, receipt: latest.receipt, submittedAt: latest.submittedAt }
+      : null,
+    feedback: published
+      ? {
+          teacher: "Nguyễn Hà",
+          at: published.publishedAt,
+          excerpt: note || "Giáo viên đã công bố nhận xét cho bài thực hành.",
+        }
       : null,
     reviewPublished: Boolean(published),
     quizCount: db.quizzes.length,

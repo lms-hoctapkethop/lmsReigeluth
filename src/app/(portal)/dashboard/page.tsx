@@ -2,18 +2,27 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { ErrorNote, Loading } from "@/components/state"
+import { ErrorNote, Loading, formatWhen } from "@/components/state"
 
+type Task = { id: string; title: string; due: string; source: "assigned" | "personal"; done: boolean }
 type Overview = {
   user: { role: string; name: string }
-  course: { module: string }
+  course: { name: string; module: string }
+  learner: { name: string; className: string }
   plans: { done: number; total: number }
+  weekTasks: Task[]
+  nextTask: { title: string; due: string; reason: string; href: string } | null
+  activities: { done: number; total: number }
   outcomes: { confirmed: number; total: number }
-  submission: { receipt: string; versionNo: number } | null
+  submission: { receipt: string; versionNo: number; submittedAt: string } | null
+  feedback: { teacher: string; at: string; excerpt: string } | null
   waitingReview: boolean
-  quizCount: number
-  exploreDone: boolean
   familyNotes: number
+}
+
+function day(iso: string) {
+  const [year, month, date] = iso.split("-")
+  return `${date}/${month}/${year}`
 }
 
 export default function DashboardPage() {
@@ -32,64 +41,227 @@ export default function DashboardPage() {
 
   if (error) return <ErrorNote message={error} />
   if (!data) return <Loading />
+  if (data.user.role === "teacher") return <TeacherHome data={data} />
+  if (data.user.role === "guardian") return <GuardianHome data={data} />
+  return <StudentHome data={data} />
+}
 
+function StudentHome({ data }: { data: Overview }) {
   const first = data.user.name.split(" ").slice(-1)[0]
-  const planPercent = data.plans.total ? Math.round((data.plans.done / data.plans.total) * 100) : 0
-  const cards = [
-    { label: "Việc trong tuần", value: `${data.plans.done}/${data.plans.total}`, tone: "text-[#5150df]", wash: "bg-[#f0f0fd]", note: "Kế hoạch đã xong" },
-    { label: "Mục tiêu xác nhận", value: `${data.outcomes.confirmed}/${data.outcomes.total}`, tone: "text-[#168370]", wash: "bg-[#ebf7f2]", note: data.outcomes.confirmed ? "Đã có quyết định" : "Chưa đủ bằng chứng" },
-    { label: "Bài thực hành", value: data.submission ? `Lần ${data.submission.versionNo}` : "Chưa nộp", tone: "text-[#2563eb]", wash: "bg-[#eef4ff]", note: data.waitingReview ? "Đang chờ giáo viên" : data.submission ? "Đã có nhận xét" : "Nộp để nhận biên nhận" },
-    { label: "Luyện tập", value: data.quizCount ? `${data.quizCount} lượt` : "Chưa làm", tone: "text-[#d4880f]", wash: "bg-[#fff6e9]", note: "Không tự xác nhận mục tiêu" },
+  const metrics = [
+    {
+      href: "/plans",
+      label: "Hoạt động đã hoàn thành",
+      value: `${data.activities.done}/${data.activities.total}`,
+      note: "Đã làm xong việc, chưa phải mục tiêu được xác nhận",
+      className: "bg-[#eeedff] text-[#5150df]",
+    },
+    {
+      href: "/learn",
+      label: "Bài chờ phản hồi",
+      value: data.waitingReview ? "1" : "0",
+      note: data.waitingReview ? "Đã nộp bài, giáo viên chưa công bố nhận xét" : "Không có bài đang chờ",
+      className: "bg-[#eff6ff] text-[#1e40af]",
+    },
+    {
+      href: "/records",
+      label: "Mục tiêu đã xác nhận",
+      value: `${data.outcomes.confirmed}/${data.outcomes.total}`,
+      note: data.outcomes.confirmed ? "Có quyết định của giáo viên" : "Chưa đánh giá",
+      className: "bg-[#f0fdf4] text-[#166534]",
+    },
   ]
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-[#22263b]">Chào {first}</h1>
-        <p className="mt-1 text-[#69718a]">{data.course.module}. Việc đã làm và mục tiêu đã được xác nhận được tính riêng.</p>
+        <h1 className="text-2xl leading-tight font-bold md:text-[28px]">Chào {first}</h1>
+        <p className="mt-2 text-[#5b6476]">
+          {data.course.name} · Lớp {data.learner.className}. Hôm nay em nên làm việc tiếp theo bên dưới.
+        </p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
-          <article key={card.label} className={`rounded-2xl p-4 ${card.wash}`}>
-            <p className="text-sm text-[#69718a]">{card.label}</p>
-            <p className={`mt-2 text-2xl font-semibold ${card.tone}`}>{card.value}</p>
-            <p className="mt-1 text-sm text-[#69718a]">{card.note}</p>
-          </article>
+      <section className="surface p-4 md:p-6">
+        <p className="text-sm font-medium text-[#5150df]">Việc tiếp theo</p>
+        {data.nextTask ? (
+          <>
+            <h2 className="mt-2 text-xl font-semibold">{data.nextTask.title}</h2>
+            <p className="mt-2 max-w-3xl text-[#5b6476]">
+              Hạn {day(data.nextTask.due)}. {data.nextTask.reason}
+            </p>
+            <Link className="mt-4 inline-flex min-h-11 items-center rounded-[10px] bg-[#5150df] px-4 text-sm font-medium text-white hover:bg-[#4342c4]" href={data.nextTask.href}>
+              Tiếp tục học
+            </Link>
+          </>
+        ) : (
+          <p className="mt-2 text-[#5b6476]">Chưa có hoạt động được giao.</p>
+        )}
+      </section>
+      <div className="grid gap-6 md:grid-cols-3">
+        {metrics.map((card) => (
+          <Link key={card.label} href={card.href} className={`rounded-2xl p-4 md:p-6 ${card.className}`}>
+            <p className="text-sm font-medium">{card.label}</p>
+            <p className="mt-2 text-[28px] leading-none font-bold">{card.value}</p>
+            <p className="mt-2 text-sm">{card.note}</p>
+          </Link>
         ))}
       </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(260px,0.8fr)]">
-        <section className="surface p-5">
-          <p className="text-xs font-medium tracking-wide text-[#5150df] uppercase">Việc chính</p>
-          <h2 className="mt-2 text-lg font-semibold">Rẽ nhánh if–else</h2>
-          <p className="mt-2 text-sm leading-relaxed text-[#69718a]">
-            {data.exploreDone ? "Đã đọc phần khám phá." : "Bắt đầu bằng phần khám phá."}{" "}
-            {data.submission ? `Bài thực hành có biên nhận ${data.submission.receipt}.` : "Bài thực hành chưa được nộp."}
-          </p>
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#ecebff]">
-            <div className="h-full rounded-full bg-[#5150df]" style={{ width: `${planPercent}%` }} />
-          </div>
-          <p className="mt-2 text-sm text-[#69718a]">{planPercent}% việc trong kế hoạch tuần</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link className="rounded-xl bg-[#5150df] px-4 py-2 text-sm font-medium text-white" href={data.user.role === "teacher" ? "/assessment" : "/learn"}>
-              {data.user.role === "teacher" ? "Mở hàng chờ" : "Vào bài học"}
-            </Link>
-            <Link className="rounded-xl bg-[#ecebff] px-4 py-2 text-sm font-medium text-[#3a34b0]" href="/plans">
-              Xem kế hoạch
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(280px,1fr)]">
+        <section className="surface p-4 md:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold">Nhiệm vụ tuần</h2>
+            <Link className="text-sm font-medium text-[#5150df]" href="/plans">
+              Xem tất cả kế hoạch
             </Link>
           </div>
+          {data.weekTasks.length === 0 ? (
+            <p className="mt-4 text-[#5b6476]">Tuần này chưa có việc trong kế hoạch.</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-[#d9ddea]">
+              {data.weekTasks.map((task) => (
+                <li key={task.id} className="flex min-h-12 flex-wrap items-center justify-between gap-2 py-3">
+                  <div>
+                    <p className="font-medium">{task.title}</p>
+                    <p className="text-sm text-[#5b6476]">
+                      {task.source === "assigned" ? "Được giao" : "Việc cá nhân"} · hạn {day(task.due)}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-2 py-1 text-sm ${task.done ? "bg-[#f0fdf4] text-[#166534]" : "bg-[#fffbeb] text-[#92400e]"}`}>
+                    {task.done ? "Đã hoàn thành hoạt động" : "Chưa xong"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-        <aside className="surface p-5">
-          <h2 className="font-semibold">Hỗ trợ</h2>
-          <ul className="mt-3 space-y-3 text-sm text-[#3d4660]">
-            <li className="rounded-xl bg-[#f4f7ff] px-3 py-2">{data.familyNotes > 0 ? "Gia đình đã ghi nhận đồng hành." : "Gia đình chưa ghi nhận đồng hành."}</li>
-            <li className="rounded-xl bg-[#f3fbf7] px-3 py-2">{data.exploreDone ? "Phần khám phá đã được đánh dấu." : "Phần khám phá vẫn đang mở."}</li>
-            <li className="rounded-xl bg-[#fff8ee] px-3 py-2">Đạt mục tiêu chỉ sau khi giáo viên công bố nhận xét.</li>
-          </ul>
-          <Link className="mt-4 inline-block text-sm font-medium text-[#5150df]" href="/records">
-            Mở hồ sơ tiến bộ
-          </Link>
-        </aside>
+        <div className="space-y-6">
+          <Feedback data={data} />
+          <Support data={data} />
+        </div>
       </div>
+      <p className="text-sm text-[#5b6476]">
+        Hoàn thành một việc không tự xác nhận mục tiêu.{" "}
+        <Link className="font-medium text-[#5150df]" href="/about">
+          Xem mô hình học
+        </Link>
+      </p>
     </div>
+  )
+}
+
+function TeacherHome({ data }: { data: Overview }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl leading-tight font-bold md:text-[28px]">Lớp đang phụ trách</h1>
+        <p className="mt-2 text-[#5b6476]">
+          {data.course.name} · {data.learner.className} · {data.learner.name}. Số liệu dưới đây là việc cần phản hồi, không phải tỷ lệ năng lực của lớp.
+        </p>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Link href="/assessment" className="rounded-2xl bg-[#eff6ff] p-4 text-[#1e40af] md:p-6">
+          <p className="text-sm font-medium">Bài đang chờ phản hồi</p>
+          <p className="mt-2 text-[28px] leading-none font-bold">{data.waitingReview ? "1" : "0"}</p>
+          <p className="mt-2 text-sm">{data.waitingReview ? "Mở bài để công bố nhận xét." : "Hàng chờ đang trống."}</p>
+        </Link>
+        <Link href="/teaching" className="rounded-2xl bg-[#eeedff] p-4 text-[#5150df] md:p-6">
+          <p className="text-sm font-medium">Lớp học phần</p>
+          <p className="mt-2 text-xl font-semibold">{data.course.module}</p>
+          <p className="mt-2 text-sm">Một lớp, một học sinh trong lát cắt này.</p>
+        </Link>
+      </div>
+      <section className="surface p-4 md:p-6">
+        <h2 className="text-xl font-semibold">Xem trước hàng chờ</h2>
+        {data.submission && data.waitingReview ? (
+          <p className="mt-3 text-[#5b6476]">
+            {data.learner.name} đã nộp lần {data.submission.versionNo} lúc {formatWhen(data.submission.submittedAt)}. Biên nhận {data.submission.receipt}.
+          </p>
+        ) : (
+          <p className="mt-3 text-[#5b6476]">Chưa có bài mới cần phản hồi.</p>
+        )}
+        <Link className="mt-4 inline-flex min-h-11 items-center rounded-[10px] bg-[#5150df] px-4 text-sm font-medium text-white hover:bg-[#4342c4]" href="/assessment">
+          Mở bài
+        </Link>
+      </section>
+    </div>
+  )
+}
+
+function GuardianHome({ data }: { data: Overview }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl leading-tight font-bold md:text-[28px]">{data.learner.name}</h1>
+        <p className="mt-2 text-[#5b6476]">
+          Lớp {data.learner.className} · {data.course.name}. Đây là hồ sơ được phép xem, không phải tài khoản của phụ huynh để nộp bài.
+        </p>
+      </div>
+      <section className="surface p-4 md:p-6">
+        <h2 className="text-xl font-semibold">Điều cần chú ý</h2>
+        {data.nextTask ? (
+          <p className="mt-2 text-[#5b6476]">
+            {data.nextTask.title}, hạn {day(data.nextTask.due)}. Con đang cần hoàn thành việc này; việc xong chưa có nghĩa mục tiêu đã được xác nhận.
+          </p>
+        ) : (
+          <p className="mt-2 text-[#5b6476]">Tuần này chưa có việc trong kế hoạch.</p>
+        )}
+        <Link className="mt-4 inline-block text-sm font-medium text-[#5150df]" href="/plans">
+          Xem kế hoạch
+        </Link>
+      </section>
+      <div className="grid gap-6 md:grid-cols-2">
+        <article className="rounded-2xl bg-[#eeedff] p-4 text-[#5150df] md:p-6">
+          <p className="text-sm font-medium">Hoạt động đã hoàn thành</p>
+          <p className="mt-2 text-[28px] leading-none font-bold">
+            {data.activities.done}/{data.activities.total}
+          </p>
+        </article>
+        <article className="rounded-2xl bg-[#f0fdf4] p-4 text-[#166534] md:p-6">
+          <p className="text-sm font-medium">Mục tiêu đã xác nhận</p>
+          <p className="mt-2 text-[28px] leading-none font-bold">
+            {data.outcomes.confirmed}/{data.outcomes.total}
+          </p>
+          <p className="mt-2 text-sm">{data.outcomes.confirmed ? "Có quyết định của giáo viên." : "Chưa đánh giá."}</p>
+        </article>
+      </div>
+      <Feedback data={data} empty="Giáo viên chưa công bố phản hồi." />
+      <Support data={data} />
+    </div>
+  )
+}
+
+function Feedback({ data, empty = "Chưa có phản hồi mới." }: { data: Overview; empty?: string }) {
+  return (
+    <section className="surface p-4 md:p-6">
+      <h2 className="text-xl font-semibold">Phản hồi mới</h2>
+      {data.feedback ? (
+        <>
+          <p className="mt-2 text-sm text-[#5b6476]">
+            {data.feedback.teacher} · {formatWhen(data.feedback.at)}
+          </p>
+          <p className="mt-2 text-[#22263b]">{data.feedback.excerpt}</p>
+          <Link className="mt-3 inline-block text-sm font-medium text-[#5150df]" href="/learn">
+            Đọc phản hồi
+          </Link>
+        </>
+      ) : (
+        <p className="mt-2 text-[#5b6476]">{empty}</p>
+      )}
+    </section>
+  )
+}
+
+function Support({ data }: { data: Overview }) {
+  return (
+    <section className="surface p-4 md:p-6">
+      <h2 className="text-xl font-semibold">Hỗ trợ gia đình</h2>
+      <p className="mt-2 text-[#5b6476]">
+        {data.familyNotes > 0
+          ? "Gia đình đã ghi một cam kết đồng hành. Cam kết này không làm tăng tiến độ của con."
+          : "Chưa có cam kết đồng hành."}
+      </p>
+      <Link className="mt-3 inline-block text-sm font-medium text-[#5150df]" href={data.user.role === "guardian" ? "/family" : "/records"}>
+        Xem chi tiết
+      </Link>
+    </section>
   )
 }

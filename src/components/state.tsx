@@ -8,7 +8,7 @@ export function Loading({ label = "Đang tải dữ liệu lớp..." }: { label?
 
 export function ErrorNote({ message }: { message: string }) {
   return (
-    <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+    <p className="rounded-[10px] border border-[#b91c1c] bg-[#fef2f2] px-3 py-2 text-sm text-[#b91c1c]" role="alert">
       {message}
     </p>
   )
