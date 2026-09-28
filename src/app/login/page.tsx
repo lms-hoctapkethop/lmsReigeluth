@@ -40,13 +40,13 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center gap-8 px-4 py-10 md:flex-row md:items-stretch">
-      <section className="flex-1 rounded-3xl bg-[#1b2436] px-6 py-8 text-white md:px-10">
-        <p className="text-sm font-medium tracking-[0.14em] text-[#9aa6c2] uppercase">Một trường · Lớp 10A1</p>
+      <section className="flex-1 rounded-3xl bg-gradient-to-br from-[#e4e2fb] via-[#f4f3fb] to-[#f7f8fc] px-6 py-8 text-[#22263b] md:px-10">
+        <p className="text-sm font-medium tracking-[0.14em] text-[#5150df] uppercase">Một trường · Lớp 10A1</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">Học cùng nhau</h1>
-        <p className="mt-4 max-w-md text-base leading-relaxed text-[#d5dced]">
+        <p className="mt-4 max-w-md text-base leading-relaxed text-[#5c657c]">
           Nơi học sinh lập kế hoạch, làm bài, nhận phản hồi và để gia đình thấy tiến độ thật — không chỉ một nút đổi vai trò.
         </p>
-        <ul className="mt-8 space-y-2 text-sm text-[#d5dced]">
+        <ul className="mt-8 space-y-2 text-sm text-[#5c657c]">
           <li>Tin học 10 · Bài rẽ nhánh if–else</li>
           <li>Tuần 28/09 – 04/10/2026</li>
           <li>Học sinh, giáo viên và phụ huynh dùng tài khoản riêng</li>

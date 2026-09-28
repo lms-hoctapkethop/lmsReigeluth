@@ -60,17 +60,17 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
   }
 
   return (
-    <div className="min-h-full bg-[#f3f5fb] md:grid md:grid-cols-[245px_1fr]">
-      <aside className="bg-[#1b2436] text-[#e7ebf5] md:min-h-screen">
+    <div className="min-h-full bg-[#f5f6fa] md:grid md:grid-cols-[245px_1fr]">
+      <aside className="border-[#e6e4f2] bg-[#f3f2f8] text-[#22263b] md:min-h-screen md:border-r">
         <div className="flex items-center justify-between px-4 py-5">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <span className="grid size-9 place-items-center rounded-xl bg-[#5b4dff] text-sm font-semibold text-white">HC</span>
+            <span className="grid size-9 place-items-center rounded-xl bg-[#5150df] text-sm font-semibold text-white">HC</span>
             <span>
-              <span className="block text-[11px] tracking-[0.14em] text-[#9aa6c2] uppercase">LMS</span>
-              <span className="block text-base font-semibold text-white">Học cùng nhau</span>
+              <span className="block text-[11px] tracking-[0.14em] text-[#8b90a5] uppercase">LMS</span>
+              <span className="block text-base font-semibold text-[#22263b]">Học cùng nhau</span>
             </span>
           </Link>
-          <Button className="border-white/15 bg-transparent text-white md:hidden" variant="outline" size="sm" onClick={() => setOpen((value) => !value)}>
+          <Button className="md:hidden" variant="outline" size="sm" onClick={() => setOpen((value) => !value)}>
             {open ? "Đóng" : "Mục"}
           </Button>
         </div>
@@ -84,7 +84,7 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium focus-visible:ring-3 focus-visible:ring-[#8d86ff] ${active ? "bg-white text-[#1b2436]" : "text-[#d5dced] hover:bg-white/10"}`}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium focus-visible:ring-3 focus-visible:ring-[#8d86ff] ${active ? "bg-white text-[#5150df] shadow-[0_1px_2px_rgba(34,38,59,0.06)]" : "text-[#5c657c] hover:bg-white/80"}`}
                     aria-current={active ? "page" : undefined}
                   >
                     <Icon className="size-4" />
@@ -95,21 +95,21 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
             })}
           </ul>
         </nav>
-        <div className="m-3 mt-6 rounded-2xl bg-white/6 p-3">
-          <p className="text-sm font-medium text-white">{user.name}</p>
-          <p className="text-xs text-[#9aa6c2]">{labels[user.role]} · Tin học 10</p>
-          <button type="button" className="mt-3 text-xs font-medium text-[#c9c6ff] hover:text-white" onClick={logout}>
+        <div className="m-3 mt-6 rounded-2xl bg-white p-3 shadow-[0_1px_2px_rgba(34,38,59,0.04)]">
+          <p className="text-sm font-medium text-[#22263b]">{user.name}</p>
+          <p className="text-xs text-[#69718a]">{labels[user.role]} · Tin học 10</p>
+          <button type="button" className="mt-3 text-xs font-medium text-[#5150df] hover:text-[#3a34b0]" onClick={logout}>
             Thoát phiên
           </button>
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6eaf3] bg-white/80 px-4 py-3 backdrop-blur md:px-8">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6e4f2] bg-white/80 px-4 py-3 backdrop-blur md:px-8">
           <div>
-            <p className="text-xs font-medium tracking-wide text-[#5b4dff] uppercase">Lớp học phần</p>
-            <p className="font-medium text-[#1c2434]">Tin học 10 · Lớp 10A1 · Tuần 28/09 – 04/10/2026</p>
+            <p className="text-xs font-medium tracking-wide text-[#5150df] uppercase">Lớp học phần</p>
+            <p className="font-medium text-[#22263b]">Tin học 10 · Lớp 10A1 · Tuần 28/09 – 04/10/2026</p>
           </div>
-          <p className="text-sm text-[#5d6780]">
+          <p className="text-sm text-[#69718a]">
             {user.role === "student" ? "Lê An đang học" : user.role === "teacher" ? "Nguyễn Hà phụ trách" : "Đang xem hồ sơ của Lê An"}
           </p>
         </header>
