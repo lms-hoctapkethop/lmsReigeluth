@@ -52,7 +52,7 @@ export default function LoginPage() {
           <li>Học sinh, giáo viên và phụ huynh dùng tài khoản riêng</li>
         </ul>
       </section>
-      <section className="w-full max-w-md rounded-2xl bg-card p-6 ring-1 ring-foreground/10">
+      <section className="surface w-full max-w-md p-6">
         <h2 className="text-xl font-semibold">Đăng nhập</h2>
         <p className="mt-1 text-sm text-muted-foreground">Ba tài khoản minh họa dùng chung một lớp học phần.</p>
         <form className="mt-6 space-y-4" onSubmit={submit}>
