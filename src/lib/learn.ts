@@ -1,38 +1,48 @@
 import {
-  COURSE,
   CRITERIA,
   currentDecisions,
   hashBody,
   HttpError,
   LEARNER,
+  notify,
   OUTCOMES,
   outcomeView,
-  QUIZ,
+  recordAudit,
   type Db,
 } from "@/lib/db"
 import type { SessionUser } from "@/lib/session"
 
-export function assertLearnerAccess(user: SessionUser) {
+export function assertLearnerAccess(db: Db, user: SessionUser) {
+  if (user.role === "admin") {
+    throw new HttpError(403, "Tài khoản quản trị không mở hồ sơ học tập.")
+  }
   if (user.role === "student" && user.id !== LEARNER.id) {
     throw new HttpError(403, "Bạn không có quyền xem hồ sơ này.")
   }
-  if (user.role === "guardian" && user.id !== "guardian-mai") {
-    throw new HttpError(403, "Liên kết phụ huynh không còn hiệu lực.")
+  if (user.role === "guardian") {
+    if (user.id !== "guardian-mai" || db.guardianLink.status !== "active" || db.guardianLink.guardianId !== user.id) {
+      throw new HttpError(403, "Liên kết phụ huynh chưa có hiệu lực. Hãy liên hệ nhà trường.")
+    }
   }
   if (user.role === "teacher" && user.id !== "teacher-ha") {
     throw new HttpError(403, "Bạn chưa được phân công lớp học phần này.")
   }
 }
 
-export function context() {
+export function context(db: Db) {
   return {
-    learner: LEARNER,
-    course: COURSE,
+    learner: { ...LEARNER, className: db.org.className },
+    course: {
+      name: db.org.courseTitle,
+      module: db.module.title,
+      week: db.org.weekLabel,
+    },
+    school: db.org.school,
   }
 }
 
 export function overview(db: Db, user: SessionUser) {
-  assertLearnerAccess(user)
+  assertLearnerAccess(db, user)
   const outcomes = outcomeView(db)
   const confirmed = outcomes.filter((item) => item.status === "met").length
   const latest = db.versions.at(-1) ?? null
@@ -46,7 +56,7 @@ export function overview(db: Db, user: SessionUser) {
   const note = published?.criteria.map((item) => item.note).find((item) => item.trim()) ?? ""
   return {
     user,
-    ...context(),
+    ...context(db),
     plans: { done: donePlans, total: db.plans.length },
     weekTasks: db.plans.slice(0, 5).map((item) => ({
       id: item.id,
@@ -87,25 +97,21 @@ export function overview(db: Db, user: SessionUser) {
 }
 
 export function learnPayload(db: Db, user: SessionUser) {
-  assertLearnerAccess(user)
+  assertLearnerAccess(db, user)
   const latest = db.versions.at(-1) ?? null
   const review = db.reviews.at(-1) ?? null
   const canEdit = user.role === "student"
   return {
-    ...context(),
+    ...context(db),
     canEdit,
     exploreDone: db.exploreDone,
     explore: {
-      title: "Khám phá: khi nào thì rẽ nhánh?",
-      body: [
-        "Một chương trình thường cần chọn một trong hai hướng. Trong Python, if kiểm tra một điều kiện. Nếu điều kiện đúng, máy chạy khối lệnh thụt vào bên dưới. Nếu sai, máy chuyển sang else.",
-        "Ví dụ điểm số: từ 5 trở lên thì in Đạt, thấp hơn thì in Chưa đạt. Dấu hai chấm kết thúc dòng điều kiện. Các lệnh thuộc nhánh phải thụt vào cùng một mức.",
-      ],
+      title: db.module.exploreTitle,
+      body: db.module.exploreBody,
     },
     practice: {
-      title: "Thực hành: phân loại điểm",
-      prompt:
-        "Viết chương trình đọc biến diem. Nếu diem >= 5 thì in Đạt, ngược lại in Chưa đạt. Phía dưới, giải thích bạn chọn điều kiện nào và một ví dụ bạn đã tự thử.",
+      title: db.module.practiceTitle,
+      prompt: db.module.practicePrompt,
       draft: canEdit || user.role === "teacher" ? db.draft : undefined,
       latest: latest
         ? {
@@ -125,13 +131,13 @@ export function learnPayload(db: Db, user: SessionUser) {
             criteria: review.criteria,
           }
         : null,
-    quiz: QUIZ.map(({ id, prompt, choices }) => ({ id, prompt, choices })),
+    quiz: db.module.quiz.map(({ id, prompt, choices }) => ({ id, prompt, choices })),
     lastQuiz: db.quizzes.at(-1) ?? null,
   }
 }
 
 export function saveDraft(db: Db, user: SessionUser, input: { code: string; reflection: string; version: number }) {
-  assertLearnerAccess(user)
+  assertLearnerAccess(db, user)
   if (user.role !== "student") throw new HttpError(403, "Chỉ học sinh lưu được bản nháp của mình.")
   if (input.version !== db.draft.version) {
     throw new HttpError(409, "Bản nháp trên máy chủ đã mới hơn. Hãy tải lại trước khi lưu.", {
@@ -153,7 +159,7 @@ export function submitWork(
   user: SessionUser,
   input: { code: string; reflection: string; version: number; idempotencyKey: string },
 ) {
-  assertLearnerAccess(user)
+  assertLearnerAccess(db, user)
   if (user.role !== "student") throw new HttpError(403, "Chỉ học sinh nộp được bài của mình.")
   const key = `${user.id}:submit:${input.idempotencyKey}`
   const existing = db.idempotency[key]
@@ -186,11 +192,18 @@ export function submitWork(
   db.idempotency[key] = { receipt, versionNo, submittedAt }
   const plan = db.plans.find((item) => item.id === "plan-practice")
   if (plan) plan.done = true
+  notify(db, {
+    userId: "teacher-ha",
+    title: "Có bài mới chờ phản hồi",
+    summary: `${LEARNER.name} đã nộp lần ${versionNo}. Mở bài để đọc và phản hồi.`,
+    href: "/assessment",
+  })
+  recordAudit(db, { actorId: user.id, actorName: user.name, action: "Nộp bài", target: `Lần nộp ${versionNo}` })
   return { receipt: db.idempotency[key], duplicate: false }
 }
 
 export function markExplore(db: Db, user: SessionUser) {
-  assertLearnerAccess(user)
+  assertLearnerAccess(db, user)
   if (user.role !== "student") throw new HttpError(403, "Chỉ học sinh ghi nhận được việc đã đọc.")
   db.exploreDone = true
   const plan = db.plans.find((item) => item.id === "plan-read")
@@ -199,12 +212,16 @@ export function markExplore(db: Db, user: SessionUser) {
 }
 
 export function gradeQuiz(db: Db, user: SessionUser, answers: number[]) {
-  assertLearnerAccess(user)
+  assertLearnerAccess(db, user)
   if (user.role !== "student") throw new HttpError(403, "Chỉ học sinh làm được bài luyện tập này.")
-  if (answers.length !== QUIZ.length || answers.some((value) => !Number.isInteger(value) || value < 0 || value > 2)) {
+  const quiz = db.module.quiz
+  if (
+    answers.length !== quiz.length ||
+    answers.some((value, index) => !Number.isInteger(value) || value < 0 || value >= quiz[index].choices.length)
+  ) {
     throw new HttpError(400, "Hãy chọn một đáp án cho mỗi câu.")
   }
-  const explanations = QUIZ.map((question, index) => ({
+  const explanations = quiz.map((question, index) => ({
     id: question.id,
     correct: answers[index] === question.answer,
     explain: question.explain,
@@ -214,7 +231,7 @@ export function gradeQuiz(db: Db, user: SessionUser, answers: number[]) {
     id: `quiz-${db.quizzes.length + 1}`,
     answers,
     score,
-    total: QUIZ.length,
+    total: quiz.length,
     submittedAt: new Date().toISOString(),
     explanations,
   }
@@ -232,7 +249,7 @@ export function publishReview(
   user: SessionUser,
   input: { versionNo: number; marks: { id: string; met: boolean; note: string }[] },
 ) {
-  assertLearnerAccess(user)
+  assertLearnerAccess(db, user)
   if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên được phân công mới công bố nhận xét.")
   const version = db.versions.find((item) => item.versionNo === input.versionNo)
   if (!version) throw new HttpError(404, "Không thấy lần nộp này.")
@@ -270,13 +287,19 @@ export function publishReview(
   }
   const plan = db.plans.find((item) => item.id === "plan-record")
   if (plan) plan.done = true
+  const summary = "Bài thực hành đã có phản hồi. Mở bài để đọc nhận xét."
+  notify(db, { userId: LEARNER.id, title: "Giáo viên đã công bố phản hồi", summary, href: "/learn" })
+  if (db.guardianLink.status === "active") {
+    notify(db, { userId: db.guardianLink.guardianId, title: "Có phản hồi mới về bài của con", summary, href: "/records" })
+  }
+  recordAudit(db, { actorId: user.id, actorName: user.name, action: "Công bố phản hồi", target: `Lần nộp ${version.versionNo}` })
   return { publishedAt, outcomes: outcomeView(db) }
 }
 
 export function recordsPayload(db: Db, user: SessionUser) {
-  assertLearnerAccess(user)
+  assertLearnerAccess(db, user)
   return {
-    ...context(),
+    ...context(db),
     outcomes: outcomeView(db),
     versions: db.versions.map((item) => ({
       versionNo: item.versionNo,
@@ -293,13 +316,13 @@ export function teachingPayload(db: Db) {
   const latest = db.versions.at(-1) ?? null
   const review = db.reviews.find((item) => item.versionNo === latest?.versionNo) ?? null
   return {
-    ...context(),
+    ...context(db),
     learner: LEARNER,
     latest,
     review,
     criteria: CRITERIA.map(({ id, label }) => ({ id, label })),
     outcomes: outcomeView(db),
-    roster: [{ name: LEARNER.name, className: LEARNER.className, course: COURSE.name }],
+    roster: [{ name: LEARNER.name, className: db.org.className, course: db.org.courseTitle }],
   }
 }
 

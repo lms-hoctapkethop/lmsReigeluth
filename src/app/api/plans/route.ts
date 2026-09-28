@@ -9,8 +9,8 @@ export async function GET() {
     const user = await getSessionUser()
     if (!user) throw new HttpError(401, "Hãy đăng nhập lại.")
     const data = await withDb((db) => {
-      assertLearnerAccess(user)
-      return { ...context(), plans: db.plans, canEdit: user.role === "student" }
+      assertLearnerAccess(db, user)
+      return { ...context(db), plans: db.plans, canEdit: user.role === "student" }
     })
     return Response.json(data)
   } catch (error) {
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       due?: string
     }
     const data = await withDb((db) => {
-      assertLearnerAccess(user)
+      assertLearnerAccess(db, user)
       if (user.role !== "student") {
         throw new HttpError(403, "Chỉ học sinh sửa được kế hoạch của mình.")
       }

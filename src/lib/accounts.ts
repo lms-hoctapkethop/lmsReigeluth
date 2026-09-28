@@ -20,4 +20,11 @@ export const DEMO_ACCOUNTS = [
     role: "guardian" as const,
     hint: "Phụ huynh của Lê An",
   },
+  {
+    email: "admin@gds.edu.vn",
+    password: "QuanTri2026",
+    name: "Quản trị trường",
+    role: "admin" as const,
+    hint: "Quản trị nhà trường",
+  },
 ]

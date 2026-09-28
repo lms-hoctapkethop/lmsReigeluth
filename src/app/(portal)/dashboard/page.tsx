@@ -30,10 +30,16 @@ export default function DashboardPage() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    fetch("/api/overview")
+    fetch("/api/session")
       .then(async (response) => {
-        const body = await response.json()
-        if (!response.ok) throw new Error(body.error || "Không tải được tổng quan.")
+        const me = await response.json()
+        if (me.user?.role === "admin") {
+          window.location.assign("/admin")
+          return
+        }
+        const overview = await fetch("/api/overview")
+        const body = await overview.json()
+        if (!overview.ok) throw new Error(body.error || "Không tải được tổng quan.")
         setData(body)
       })
       .catch((reason: Error) => setError(reason.message || "Lỗi mạng."))

@@ -44,9 +44,14 @@ export default function TeachingPage() {
           </li>
         ))}
       </ul>
-      <Link className="text-sm font-medium text-primary" href="/assessment">
-        Mở hàng chờ phản hồi
-      </Link>
+      <div className="flex flex-wrap gap-4">
+        <Link className="text-sm font-medium text-primary" href="/assessment">
+          Mở hàng chờ phản hồi
+        </Link>
+        <Link className="text-sm font-medium text-primary" href="/teaching/content">
+          Soạn nội dung khóa học
+        </Link>
+      </div>
     </div>
   )
 }

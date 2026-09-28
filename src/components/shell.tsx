@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
+  Bell,
   BookOpen,
   CalendarCheck,
   ClipboardCheck,
@@ -11,6 +12,8 @@ import {
   FolderOpen,
   Heart,
   LayoutDashboard,
+  Library,
+  ScrollText,
   Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -20,6 +23,7 @@ const labels: Record<SessionUser["role"], string> = {
   student: "Học sinh",
   teacher: "Giáo viên",
   guardian: "Phụ huynh",
+  admin: "Quản trị",
 }
 
 const nav: Record<SessionUser["role"], { href: string; label: string; icon: typeof LayoutDashboard }[]> = {
@@ -28,18 +32,27 @@ const nav: Record<SessionUser["role"], { href: string; label: string; icon: type
     { href: "/plans", label: "Kế hoạch", icon: CalendarCheck },
     { href: "/learn", label: "Khóa học", icon: BookOpen },
     { href: "/records", label: "Hồ sơ", icon: FolderOpen },
+    { href: "/notifications", label: "Thông báo", icon: Bell },
   ],
   teacher: [
     { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
     { href: "/teaching", label: "Lớp giảng dạy", icon: Users },
+    { href: "/teaching/content", label: "Nội dung", icon: Library },
     { href: "/assessment", label: "Chờ phản hồi", icon: ClipboardCheck },
-    { href: "/records", label: "Hồ sơ", icon: FolderOpen },
+    { href: "/notifications", label: "Thông báo", icon: Bell },
   ],
   guardian: [
     { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
     { href: "/plans", label: "Kế hoạch", icon: CalendarCheck },
-    { href: "/records", label: "Hồ sơ", icon: FolderOpen },
     { href: "/family", label: "Kế hoạch hỗ trợ", icon: Heart },
+    { href: "/notifications", label: "Thông báo", icon: Bell },
+  ],
+  admin: [
+    { href: "/admin/users", label: "Tài khoản", icon: Users },
+    { href: "/admin/organization", label: "Tổ chức học", icon: BookOpen },
+    { href: "/admin/links", label: "Liên kết gia đình", icon: Heart },
+    { href: "/admin/audit", label: "Nhật ký", icon: ScrollText },
+    { href: "/notifications", label: "Thông báo", icon: Bell },
   ],
 }
 
@@ -48,21 +61,46 @@ const secondary: Record<SessionUser["role"], { href: string; label: string; icon
     { href: "/assessment", label: "Tự kiểm tra", icon: ClipboardCheck },
     { href: "/about", label: "Mô hình học", icon: Compass },
   ],
-  teacher: [{ href: "/about", label: "Mô hình học", icon: Compass }],
-  guardian: [{ href: "/about", label: "Mô hình học", icon: Compass }],
+  teacher: [
+    { href: "/records", label: "Hồ sơ", icon: FolderOpen },
+    { href: "/about", label: "Mô hình học", icon: Compass },
+  ],
+  guardian: [
+    { href: "/records", label: "Hồ sơ", icon: FolderOpen },
+    { href: "/about", label: "Mô hình học", icon: Compass },
+  ],
+  admin: [{ href: "/about", label: "Mô hình học", icon: Compass }],
 }
 
 export function Shell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [heading, setHeading] = useState("Tin học 10 · Lớp 10A1 · Tuần 28/09 – 04/10/2026")
+  const [unread, setUnread] = useState(0)
   const items = nav[user.role]
   const extra = secondary[user.role]
+
+  useEffect(() => {
+    fetch("/api/context")
+      .then(async (response) => {
+        if (!response.ok) return
+        const body = (await response.json()) as { org?: { offeringTitle: string; weekLabel: string }; unread?: number }
+        if (body.org) setHeading(`${body.org.offeringTitle} · Tuần ${body.org.weekLabel}`)
+        setUnread(body.unread ?? 0)
+      })
+      .catch(() => undefined)
+  }, [pathname])
 
   async function logout() {
     await fetch("/api/session", { method: "DELETE" })
     router.push("/login")
     router.refresh()
+  }
+
+  function isActive(href: string) {
+    if (href === "/teaching") return pathname === "/teaching"
+    return pathname === href || pathname.startsWith(`${href}/`)
   }
 
   function itemClass(active: boolean) {
@@ -74,7 +112,7 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
       <a className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50 focus:rounded-[10px] focus:bg-white focus:px-3 focus:py-2" href="#noi-dung">
         Bỏ qua điều hướng
       </a>
-      <aside className="border-[#d9ddea] bg-white text-[#22263b] md:min-h-screen md:border-r">
+      <aside className="border-[#d9ddea] bg-white text-[#22263b] md:min-h-screen md:overflow-y-auto md:border-r">
         <div className="flex min-h-14 items-center justify-between px-4 xl:min-h-[72px]">
           <Link href="/dashboard" className="flex items-center gap-3">
             <span className="grid size-9 place-items-center rounded-xl bg-[#5150df] text-sm font-semibold text-white">HC</span>
@@ -90,13 +128,16 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
         <nav className={`${open ? "block" : "hidden"} px-3 md:block`} aria-label="Điều hướng chính">
           <ul className="space-y-1">
             {items.map((item) => {
-              const active = pathname === item.href
+              const active = isActive(item.href)
               const Icon = item.icon
               return (
                 <li key={item.href}>
                   <Link href={item.href} onClick={() => setOpen(false)} className={itemClass(active)} aria-current={active ? "page" : undefined}>
                     <Icon className="size-5" />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.href === "/notifications" && unread > 0 ? (
+                      <span className="rounded-full bg-[#eff6ff] px-2 py-0.5 text-xs font-medium text-[#1e40af]">{unread} chưa đọc</span>
+                    ) : null}
                   </Link>
                 </li>
               )
@@ -105,13 +146,16 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
           <p className="mt-6 px-3 text-[13px] text-[#5b6476]">Thêm</p>
           <ul className="mt-1 space-y-1">
             {extra.map((item) => {
-              const active = pathname === item.href
+              const active = isActive(item.href)
               const Icon = item.icon
               return (
                 <li key={item.href}>
                   <Link href={item.href} onClick={() => setOpen(false)} className={itemClass(active)} aria-current={active ? "page" : undefined}>
                     <Icon className="size-5" />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.href === "/notifications" && unread > 0 ? (
+                      <span className="rounded-full bg-[#eff6ff] px-2 py-0.5 text-xs font-medium text-[#1e40af]">{unread} chưa đọc</span>
+                    ) : null}
                   </Link>
                 </li>
               )
@@ -130,10 +174,10 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
         <header className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-[#d9ddea] bg-white px-4 md:min-h-16 md:px-6 xl:min-h-[72px] xl:px-8">
           <div>
             <p className="text-[13px] font-medium text-[#5150df]">Lớp học phần</p>
-            <p className="font-medium text-[#22263b]">Tin học 10 · Lớp 10A1 · Tuần 28/09 – 04/10/2026</p>
+            <p className="font-medium text-[#22263b]">{heading}</p>
           </div>
           <p className="text-sm text-[#5b6476]">
-            {user.role === "student" ? "Lê An đang học" : user.role === "teacher" ? "Nguyễn Hà phụ trách" : "Đang xem hồ sơ của Lê An"}
+            {user.role === "student" ? "Lê An đang học" : user.role === "teacher" ? "Nguyễn Hà phụ trách" : user.role === "admin" ? "Quản trị nhà trường" : "Đang xem hồ sơ của Lê An"}
           </p>
         </header>
         <main id="noi-dung" className="mx-auto max-w-[1440px] px-4 py-6 md:px-6 md:py-8 xl:px-8">

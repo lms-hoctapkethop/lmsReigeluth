@@ -24,12 +24,12 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       })
-      const body = (await response.json()) as { error?: string }
+      const body = (await response.json()) as { error?: string; user?: { role?: string } }
       if (!response.ok) {
         setError(body.error || "Không đăng nhập được.")
         return
       }
-      router.push("/dashboard")
+      router.push(body.user?.role === "admin" ? "/admin" : "/dashboard")
       router.refresh()
     } catch {
       setError("Mất kết nối. Hãy thử lại.")

@@ -3,7 +3,7 @@ import { DEMO_ACCOUNTS } from "@/lib/accounts"
 import { mkdirSync, readFileSync, writeFileSync } from "fs"
 import path from "path"
 
-export type Role = "student" | "teacher" | "guardian"
+export type Role = "student" | "teacher" | "guardian" | "admin"
 
 export type User = {
   id: string
@@ -73,6 +73,63 @@ export type FamilyNote = {
   confirmedAt: string
 }
 
+export type QuizItem = {
+  id: string
+  prompt: string
+  choices: string[]
+  answer: number
+  explain: string
+}
+
+export type ModuleDoc = {
+  title: string
+  summary: string
+  exploreTitle: string
+  exploreBody: string[]
+  practiceTitle: string
+  practicePrompt: string
+  quiz: QuizItem[]
+  status: "draft" | "published"
+  version: number
+  updatedAt: string | null
+}
+
+export type OrgProfile = {
+  school: string
+  className: string
+  courseTitle: string
+  offeringTitle: string
+  weekLabel: string
+}
+
+export type GuardianLink = {
+  id: string
+  guardianId: string
+  learnerId: string
+  status: "pending" | "active" | "revoked"
+  verifiedAt: string | null
+  reason: string
+}
+
+export type AppNotification = {
+  id: string
+  userId: string
+  title: string
+  summary: string
+  href: string
+  createdAt: string
+  readAt: string | null
+}
+
+export type AuditEvent = {
+  id: string
+  at: string
+  actorId: string
+  actorName: string
+  action: string
+  target: string
+}
+
 export type Db = {
   users: User[]
   plans: PlanItem[]
@@ -84,6 +141,12 @@ export type Db = {
   quizzes: QuizAttempt[]
   familyNotes: FamilyNote[]
   idempotency: Record<string, { receipt: string; versionNo: number; submittedAt: string }>
+  module: ModuleDoc
+  moduleDraft: ModuleDoc
+  org: OrgProfile
+  guardianLink: GuardianLink
+  notifications: AppNotification[]
+  audit: AuditEvent[]
 }
 
 const file = path.join(process.cwd(), "data", "db.json")
@@ -114,7 +177,7 @@ export const CRITERIA = [
   { id: "check", label: "Ví dụ tự kiểm tra", outcomes: ["check"] },
 ] as const
 
-export const QUIZ = [
+export const QUIZ: QuizItem[] = [
   {
     id: "q1",
     prompt: "Đoạn nào in Đạt khi điểm từ 5 trở lên?",
@@ -146,6 +209,53 @@ export const QUIZ = [
   },
 ]
 
+export function defaultModule(status: ModuleDoc["status"] = "published"): ModuleDoc {
+  return {
+    title: "Bài 03 · Rẽ nhánh if–else",
+    summary: "Chọn một trong hai hướng bằng if–else, rồi giải thích vì sao chọn nhánh đó.",
+    exploreTitle: "Khám phá: khi nào thì rẽ nhánh?",
+    exploreBody: [
+      "Một chương trình thường cần chọn một trong hai hướng. Trong Python, if kiểm tra một điều kiện. Nếu điều kiện đúng, máy chạy khối lệnh thụt vào bên dưới. Nếu sai, máy chuyển sang else.",
+      "Ví dụ điểm số: từ 5 trở lên thì in Đạt, thấp hơn thì in Chưa đạt. Dấu hai chấm kết thúc dòng điều kiện. Các lệnh thuộc nhánh phải thụt vào cùng một mức.",
+    ],
+    practiceTitle: "Thực hành: phân loại điểm",
+    practicePrompt:
+      "Viết chương trình đọc biến diem. Nếu diem >= 5 thì in Đạt, ngược lại in Chưa đạt. Phía dưới, giải thích bạn chọn điều kiện nào và một ví dụ bạn đã tự thử.",
+    quiz: QUIZ.map((item) => ({ ...item, choices: [...item.choices] })),
+    status,
+    version: 1,
+    updatedAt: null,
+  }
+}
+
+export function defaultOrg(): OrgProfile {
+  return {
+    school: "Một trường",
+    className: "10A1",
+    courseTitle: "Tin học 10",
+    offeringTitle: "Tin học 10 · 10A1",
+    weekLabel: "28/09 – 04/10/2026",
+  }
+}
+
+export function defaultLink(): GuardianLink {
+  return {
+    id: "link-mai-an",
+    guardianId: "guardian-mai",
+    learnerId: LEARNER.id,
+    status: "active",
+    verifiedAt: "2026-09-28T00:00:00.000Z",
+    reason: "Nhà trường đã xác minh phụ huynh của Lê An.",
+  }
+}
+
+function accountId(role: Role) {
+  if (role === "student") return LEARNER.id
+  if (role === "teacher") return "teacher-ha"
+  if (role === "guardian") return "guardian-mai"
+  return "admin-school"
+}
+
 function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex")
   const passwordHash = scryptSync(password, salt, 32).toString("hex")
@@ -160,12 +270,7 @@ export function verifyPassword(password: string, salt: string, hash: string) {
 
 function seed(): Db {
   const users: User[] = DEMO_ACCOUNTS.map((account) => ({
-    id:
-      account.role === "student"
-        ? LEARNER.id
-        : account.role === "teacher"
-          ? "teacher-ha"
-          : "guardian-mai",
+    id: accountId(account.role),
     email: account.email,
     name: account.name,
     role: account.role,
@@ -221,14 +326,80 @@ function seed(): Db {
     quizzes: [],
     familyNotes: [],
     idempotency: {},
+    module: defaultModule("published"),
+    moduleDraft: defaultModule("draft"),
+    org: defaultOrg(),
+    guardianLink: defaultLink(),
+    notifications: [],
+    audit: [],
   }
+}
+
+export function notify(
+  db: Db,
+  input: { userId: string; title: string; summary: string; href: string },
+) {
+  db.notifications.unshift({
+    id: `ntf-${db.notifications.length + 1}-${Date.now().toString(36)}`,
+    userId: input.userId,
+    title: input.title,
+    summary: input.summary.slice(0, 180),
+    href: input.href,
+    createdAt: new Date().toISOString(),
+    readAt: null,
+  })
+}
+
+export function recordAudit(db: Db, input: { actorId: string; actorName: string; action: string; target: string }) {
+  db.audit.unshift({
+    id: `aud-${db.audit.length + 1}`,
+    at: new Date().toISOString(),
+    actorId: input.actorId,
+    actorName: input.actorName,
+    action: input.action,
+    target: input.target.slice(0, 160),
+  })
 }
 
 let chain: Promise<unknown> = Promise.resolve()
 
+function hydrate(parsed: Partial<Db>): Db {
+  const users = parsed.users ?? []
+  if (!users.some((item) => item.role === "admin")) {
+    const account = DEMO_ACCOUNTS.find((item) => item.role === "admin")
+    if (account) {
+      users.push({
+        id: accountId(account.role),
+        email: account.email,
+        name: account.name,
+        role: account.role,
+        ...hashPassword(account.password),
+      })
+    }
+  }
+  return {
+    users,
+    plans: parsed.plans ?? [],
+    exploreDone: parsed.exploreDone ?? false,
+    draft: parsed.draft ?? seed().draft,
+    versions: parsed.versions ?? [],
+    reviews: parsed.reviews ?? [],
+    decisions: parsed.decisions ?? [],
+    quizzes: parsed.quizzes ?? [],
+    familyNotes: parsed.familyNotes ?? [],
+    idempotency: parsed.idempotency ?? {},
+    module: parsed.module ?? defaultModule("published"),
+    moduleDraft: parsed.moduleDraft ?? defaultModule("draft"),
+    org: parsed.org ?? defaultOrg(),
+    guardianLink: parsed.guardianLink ?? defaultLink(),
+    notifications: parsed.notifications ?? [],
+    audit: parsed.audit ?? [],
+  }
+}
+
 function read(): Db {
   try {
-    return JSON.parse(readFileSync(file, "utf8")) as Db
+    return hydrate(JSON.parse(readFileSync(file, "utf8")) as Partial<Db>)
   } catch {
     const db = seed()
     mkdirSync(path.dirname(file), { recursive: true })
