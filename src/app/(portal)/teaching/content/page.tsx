@@ -36,7 +36,7 @@ export default function ContentLibraryPage() {
       <div>
         <h1 className="text-2xl leading-tight font-bold md:text-[28px]">Nội dung khóa học</h1>
         <p className="mt-2 max-w-3xl text-[#5b6476]">
-          Học sinh chỉ thấy bản đã phát hành. Sửa bản nháp không đổi bài đang học cho tới khi bạn công bố.
+          Học sinh chỉ thấy bản đã phát hành của bài trên mục Khóa học. Để soạn một bài khác và giao cho lớp, mở <Link className="font-medium text-[#5150df]" href="/teaching/modules">Soạn và giao</Link>.
         </p>
       </div>
       <article className="surface p-4 md:p-6">

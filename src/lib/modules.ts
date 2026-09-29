@@ -1,5 +1,5 @@
-import { HttpError, LEARNER, type Db } from "@/lib/db"
-import type { AuthoredModule, ItemFact, ModuleItem, ModuleRelease, PathRelease } from "@/lib/module-types"
+import { HttpError, LEARNER, notify, recordAudit, type Db } from "@/lib/db"
+import type { AssignmentWork, AuthoredModule, ItemFact, ModuleItem, ModuleRelease, PathRelease } from "@/lib/module-types"
 
 export type { AuthoredModule, ItemFact, ModuleItem, ModuleRelease, PathRelease } from "@/lib/module-types"
 
@@ -79,6 +79,96 @@ export function rejectDisabledDelivery(body: Record<string, unknown>, classDeliv
   }
   if (body.action === "deliver" && classDeliveryEnabled !== true) {
     throw new HttpError(403, "Giao lớp chưa được bật trên dữ liệu trường.", { code: "CLASS_DELIVERY_OFF" })
+  }
+}
+
+function clipText(value: string, max: number) {
+  return value.replace(/\r\n/g, "\n").trim().slice(0, max)
+}
+
+export function saveLessonDraft(
+  db: Db,
+  input: { key: string; title: string; pageBody: string; assignmentPrompt: string; linkHref?: string },
+) {
+  const current = db.authoredModules.find((item) => item.key === input.key)
+  if (!current) throw new HttpError(404, "Không thấy bản soạn.")
+  const next = structuredClone(current)
+  next.title = clipText(input.title, 160).replace(/\s+/g, " ")
+  if (next.title.length < 3) throw new HttpError(400, "Tên bài cần ít nhất 3 ký tự.")
+  const page = next.items.find((item) => item.type === "page")
+  const assignment = next.items.find((item) => item.type === "assignment")
+  if (!page || !assignment) throw new HttpError(400, "Bản soạn cần một trang bài học và một bài tập.")
+  page.body = clipText(input.pageBody, 20000)
+  assignment.prompt = clipText(input.assignmentPrompt, 8000)
+  const link = next.items.find((item) => item.type === "link")
+  if (link && input.linkHref) link.href = clipText(input.linkHref, 500)
+  const saved = saveAuthoredModule(db, next)
+  return saved
+}
+
+export function deliverModule(db: Db, moduleKey: string) {
+  if (!db.classDeliveryEnabled) {
+    throw new HttpError(403, "Giao lớp chưa được bật trên dữ liệu trường.", { code: "CLASS_DELIVERY_OFF" })
+  }
+  const weekLabel = db.org.weekLabel
+  const lessonTitle = db.module.title
+  const source = db.authoredModules.find((item) => item.key === moduleKey)
+  if (!source) throw new HttpError(422, "Không thấy module để giao.", { code: "MODULE_NOT_FOUND" })
+  assertModuleShape(source)
+  const page = source.items.find((item) => item.type === "page")
+  const assignment = source.items.find((item) => item.type === "assignment")
+  if (!page?.body || page.body.trim().length < 12) {
+    throw new HttpError(400, "Hãy viết nội dung bài học, lưu bản soạn, rồi mới giao.")
+  }
+  if (!assignment?.prompt || assignment.prompt.trim().length < 12) {
+    throw new HttpError(400, "Hãy viết đề bài tập, lưu bản soạn, rồi mới giao.")
+  }
+  const snapshot = structuredClone(source)
+  snapshot.state = "published"
+  const releaseKey = `rel-${source.key}`
+  const publishedAt = new Date().toISOString()
+  const release: ModuleRelease = {
+    releaseKey,
+    moduleVersionKey: source.versionKey,
+    position: 1,
+    availableFrom: new Date(Date.now() - 60_000).toISOString(),
+    dueAt: null,
+    prerequisiteReleaseKeys: [],
+    snapshot,
+  }
+  if (!db.pathRelease) {
+    db.pathRelease = {
+      pathReleaseKey: "path-10a1",
+      offeringId: "offering-10a1",
+      publishedAt,
+      modules: [release],
+    }
+  } else {
+    const index = db.pathRelease.modules.findIndex((item) => item.snapshot.key === source.key)
+    if (index >= 0) {
+      release.position = db.pathRelease.modules[index].position
+      db.pathRelease.modules[index] = release
+    } else {
+      release.position = db.pathRelease.modules.length + 1
+      db.pathRelease.modules.push(release)
+    }
+    db.pathRelease.publishedAt = publishedAt
+  }
+  if (db.org.weekLabel !== weekLabel || db.module.title !== lessonTitle) {
+    throw new HttpError(500, "Giao bài không được đổi tuần lớp hoặc bài đang học.")
+  }
+  notify(db, {
+    userId: LEARNER.id,
+    title: "Có bài mới được giao",
+    summary: source.title,
+    href: "/classwork",
+  })
+  recordAudit(db, { actorId: "teacher-ha", actorName: "Nguyễn Hà", action: "Giao bài cho lớp", target: source.title })
+  return {
+    receipt: `PATH-${publishedAt.slice(0, 10).replaceAll("-", "")}-${releaseKey}`,
+    pathReleaseKey: db.pathRelease.pathReleaseKey,
+    releaseKey,
+    title: source.title,
   }
 }
 
@@ -179,6 +269,7 @@ export function modulesPayload(db: Db, role: "student" | "teacher" | "guardian" 
     drafts: role === "teacher" ? db.authoredModules : [],
     pathRelease,
     facts: db.itemFacts.filter((fact) => fact.learnerId === LEARNER.id),
+    assignmentWork: db.assignmentWork.filter((item) => role === "teacher" || item.learnerId === LEARNER.id),
   }
 }
 
@@ -259,7 +350,7 @@ export function markItem(
 
 export function submitAssignment(
   db: Db,
-  input: { learnerId: string; releaseKey: string; itemKey: string; now?: string },
+  input: { learnerId: string; releaseKey: string; itemKey: string; now?: string; text?: string },
 ) {
   const before = db.decisions.length
   const release = findRelease(db, input.releaseKey)
@@ -267,12 +358,26 @@ export function submitAssignment(
   if (!item || item.type !== "assignment") throw new HttpError(404, "Không thấy bài nộp này.")
   if (item.completion.kind !== "submit") throw new HttpError(400, "Bài này không hoàn thành bằng lần nộp.")
   assertOpen(db, release, item, input.learnerId, input.now ?? new Date().toISOString())
+  const text = input.text === undefined ? undefined : clipText(input.text, 4000)
+  if (text !== undefined && text.length < 12) throw new HttpError(400, "Bài làm cần một đoạn đủ để giáo viên đọc.")
+  const submittedAt = input.now ?? new Date().toISOString()
+  if (text !== undefined) {
+    const work: AssignmentWork = {
+      id: `work-${db.assignmentWork.length + 1}`,
+      learnerId: input.learnerId,
+      moduleReleaseKey: release.releaseKey,
+      itemKey: item.key,
+      text,
+      submittedAt,
+    }
+    db.assignmentWork.push(work)
+  }
   if (!db.itemFacts.some((fact) => fact.moduleReleaseKey === release.releaseKey && fact.itemKey === item.key && fact.learnerId === input.learnerId)) {
     db.itemFacts.push({
       learnerId: input.learnerId,
       moduleReleaseKey: release.releaseKey,
       itemKey: item.key,
-      completedAt: input.now ?? new Date().toISOString(),
+      completedAt: submittedAt,
       reason: "submit",
     })
   }

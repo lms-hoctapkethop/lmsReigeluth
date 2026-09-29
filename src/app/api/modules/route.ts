@@ -1,15 +1,21 @@
+import { suggestAuthoring } from "@/lib/authoring"
 import { commitWrite, HttpError, jsonError, LEARNER, requireExpectedRevision, withDb } from "@/lib/db"
-import { deliverPath, markItem, modulesPayload, rejectAttainmentWrite, rejectDisabledDelivery, sampleWeekModule, saveAuthoredModule, submitAssignment, submitModuleQuiz } from "@/lib/modules"
+import { deliverModule, deliverPath, markItem, modulesPayload, rejectAttainmentWrite, rejectDisabledDelivery, sampleWeekModule, saveAuthoredModule, saveLessonDraft, submitAssignment, submitModuleQuiz } from "@/lib/modules"
 import type { AuthoredModule } from "@/lib/module-types"
 import { getSessionUser } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getSessionUser()
     if (!user) throw new HttpError(401, "Hãy đăng nhập lại.")
     if (user.role === "admin") throw new HttpError(403, "Tài khoản quản trị không mở hồ sơ học tập.")
+    const suggest = new URL(request.url).searchParams.get("suggest")
+    if (suggest) {
+      if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên xem nội dung đề xuất.")
+      return Response.json(suggestAuthoring(suggest))
+    }
     const data = await withDb((db) => modulesPayload(db, user.role))
     return Response.json(data)
   } catch (error) {
@@ -52,11 +58,19 @@ export async function POST(request: Request) {
           if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên soạn module.")
           return finish(saveAuthoredModule(db, sampleWeekModule()))
         }
-        if (body.action === "save") {
+        if (body.action === "save" || body.action === "save-lesson") {
           if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên soạn module.")
-          const current = db.authoredModules.find((item) => item.key === body.key)
-          if (!current) throw new HttpError(404, "Không thấy bản soạn.")
-          return finish(saveAuthoredModule(db, { ...current, title: String(body.title ?? current.title) }))
+          return finish(saveLessonDraft(db, {
+            key: String(body.key ?? ""),
+            title: String(body.title ?? ""),
+            pageBody: String(body.pageBody ?? ""),
+            assignmentPrompt: String(body.assignmentPrompt ?? ""),
+            linkHref: body.linkHref ? String(body.linkHref) : undefined,
+          }))
+        }
+        if (body.action === "deliver-module") {
+          if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên giao được module.")
+          return finish(deliverModule(db, String(body.moduleKey ?? "")))
         }
         if (body.action === "mark-done") {
           return finish(markItem(db, {
@@ -78,6 +92,7 @@ export async function POST(request: Request) {
             learnerId: user.id,
             releaseKey: String(body.releaseKey ?? ""),
             itemKey: String(body.itemKey ?? ""),
+            text: typeof body.text === "string" ? body.text : undefined,
           }))
         }
         throw new HttpError(400, "Không rõ thao tác.")

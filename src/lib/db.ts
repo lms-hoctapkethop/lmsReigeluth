@@ -1,6 +1,6 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto"
 import { DEMO_ACCOUNTS } from "@/lib/accounts"
-import type { AuthoredModule, ItemFact, ModuleQuizAttempt, PathRelease } from "@/lib/module-types"
+import type { AssignmentWork, AuthoredModule, ItemFact, ModuleQuizAttempt, PathRelease } from "@/lib/module-types"
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync, writeSync } from "fs"
 import path from "path"
 
@@ -162,6 +162,7 @@ export type Db = {
   classDeliveryEnabled: boolean
   itemFacts: ItemFact[]
   moduleQuizAttempts: ModuleQuizAttempt[]
+  assignmentWork: AssignmentWork[]
 }
 
 const file = path.join(process.cwd(), "data", "db.json")
@@ -350,6 +351,7 @@ function seed(): Db {
     classDeliveryEnabled: false,
     itemFacts: [],
     moduleQuizAttempts: [],
+    assignmentWork: [],
     org: defaultOrg(),
     guardianLink: defaultLink(),
     notifications: [],
@@ -440,6 +442,7 @@ function hydrate(parsed: Partial<Db>): Db {
     classDeliveryEnabled: parsed.classDeliveryEnabled === true,
     itemFacts: parsed.itemFacts ?? [],
     moduleQuizAttempts: parsed.moduleQuizAttempts ?? [],
+    assignmentWork: parsed.assignmentWork ?? [],
     org: parsed.org ?? defaultOrg(),
     guardianLink: parsed.guardianLink ?? defaultLink(),
     notifications: parsed.notifications ?? [],

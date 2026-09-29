@@ -17,6 +17,9 @@ export type ModuleItem = {
   type: ItemType
   resourceVersionKey: string | null
   completion: { kind: CompletionKind }
+  body?: string
+  prompt?: string
+  href?: string
   quiz?: { questions: QuizQuestion[] }
 }
 
@@ -53,6 +56,15 @@ export type ItemFact = {
   itemKey: string
   completedAt: string
   reason: "view" | "self_mark" | "submit"
+}
+
+export type AssignmentWork = {
+  id: string
+  learnerId: string
+  moduleReleaseKey: string
+  itemKey: string
+  text: string
+  submittedAt: string
 }
 
 export type ModuleQuizAttempt = {

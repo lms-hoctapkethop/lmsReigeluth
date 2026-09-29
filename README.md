@@ -38,7 +38,7 @@ Lệch `draft.version` khi lưu nháp hoặc nộp bài thực hành vẫn là H
 
 Khóa đang nằm trong bộ nhớ của một tiến trình, kèm file `data/writer.lock` ghi PID. Chỉ chạy một `next dev` hoặc một `next start` cho cùng một file dữ liệu. Tiến trình thứ hai nhận HTTP 503 mã `SINGLE_WRITER`.
 
-Trên file lớp của trường, `classDeliveryEnabled` đang bật. Kho 34 bài đã nhập dưới dạng bản soạn `draft`, chưa giao cho 10A1: `pathRelease` vẫn null. Tuần lớp giữ `28/09 – 04/10/2026`, bài đang học vẫn là `Bài 03 · Rẽ nhánh if–else`. `POST /api/modules` với `action: "deliver"` chỉ chạy khi cờ đã bật, và vẫn từ chối `min_score` cùng cổng KC.
+Giáo viên mở Soạn và giao để viết bài học, đề bài tập, lưu bản soạn, rồi giao từng bài cho lớp. Học sinh xem bài đó ở Bài được giao. Bài trên mục Khóa học và tuần `28/09 – 04/10/2026` không đổi khi giao. Kho 34 bài không bị giao hàng loạt. `min_score` và cổng KC vẫn bị từ chối.
 
 ```bash
 npm test

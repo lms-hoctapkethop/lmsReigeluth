@@ -4,7 +4,9 @@ import { readFileSync, rmSync } from "node:fs"
 import { test } from "node:test"
 import { commitWrite, commandFingerprint, HttpError, withDb } from "@/lib/db"
 import { saveDraft, submitWork } from "@/lib/learn"
+import { suggestAuthoring } from "@/lib/authoring"
 import {
+  deliverModule,
   deliverPath,
   effectiveRequirements,
   markItem,
@@ -13,6 +15,7 @@ import {
   rejectDisabledDelivery,
   sampleWeekModule,
   saveAuthoredModule,
+  saveLessonDraft,
   submitAssignment,
   submitModuleQuiz,
 } from "@/lib/modules"
@@ -408,4 +411,76 @@ test("adapter JSON và P1a-01 đến P1a-10 trên bản sao cô lập", async ()
   results["CLASS_DELIVERY_HTTP"] = "PASS"
   console.log(JSON.stringify(results))
   for (const [key, value] of Object.entries(results)) assert.equal(value, "PASS", key)
+})
+
+test("giáo viên lưu bài học, đề bài tập và giao một bài", async () => {
+  reset()
+  const suggested = suggestAuthoring("TH10-B01")
+  assert.ok(suggested.pageBody.includes("Thông tin"))
+  assert.ok(suggested.assignmentPrompt.length > 12)
+  await commitWrite({
+    expectedRevision: 0,
+    apply: (db) => {
+      db.classDeliveryEnabled = true
+      saveAuthoredModule(db, sampleWeekModule())
+      return { ok: true }
+    },
+  })
+  const week = readDb().org.weekLabel
+  const empty = await commitWrite({
+    expectedRevision: 1,
+    apply: (db) => deliverModule(db, "TH10-W1"),
+  }).then(
+    () => null,
+    (error: unknown) => error,
+  )
+  assert.equal((empty as HttpError).status, 400)
+  assert.equal(readDb().pathRelease, null)
+  const saved = await commitWrite({
+    expectedRevision: 1,
+    apply: (db) =>
+      saveLessonDraft(db, {
+        key: "TH10-W1",
+        title: "Tuần mẫu trên lớp",
+        pageBody: "Nội dung bài học đủ để giao cho lớp.",
+        assignmentPrompt: "Viết một đoạn giải thích điều kiện if.",
+      }),
+  })
+  const lessonBefore = (JSON.parse(readFileSync(dbPath, "utf8")) as { module: { title: string } }).module.title
+  const delivered = await commitWrite({
+    expectedRevision: saved.revision,
+    apply: (db) => deliverModule(db, "TH10-W1"),
+  })
+  const file = JSON.parse(readFileSync(dbPath, "utf8")) as {
+    org: { weekLabel: string }
+    module: { title: string }
+    pathRelease: { modules: { snapshot: { title: string; items: { type: string; body?: string; quiz?: { questions: { answer: number }[] } }[] } }[] }
+    decisions: unknown[]
+    authoredModules: { state: string }[]
+  }
+  assert.equal(file.org.weekLabel, week)
+  assert.equal(file.module.title, lessonBefore)
+  assert.equal(file.authoredModules[0].state, "draft")
+  assert.equal(file.pathRelease.modules.length, 1)
+  assert.equal(file.pathRelease.modules[0].snapshot.title, "Tuần mẫu trên lớp")
+  assert.equal(file.decisions.length, 0)
+  const view = await withDb((db) => modulesPayload(db, "student"))
+  assert.equal(view.drafts.length, 0)
+  const quiz = view.pathRelease?.modules[0].snapshot.items.find((item) => item.type === "quiz")
+  assert.equal(quiz?.quiz?.questions[0].answer, -1)
+  assert.equal(view.pathRelease?.modules[0].snapshot.items.find((item) => item.type === "page")?.body, "Nội dung bài học đủ để giao cho lớp.")
+  await commitWrite({
+    expectedRevision: delivered.revision,
+    apply: (db) =>
+      saveLessonDraft(db, {
+        key: "TH10-W1",
+        title: "Tuần mẫu trên lớp",
+        pageBody: "Bản sửa sau khi giao, học sinh chưa thấy.",
+        assignmentPrompt: "Viết một đoạn giải thích điều kiện if.",
+      }),
+  })
+  const afterEdit = JSON.parse(readFileSync(dbPath, "utf8")) as {
+    pathRelease: { modules: { snapshot: { items: { type: string; body?: string }[] } }[] }
+  }
+  assert.equal(afterEdit.pathRelease.modules[0].snapshot.items.find((item) => item.type === "page")?.body, "Nội dung bài học đủ để giao cho lớp.")
 })

@@ -99,6 +99,12 @@ W03, W08, W09 và W11 ghi dữ liệu, nên chạy trên bản sao `/tmp/hcn-w/d
 - Thẩm định chuyên gia 71 KC: NOT_RUN. Trong `course_Tin10_ALL34_3.2.1.json` cả 71 KC có `validation.expert_review` là `pending`.
 - Xuất Canvas: NOT_RUN. `examples/canvas_export_report_design.json` có `status: design_only`, `canvas_import_tested: false`, `target: null`. Lệnh `canvas-import` trên app trả 403 là từ chối ghi, không phải lần xuất đã chạy.
 
+## Soạn bài và giao cho lớp
+
+Giáo viên mở Soạn và giao, viết bài học và đề bài tập, lưu bản soạn, rồi giao đúng bài đó. Học sinh mở Bài được giao để đọc, nộp bài tập và làm luyện tập. Giao một bài không đổi tuần `28/09 – 04/10/2026` và không đổi bài `Bài 03 · Rẽ nhánh if–else`. Sửa bản soạn sau khi giao không đổi bản học sinh đang thấy. Nút “Đưa nội dung đề xuất vào ô soạn” chỉ đổ chữ vào ô, chưa ghi file.
+
+`npm test` sau thay đổi này: hai subtest đều pass, gồm ca lưu bài học, từ chối giao khi chưa có nội dung, giao một bài, học sinh không thấy bản soạn và không thấy đáp án.
+
 ## Kiểm định lại, cùng ngày
 
 Đầu lần kiểm, file lớp còn SHA-256 `394034559ef3a347ab006b299d70b1cddd2cf4c7754abbfd669e9f3ea99ceaa1`, revision 37. Đọc lại file và gọi HTTP mới, không dùng báo cáo cũ.
