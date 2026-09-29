@@ -98,3 +98,15 @@ W03, W08, W09 và W11 ghi dữ liệu, nên chạy trên bản sao `/tmp/hcn-w/d
 - W07, cổng P2 khi đã có decision đạt đã công bố: NOT_RUN.
 - Thẩm định chuyên gia 71 KC: NOT_RUN. Trong `course_Tin10_ALL34_3.2.1.json` cả 71 KC có `validation.expert_review` là `pending`.
 - Xuất Canvas: NOT_RUN. `examples/canvas_export_report_design.json` có `status: design_only`, `canvas_import_tested: false`, `target: null`. Lệnh `canvas-import` trên app trả 403 là từ chối ghi, không phải lần xuất đã chạy.
+
+## Kiểm định lại, cùng ngày
+
+Đầu lần kiểm, file lớp còn SHA-256 `394034559ef3a347ab006b299d70b1cddd2cf4c7754abbfd669e9f3ea99ceaa1`, revision 37. Đọc lại file và gọi HTTP mới, không dùng báo cáo cũ.
+
+Các lệnh GET của giáo viên, học sinh và quản trị không ghi file. Học sinh thấy 0 bản soạn. Bài học trả về không kèm đáp án quiz. Tuần `28/09 – 04/10/2026`, bài `Bài 03 · Rẽ nhánh if–else`. `classDeliveryEnabled` true, `pathRelease` null, 35 bản soạn `draft`.
+
+W01, W01-shape, W02, W05, W06, W10, W12 và `canvas-import` gọi lại trên tiến trình đang phục vụ. Mỗi ca đúng mã đã ghi ở bảng trên và file giữ nguyên hash lúc đó. W04 trên file lớp cũng trả 403 `ATTAINMENT_WRITE_FORBIDDEN`; file lớp chưa có review nào nên `review_id` trong lệnh đó không trỏ tới một review đang lưu.
+
+W03, W08, W09, W10, W11, W12 và W04 với `review-1` chạy lại trên bản sao mới `/tmp/hcn-reaudit-w/db.json`, cổng 4318, rồi tiến trình đó đã tắt. Kết quả từng ca trùng bảng trên. Sau các ca đó, hash file lớp vẫn là hash đầu lần kiểm.
+
+Trong lúc kiểm, site công khai ghi thêm vào file lớp: 09:53:11 quản trị gửi cập nhật tổ chức, rồi ba `POST /api/modules` trả 200. Lần đọc sau đó: revision 41, SHA-256 `65c27255a10c9739135c5cd7d141ff9d0471b3e52efb5cec1bc211d4dcf0b20a`. Tuần, tên trường, lớp, môn, bài 03, cờ giao lớp, `pathRelease` null, 35 bản soạn và nội dung 34 bài so với gói nhập vẫn như trước. Lần nộp 0, decision 0, review 0, quiz bài 03 vẫn 12. Hai dòng nhật ký là bật giao lớp và cập nhật tổ chức.
