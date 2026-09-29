@@ -1,5 +1,6 @@
 import { commitWrite, HttpError, jsonError, requireExpectedRevision, withDb } from "@/lib/db"
 import { publishReview, teachingPayload } from "@/lib/learn"
+import { rejectCanvasPrincipal } from "@/lib/modules"
 import { getSessionUser } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
@@ -24,7 +25,14 @@ export async function POST(request: Request) {
       versionNo?: number
       marks?: { id: string; met: boolean; note: string }[]
       expectedRevision?: number
+      proposedDecisions?: { outcomeId: string; decision: "met" | "not_met"; reason: string }[]
+      learnerId?: string
+      principal?: string
+      actor?: string
+      role?: string
+      evidence_authority?: string
     }
+    rejectCanvasPrincipal(body)
     const expectedRevision = requireExpectedRevision(body.expectedRevision)
     const written = await commitWrite({
       expectedRevision,
@@ -32,6 +40,9 @@ export async function POST(request: Request) {
         publishReview(db, user, {
           versionNo: Number(body.versionNo),
           marks: body.marks ?? [],
+          learnerId: body.learnerId,
+          feedbackOnly: Array.isArray(body.proposedDecisions) && body.proposedDecisions.length === 0,
+          proposedDecisions: body.proposedDecisions,
         }),
     })
     return Response.json({ ...written.result, revision: written.revision })

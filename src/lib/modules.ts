@@ -65,11 +65,19 @@ export function assertModuleShape(moduleDoc: AuthoredModule) {
   }
 }
 
-export function rejectDisabledDelivery(body: Record<string, unknown>) {
-  if (body.kcGate != null || body.min_score != null) {
+export function rejectCanvasPrincipal(body: Record<string, unknown>) {
+  const principal = body.principal ?? body.actor ?? body.service
+  if (principal === "canvas" || body.action === "canvas-import") {
+    throw new HttpError(403, "Canvas không được ghi hồ sơ học tập hay hồ sơ KC.", { code: "ATTAINMENT_WRITE_FORBIDDEN" })
+  }
+}
+
+export function rejectDisabledDelivery(body: Record<string, unknown>, classDeliveryEnabled = false) {
+  rejectCanvasPrincipal(body)
+  if (body.kcGate != null || body.min_score != null || body.action === "kc-gate") {
     throw new HttpError(422, "Cổng KC và min_score chưa bật ở P1a.", { code: "FEATURE_NOT_ENABLED" })
   }
-  if (body.action === "deliver") {
+  if (body.action === "deliver" && classDeliveryEnabled !== true) {
     throw new HttpError(403, "Giao lớp chưa được bật trên dữ liệu trường.", { code: "CLASS_DELIVERY_OFF" })
   }
 }

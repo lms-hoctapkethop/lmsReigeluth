@@ -1,6 +1,6 @@
 import { commandFingerprint, commitWrite, HttpError, jsonError, requireExpectedRevision, withDb } from "@/lib/db"
 import { gradeQuiz, learnPayload, markExplore, saveDraft, submitWork } from "@/lib/learn"
-import { rejectAttainmentWrite } from "@/lib/modules"
+import { rejectAttainmentWrite, rejectCanvasPrincipal } from "@/lib/modules"
 import { getSessionUser } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       outcomeId?: unknown
       recordAttainment?: boolean
     }
+    rejectCanvasPrincipal(body)
     rejectAttainmentWrite(body)
     const expectedRevision = requireExpectedRevision(body.expectedRevision)
     const code = body.code ?? ""

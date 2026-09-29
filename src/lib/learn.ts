@@ -246,12 +246,24 @@ export function gradeQuiz(db: Db, user: SessionUser, answers: number[]) {
 export function publishReview(
   db: Db,
   user: SessionUser,
-  input: { versionNo: number; marks: { id: string; met: boolean; note: string }[] },
+  input: {
+    versionNo: number
+    marks: { id: string; met: boolean; note: string }[]
+    learnerId?: string
+    feedbackOnly?: boolean
+    proposedDecisions?: { outcomeId: string; decision: "met" | "not_met"; reason: string }[]
+  },
 ) {
   assertLearnerAccess(db, user)
   if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên được phân công mới công bố nhận xét.")
+  if (input.learnerId && input.learnerId !== LEARNER.id) {
+    throw new HttpError(403, "Bài này không thuộc học sinh trong phạm vi được phân công.", { code: "SCOPE_MISMATCH" })
+  }
   const version = db.versions.find((item) => item.versionNo === input.versionNo)
   if (!version) throw new HttpError(404, "Không thấy lần nộp này.")
+  if (input.proposedDecisions?.some((item) => !item.outcomeId || !item.reason?.trim() || (item.decision !== "met" && item.decision !== "not_met"))) {
+    throw new HttpError(422, "Quyết định KC cần mã, mức và lý do.", { code: "ATTAINMENT_SOURCE_INVALID" })
+  }
   const criteria = CRITERIA.map((criterion) => {
     const mark = input.marks.find((item) => item.id === criterion.id)
     return {
@@ -269,7 +281,24 @@ export function publishReview(
     criteria,
     publishedAt,
   })
-  for (const criterion of CRITERIA) {
+  if (input.feedbackOnly) {
+    recordAudit(db, { actorId: user.id, actorName: user.name, action: "Công bố phản hồi", target: `Lần nộp ${version.versionNo}` })
+    return { publishedAt, outcomes: outcomeView(db), decisionsUnchanged: true }
+  }
+  if (input.proposedDecisions && input.proposedDecisions.length > 0) {
+    for (const proposed of input.proposedDecisions) {
+      const previous = currentDecisions(db).find((item) => item.outcomeId === proposed.outcomeId)
+      db.decisions.push({
+        id: `decision-${db.decisions.length + 1}`,
+        outcomeId: proposed.outcomeId,
+        decision: proposed.decision,
+        reason: proposed.reason.slice(0, 500),
+        decidedBy: user.id,
+        decidedAt: publishedAt,
+        supersedesId: previous?.id,
+      })
+    }
+  } else for (const criterion of CRITERIA) {
     const mark = criteria.find((item) => item.id === criterion.id)!
     for (const outcomeId of criterion.outcomes) {
       const previous = currentDecisions(db).find((item) => item.outcomeId === outcomeId)

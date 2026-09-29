@@ -17,6 +17,7 @@ export default function OrganizationPage() {
   const [notice, setNotice] = useState("")
   const [pending, setPending] = useState(false)
   const [revision, setRevision] = useState(0)
+  const [classDeliveryEnabled, setClassDeliveryEnabled] = useState(false)
 
   useEffect(() => {
     fetch("/api/admin/organization")
@@ -25,6 +26,7 @@ export default function OrganizationPage() {
         if (!response.ok) throw new Error(body.error || "Không tải được tổ chức học.")
         setOrg(body.org)
         setRevision(body.revision ?? 0)
+        setClassDeliveryEnabled(body.classDeliveryEnabled === true)
         setReady(true)
       })
       .catch((reason: Error) => setError(reason.message || "Lỗi mạng."))
@@ -64,6 +66,26 @@ export default function OrganizationPage() {
       </div>
       {error ? <ErrorNote message={error} /> : null}
       {notice ? <p className="rounded-[10px] bg-[#f0fdf4] px-3 py-2 text-sm text-[#166534]" role="status">{notice}</p> : null}
+      <section className="surface max-w-xl space-y-3 p-4 md:p-6">
+        <h2 className="text-lg font-semibold">Giao lớp module</h2>
+        <p className="text-sm text-[#5b6476]">Giao lớp đang {classDeliveryEnabled ? "bật" : "tắt"}. Bật công tắc này không đổi tuần đang học và không tự phát hành kho 34 bài.</p>
+        <Button type="button" disabled={pending} onClick={() => {
+          setPending(true)
+          setError("")
+          setNotice("")
+          fetch("/api/admin/organization", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "set-class-delivery", enabled: !classDeliveryEnabled, expectedRevision: revision }),
+          }).then(async (response) => {
+            const body = await response.json()
+            if (!response.ok) throw new Error(body.error || "Chưa đổi được giao lớp.")
+            setClassDeliveryEnabled(body.classDeliveryEnabled === true)
+            if (typeof body.revision === "number") setRevision(body.revision)
+            setNotice(body.classDeliveryEnabled ? "Đã bật giao lớp." : "Đã tắt giao lớp.")
+          }).catch((reason: Error) => setError(reason.message || "Lỗi mạng.")).finally(() => setPending(false))
+        }}>{classDeliveryEnabled ? "Tắt giao lớp" : "Bật giao lớp"}</Button>
+      </section>
       <form className="surface max-w-xl space-y-4 p-4 md:p-6" onSubmit={save}>
         <OrgField label="Trường" id="school" value={org.school} onChange={(school) => setOrg({ ...org, school })} />
         <OrgField label="Lớp hành chính" id="class" value={org.className} onChange={(className) => setOrg({ ...org, className })} />

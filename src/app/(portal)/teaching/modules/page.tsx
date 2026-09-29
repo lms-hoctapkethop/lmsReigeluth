@@ -16,6 +16,7 @@ type Payload = {
 
 export default function ModulesPage() {
   const [data, setData] = useState<Payload | null>(null)
+  const [selectedKey, setSelectedKey] = useState("")
   const [title, setTitle] = useState("")
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
@@ -25,7 +26,9 @@ export default function ModulesPage() {
     const body = await response.json()
     if (!response.ok) throw new Error(body.error || "Không tải được module.")
     setData(body)
-    setTitle(body.drafts?.[0]?.title ?? "")
+    const current = body.drafts?.find((item: Draft) => item.key === selectedKey) ?? body.drafts?.[0]
+    setSelectedKey(current?.key ?? "")
+    setTitle(current?.title ?? "")
   }
 
   useEffect(() => {
@@ -51,7 +54,7 @@ export default function ModulesPage() {
 
   if (error && !data) return <ErrorNote message={error} />
   if (!data) return <Loading label="Đang mở bản soạn module..." />
-  const draft = data.drafts[0]
+  const draft = data.drafts.find((item) => item.key === selectedKey) ?? data.drafts[0]
   const requirements = draft?.items.filter((item) => item.visible && item.type !== "header" && item.completion.kind !== "none").length ?? 0
 
   return (
@@ -59,11 +62,26 @@ export default function ModulesPage() {
       <div>
         <h1 className="text-2xl font-semibold">Module soạn thảo</h1>
         <p className="mt-1 text-muted-foreground">
-          Tuần lớp đang chạy là {data.weekLabel}. Giao lớp đang {data.classDeliveryEnabled ? "bật" : "tắt"}. Bản soạn không đổi lịch lớp và không phát hành kho 34 bài.
+          Tuần lớp đang chạy là {data.weekLabel}. Giao lớp đang {data.classDeliveryEnabled ? "bật" : "tắt"}. Kho 34 bài nằm ở dạng bản soạn, không đổi bài đang học của lớp.
         </p>
       </div>
       {error ? <ErrorNote message={error} /> : null}
       {notice ? <p role="status" className="text-sm font-medium text-primary">{notice}</p> : null}
+      <p className="text-sm text-muted-foreground">Số bản soạn: {data.drafts.length}.</p>
+      {data.drafts.length > 1 ? (
+        <label className="block text-sm font-medium">
+          Chọn bản soạn
+          <select className="mt-1 w-full rounded-md border bg-card px-3 py-2" value={draft?.key ?? ""} onChange={(event) => {
+            const next = data.drafts.find((item) => item.key === event.target.value)
+            setSelectedKey(event.target.value)
+            setTitle(next?.title ?? "")
+          }}>
+            {data.drafts.map((item) => (
+              <option key={item.key} value={item.key}>{item.key} · {item.title}</option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       {draft ? (
         <div className="space-y-4 rounded-2xl border bg-card p-4">
           <label className="block text-sm font-medium">

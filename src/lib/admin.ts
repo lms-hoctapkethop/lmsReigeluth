@@ -28,7 +28,24 @@ export function adminUsers(db: Db, user: SessionUser) {
 
 export function adminOrg(db: Db, user: SessionUser) {
   requireAdmin(user)
-  return { org: db.org, link: db.guardianLink, revision: db.revision }
+  return { org: db.org, link: db.guardianLink, revision: db.revision, classDeliveryEnabled: db.classDeliveryEnabled }
+}
+
+export function setClassDelivery(db: Db, user: SessionUser, enabled: boolean) {
+  requireAdmin(user)
+  const weekLabel = db.org.weekLabel
+  const lesson = db.module.title
+  db.classDeliveryEnabled = enabled === true
+  if (db.org.weekLabel !== weekLabel || db.module.title !== lesson) {
+    throw new HttpError(500, "Bật giao lớp không được đổi tuần hoặc bài đang học.")
+  }
+  recordAudit(db, {
+    actorId: user.id,
+    actorName: user.name,
+    action: enabled ? "Bật giao lớp" : "Tắt giao lớp",
+    target: db.org.offeringTitle,
+  })
+  return { classDeliveryEnabled: db.classDeliveryEnabled, weekLabel: db.org.weekLabel, lesson: db.module.title }
 }
 
 export function saveOrg(db: Db, user: SessionUser, input: OrgProfile) {
