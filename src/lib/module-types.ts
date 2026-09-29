@@ -20,6 +20,7 @@ export type ModuleItem = {
   body?: string
   prompt?: string
   href?: string
+  dueAt?: string | null
   quiz?: { questions: QuizQuestion[] }
 }
 

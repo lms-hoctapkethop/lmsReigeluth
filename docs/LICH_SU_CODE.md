@@ -99,6 +99,14 @@ W03, W08, W09 và W11 ghi dữ liệu, nên chạy trên bản sao `/tmp/hcn-w/d
 - Thẩm định chuyên gia 71 KC: NOT_RUN. Trong `course_Tin10_ALL34_3.2.1.json` cả 71 KC có `validation.expert_review` là `pending`.
 - Xuất Canvas: NOT_RUN. `examples/canvas_export_report_design.json` có `status: design_only`, `canvas_import_tested: false`, `target: null`. Lệnh `canvas-import` trên app trả 403 là từ chối ghi, không phải lần xuất đã chạy.
 
+## Soạn bài theo module Canvas, giao theo Reigeluth
+
+Tham chiếu mã Canvas LMS (`instructure/canvas-lms`): `ContextModule` tạo ở trạng thái `unpublished`, `update` nhận `publish` hoặc `unpublish`, `WikiPage` giữ thân bài và chỉ bản `published` hiện cho học sinh, `Assignment` giữ `description` và `due_at`, bài nộp chữ là `online_text_entry`. Mục hoàn thành `must_view` và `must_submit` được giữ. `min_score` của Canvas vẫn bị từ chối ở P1a.
+
+Trong app: Thêm bài tạo bản soạn chưa giao, gồm trang bài học và bài tập. Lưu ghi nội dung và hạn nộp. Giao tạo ảnh chụp học sinh thấy ở Bài được giao. Thu bài khỏi lớp giấu bài với học sinh và giữ bản soạn. Sửa sau khi giao không đổi ảnh chụp. Tuần lớp và bài 03 không đổi.
+
+`npm test`: ba subtest pass, gồm tạo bài, giao với hạn `2026-10-04`, học sinh không thấy bản soạn, rồi thu bài thì `pathRelease` trở lại null.
+
 ## Soạn bài và giao cho lớp
 
 Giáo viên mở Soạn và giao, viết bài học và đề bài tập, lưu bản soạn, rồi giao đúng bài đó. Học sinh mở Bài được giao để đọc, nộp bài tập và làm luyện tập. Giao một bài không đổi tuần `28/09 – 04/10/2026` và không đổi bài `Bài 03 · Rẽ nhánh if–else`. Sửa bản soạn sau khi giao không đổi bản học sinh đang thấy. Nút “Đưa nội dung đề xuất vào ô soạn” chỉ đổ chữ vào ô, chưa ghi file.

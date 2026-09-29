@@ -6,6 +6,7 @@ import { commitWrite, commandFingerprint, HttpError, withDb } from "@/lib/db"
 import { saveDraft, submitWork } from "@/lib/learn"
 import { suggestAuthoring } from "@/lib/authoring"
 import {
+  createLesson,
   deliverModule,
   deliverPath,
   effectiveRequirements,
@@ -17,6 +18,7 @@ import {
   saveAuthoredModule,
   saveLessonDraft,
   submitAssignment,
+  unpublishModule,
   submitModuleQuiz,
 } from "@/lib/modules"
 import type { AuthoredModule } from "@/lib/module-types"
@@ -483,4 +485,53 @@ test("giáo viên lưu bài học, đề bài tập và giao một bài", async 
     pathRelease: { modules: { snapshot: { items: { type: string; body?: string }[] } }[] }
   }
   assert.equal(afterEdit.pathRelease.modules[0].snapshot.items.find((item) => item.type === "page")?.body, "Nội dung bài học đủ để giao cho lớp.")
+})
+
+test("tạo bài mới, giao với hạn nộp, rồi thu khỏi lớp", async () => {
+  reset()
+  const created = await commitWrite({
+    expectedRevision: 0,
+    apply: (db) => {
+      db.classDeliveryEnabled = true
+      return createLesson(db, "Ôn điều kiện")
+    },
+  })
+  assert.match(created.result.key, /^TH10-GV-/)
+  assert.equal(readDb().pathRelease, null)
+  const week = readDb().org.weekLabel
+  const lesson = (JSON.parse(readFileSync(dbPath, "utf8")) as { module: { title: string } }).module.title
+  const saved = await commitWrite({
+    expectedRevision: created.revision,
+    apply: (db) =>
+      saveLessonDraft(db, {
+        key: created.result.key,
+        title: "Ôn điều kiện",
+        pageBody: "if chạy khi điều kiện đúng, else khi điều kiện sai.",
+        assignmentPrompt: "Viết một ví dụ if–else với biến diem.",
+        dueAt: "2026-10-04",
+      }),
+  })
+  const delivered = await commitWrite({
+    expectedRevision: saved.revision,
+    apply: (db) => deliverModule(db, created.result.key),
+  })
+  const view = await withDb((db) => modulesPayload(db, "student"))
+  assert.equal(view.drafts.length, 0)
+  assert.equal(view.pathRelease?.modules.length, 1)
+  assert.equal(view.pathRelease?.modules[0].dueAt, "2026-10-04")
+  assert.equal(view.pathRelease?.modules[0].snapshot.items.find((item) => item.quiz)?.quiz, undefined)
+  await commitWrite({
+    expectedRevision: delivered.revision,
+    apply: (db) => unpublishModule(db, created.result.key),
+  })
+  const after = JSON.parse(readFileSync(dbPath, "utf8")) as {
+    org: { weekLabel: string }
+    module: { title: string }
+    pathRelease: unknown
+    authoredModules: { key: string; state: string }[]
+  }
+  assert.equal(after.pathRelease, null)
+  assert.equal(after.authoredModules.some((item) => item.key === created.result.key && item.state === "draft"), true)
+  assert.equal(after.org.weekLabel, week)
+  assert.equal(after.module.title, lesson)
 })

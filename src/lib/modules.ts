@@ -86,9 +86,31 @@ function clipText(value: string, max: number) {
   return value.replace(/\r\n/g, "\n").trim().slice(0, max)
 }
 
+export function createLesson(db: Db, title: string) {
+  const name = clipText(title, 160).replace(/\s+/g, " ")
+  if (name.length < 3) throw new HttpError(400, "Tên bài cần ít nhất 3 ký tự.")
+  const key = `TH10-GV-${Date.now().toString(36)}`
+  const moduleDoc: AuthoredModule = {
+    key,
+    versionKey: `${key}.v1`,
+    title: name,
+    summary: "Bài giáo viên soạn. Học sinh chỉ thấy sau khi giao.",
+    state: "draft",
+    policy: { mode: "all", sequential: true },
+    items: [
+      { key: "h", position: 1, indent: 0, title: "Bài học và bài tập", visible: true, type: "header", resourceVersionKey: null, completion: { kind: "none" } },
+      { key: "p", position: 2, indent: 1, title: "Bài học", visible: true, type: "page", resourceVersionKey: null, completion: { kind: "self_mark" }, body: "" },
+      { key: "a", position: 3, indent: 1, title: "Bài tập", visible: true, type: "assignment", resourceVersionKey: null, completion: { kind: "submit" }, prompt: "", dueAt: null },
+    ],
+  }
+  const saved = saveAuthoredModule(db, moduleDoc)
+  recordAudit(db, { actorId: "teacher-ha", actorName: "Nguyễn Hà", action: "Tạo bài soạn", target: name })
+  return { key: saved.module.key, module: saved.module }
+}
+
 export function saveLessonDraft(
   db: Db,
-  input: { key: string; title: string; pageBody: string; assignmentPrompt: string; linkHref?: string },
+  input: { key: string; title: string; pageBody: string; assignmentPrompt: string; linkHref?: string; dueAt?: string | null },
 ) {
   const current = db.authoredModules.find((item) => item.key === input.key)
   if (!current) throw new HttpError(404, "Không thấy bản soạn.")
@@ -100,6 +122,9 @@ export function saveLessonDraft(
   if (!page || !assignment) throw new HttpError(400, "Bản soạn cần một trang bài học và một bài tập.")
   page.body = clipText(input.pageBody, 20000)
   assignment.prompt = clipText(input.assignmentPrompt, 8000)
+  const dueAt = (input.dueAt ?? "").trim()
+  if (dueAt && !/^\d{4}-\d{2}-\d{2}$/.test(dueAt)) throw new HttpError(400, "Hạn nộp cần là một ngày.")
+  assignment.dueAt = dueAt || null
   const link = next.items.find((item) => item.type === "link")
   if (link && input.linkHref) link.href = clipText(input.linkHref, 500)
   const saved = saveAuthoredModule(db, next)
@@ -132,7 +157,7 @@ export function deliverModule(db: Db, moduleKey: string) {
     moduleVersionKey: source.versionKey,
     position: 1,
     availableFrom: new Date(Date.now() - 60_000).toISOString(),
-    dueAt: null,
+    dueAt: assignment.dueAt ?? null,
     prerequisiteReleaseKeys: [],
     snapshot,
   }
@@ -170,6 +195,24 @@ export function deliverModule(db: Db, moduleKey: string) {
     releaseKey,
     title: source.title,
   }
+}
+
+export function unpublishModule(db: Db, moduleKey: string) {
+  const weekLabel = db.org.weekLabel
+  const lessonTitle = db.module.title
+  const current = db.pathRelease
+  if (!current) return { removed: false }
+  const kept = current.modules.filter((item) => item.snapshot.key !== moduleKey)
+  const removed = kept.length !== current.modules.length
+  if (!removed) return { removed: false }
+  if (kept.length === 0) db.pathRelease = null
+  else db.pathRelease = { ...current, modules: kept.map((item, index) => ({ ...item, position: index + 1 })) }
+  if (db.org.weekLabel !== weekLabel || db.module.title !== lessonTitle) {
+    throw new HttpError(500, "Thu bài không được đổi tuần lớp hoặc bài đang học.")
+  }
+  const title = current.modules.find((item) => item.snapshot.key === moduleKey)?.snapshot.title ?? moduleKey
+  recordAudit(db, { actorId: "teacher-ha", actorName: "Nguyễn Hà", action: "Thu bài khỏi lớp", target: title })
+  return { removed: true, title }
 }
 
 export function saveAuthoredModule(db: Db, moduleDoc: AuthoredModule) {

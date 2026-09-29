@@ -20,6 +20,7 @@ type Item = {
 }
 type Release = {
   releaseKey: string
+  dueAt: string | null
   snapshot: { key: string; title: string; summary: string; items: Item[] }
   lock: string[]
 }
@@ -105,6 +106,7 @@ export default function ClassworkPage() {
             <div>
               <h2 className="text-xl font-semibold">{release.snapshot.title}</h2>
               <p className="mt-2 text-[#5b6476]">{release.snapshot.summary}</p>
+              {release.dueAt ? <p className="mt-1 text-sm font-medium">Hạn nộp {release.dueAt.split("-").reverse().join("/")}</p> : null}
               {locked.length ? <p className="mt-2 text-sm text-[#92400e]">{locked.map((reason) => lockText[reason] ?? reason).join(" ")}</p> : null}
             </div>
             {release.snapshot.items.filter((item) => item.type !== "header").map((item) => {

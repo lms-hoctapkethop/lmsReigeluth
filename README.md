@@ -38,7 +38,7 @@ Lệch `draft.version` khi lưu nháp hoặc nộp bài thực hành vẫn là H
 
 Khóa đang nằm trong bộ nhớ của một tiến trình, kèm file `data/writer.lock` ghi PID. Chỉ chạy một `next dev` hoặc một `next start` cho cùng một file dữ liệu. Tiến trình thứ hai nhận HTTP 503 mã `SINGLE_WRITER`.
 
-Giáo viên mở Soạn và giao để viết bài học, đề bài tập, lưu bản soạn, rồi giao từng bài cho lớp. Học sinh xem bài đó ở Bài được giao. Bài trên mục Khóa học và tuần `28/09 – 04/10/2026` không đổi khi giao. Kho 34 bài không bị giao hàng loạt. `min_score` và cổng KC vẫn bị từ chối.
+Giáo viên mở Soạn và giao để thêm bài, viết trang bài học và đề bài tập, đặt hạn nộp, rồi giao hoặc thu bài. Học sinh chỉ thấy bài đã giao, ở mục Bài được giao. Tuần `28/09 – 04/10/2026` và bài trên mục Khóa học không đổi. Kho 34 bài không bị giao hàng loạt. `min_score` và cổng KC vẫn bị từ chối.
 
 ```bash
 npm test

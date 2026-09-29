@@ -1,6 +1,6 @@
 import { suggestAuthoring } from "@/lib/authoring"
 import { commitWrite, HttpError, jsonError, LEARNER, requireExpectedRevision, withDb } from "@/lib/db"
-import { deliverModule, deliverPath, markItem, modulesPayload, rejectAttainmentWrite, rejectDisabledDelivery, sampleWeekModule, saveAuthoredModule, saveLessonDraft, submitAssignment, submitModuleQuiz } from "@/lib/modules"
+import { createLesson, deliverModule, deliverPath, markItem, modulesPayload, rejectAttainmentWrite, rejectDisabledDelivery, sampleWeekModule, saveAuthoredModule, saveLessonDraft, submitAssignment, submitModuleQuiz, unpublishModule } from "@/lib/modules"
 import type { AuthoredModule } from "@/lib/module-types"
 import { getSessionUser } from "@/lib/session"
 
@@ -66,11 +66,20 @@ export async function POST(request: Request) {
             pageBody: String(body.pageBody ?? ""),
             assignmentPrompt: String(body.assignmentPrompt ?? ""),
             linkHref: body.linkHref ? String(body.linkHref) : undefined,
+            dueAt: body.dueAt == null ? null : String(body.dueAt),
           }))
+        }
+        if (body.action === "create-lesson") {
+          if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên soạn module.")
+          return finish(createLesson(db, String(body.title ?? "")))
         }
         if (body.action === "deliver-module") {
           if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên giao được module.")
           return finish(deliverModule(db, String(body.moduleKey ?? "")))
+        }
+        if (body.action === "unpublish-module") {
+          if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên thu được bài đã giao.")
+          return finish(unpublishModule(db, String(body.moduleKey ?? "")))
         }
         if (body.action === "mark-done") {
           return finish(markItem(db, {
