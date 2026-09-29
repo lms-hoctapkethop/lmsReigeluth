@@ -133,4 +133,10 @@ Tin học 10 (`course-th10`, mã `TH10`) kế thừa đúng các trường gốc
 
 `npm test` sau thay đổi này: bốn subtest pass. Subtest thứ tư giao một bài trong Toán, đổi tuần của túi Toán thành `05/10 – 11/10/2026`, rồi kiểm file: tuần gốc và `Tin học 10` còn `28/09 – 04/10/2026`, bài gốc còn `Bài 03 · Rẽ nhánh if–else`, `pathRelease` gốc null, danh sách bản soạn gốc không thêm khóa `TOAN10-GV-`. Túi Toán giữ bài mệnh đề và bài đã giao. Học sinh có hai enrollment active. Giáo viên có hai `TeacherEnrollment`. Quản trị không có enrollment và bị từ chối khi mở Toán. Ném lỗi giữa chừng không để tuần hay bài của hai khóa dính vào nhau.
 
+Máy chủ trường đang chạy commit `aca5902`. Trước và sau build, file lớp giữ SHA-256 `378ff5798513d301f2b9f960a118e90cbd5439bf2fc79621aa94b5b44eedf07a`, revision 42. Tuần `28/09 – 04/10/2026`, bài `Bài 03 · Rẽ nhánh if–else`, `pathRelease` null, 35 bản soạn `draft`, `classDeliveryEnabled` true. File chưa có khóa `courses` hay `subjects`; catalog chỉ hiện khi đọc. `GET /login` trên https://lms.hoctapkethop.edu.vn trả 200.
+
+HTTP tới tiến trình đang phục vụ, không ghi file: học sinh và giáo viên đều thấy Tin học 10 và Toán 10. Chọn Toán thì bài học là `Bài 01 · Mệnh đề`, 0 bản soạn, `pathRelease` null. Chọn lại Tin học thì bài vẫn là bài 03, học sinh thấy 0 bản soạn, giáo viên thấy 35 bản soạn. Hash file lớp sau các lệnh này không đổi.
+
+Bản sao `/tmp/hcn-courses/db.json`, cổng 4318, tiến trình đã tắt: giáo viên tạo `TOAN10-GV-mumj4kuj`, lưu và giao “Ôn mệnh đề”, hạn `2026-10-03`. Học sinh ở Toán thấy bài đó và không thấy bản soạn. Học sinh ở Tin học vẫn thấy bài 03, tuần cũ, `pathRelease` null. Trong file bản sao, gốc còn 35 bản soạn và bài 03; túi Toán có một bản soạn. Hash file lớp vẫn là hash ở trên.
+
 W07, thẩm định chuyên gia 71 KC và xuất Canvas vẫn NOT_RUN.
