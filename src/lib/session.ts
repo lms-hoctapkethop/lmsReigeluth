@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { publicUser, withDb, type Role } from "@/lib/db"
 
 const COOKIE = "hcn_session"
+const COURSE_COOKIE = "hcn_course"
 const SECRET = process.env.SESSION_SECRET || "hoc-cung-nhau-demo-session"
 
 export type SessionUser = {
@@ -60,4 +61,19 @@ export async function clearSessionCookie() {
   jar.delete(COOKIE)
 }
 
-export { COOKIE }
+export async function readCourseCookie() {
+  const jar = await cookies()
+  return jar.get(COURSE_COOKIE)?.value ?? null
+}
+
+export async function setCourseCookie(courseId: string) {
+  const jar = await cookies()
+  jar.set(COURSE_COOKIE, courseId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  })
+}
+
+export { COOKIE, COURSE_COOKIE }

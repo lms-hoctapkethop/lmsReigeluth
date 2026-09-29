@@ -2,6 +2,8 @@ import assert from "node:assert/strict"
 import { spawn } from "node:child_process"
 import { readFileSync, rmSync } from "node:fs"
 import { test } from "node:test"
+import { MATH_COURSE_ID } from "@/lib/course-catalog"
+import { coursesForUser, withCourse } from "@/lib/courses"
 import { commitWrite, commandFingerprint, HttpError, withDb } from "@/lib/db"
 import { saveDraft, submitWork } from "@/lib/learn"
 import { suggestAuthoring } from "@/lib/authoring"
@@ -534,4 +536,90 @@ test("tạo bài mới, giao với hạn nộp, rồi thu khỏi lớp", async (
   assert.equal(after.authoredModules.some((item) => item.key === created.result.key && item.state === "draft"), true)
   assert.equal(after.org.weekLabel, week)
   assert.equal(after.module.title, lesson)
+})
+
+test("khóa Toán không đụng Tin học 10", async () => {
+  reset()
+  const teacher = { id: "teacher-ha", email: "ha.nguyen@gds.edu.vn", name: "Nguyễn Hà", role: "teacher" as const }
+  const seeded = await commitWrite({
+    expectedRevision: 0,
+    apply: (db) => {
+      db.classDeliveryEnabled = true
+      saveAuthoredModule(db, sampleWeekModule())
+      return { title: db.module.title, week: db.org.weekLabel, drafts: db.authoredModules.map((item) => item.key) }
+    },
+  })
+  const rootTitle = seeded.result.title
+  const rootWeek = seeded.result.week
+  const rootDrafts = seeded.result.drafts
+  const moved = await commitWrite({
+    expectedRevision: seeded.revision,
+    apply: (db) =>
+      withCourse(db, MATH_COURSE_ID, teacher.id, () => {
+        const created = createLesson(db, "Ôn mệnh đề")
+        saveLessonDraft(db, {
+          key: created.key,
+          title: "Ôn mệnh đề",
+          pageBody: "Một mệnh đề phải xác định được đúng hoặc sai.",
+          assignmentPrompt: "Nêu một mệnh đề đúng và giải thích vì sao nó là mệnh đề.",
+          dueAt: "2026-10-03",
+        })
+        db.org.weekLabel = "05/10 – 11/10/2026"
+        deliverModule(db, created.key)
+        const studentView = modulesPayload(db, "student")
+        return { key: created.key, studentDrafts: studentView.drafts.length, released: studentView.pathRelease?.modules.length ?? 0 }
+      }),
+  })
+  assert.match(moved.result.key, /^TOAN10-GV-/)
+  assert.equal(moved.result.studentDrafts, 0)
+  assert.equal(moved.result.released, 1)
+  const file = JSON.parse(readFileSync(dbPath, "utf8")) as {
+    org: { weekLabel: string; courseTitle: string }
+    module: { title: string }
+    pathRelease: unknown
+    authoredModules: { key: string }[]
+    classDeliveryEnabled: boolean
+    subjects: Record<string, { weekLabel: string; module: { title: string }; pathRelease: { modules: { snapshot: { title: string } }[] } | null; authoredModules: { key: string }[] }>
+    courses: { id: string; name: string; courseCode: string }[]
+    enrollments: { userId: string; courseId: string; type: string; workflowState: string }[]
+  }
+  assert.equal(file.org.weekLabel, rootWeek)
+  assert.equal(file.org.courseTitle, "Tin học 10")
+  assert.equal(file.module.title, rootTitle)
+  assert.equal(file.module.title, "Bài 03 · Rẽ nhánh if–else")
+  assert.equal(file.pathRelease, null)
+  assert.deepEqual(file.authoredModules.map((item) => item.key), rootDrafts)
+  assert.equal(file.subjects[MATH_COURSE_ID].module.title, "Bài 01 · Mệnh đề")
+  assert.equal(file.subjects[MATH_COURSE_ID].weekLabel, "05/10 – 11/10/2026")
+  assert.equal(file.subjects[MATH_COURSE_ID].pathRelease?.modules[0].snapshot.title, "Ôn mệnh đề")
+  assert.equal(file.subjects[MATH_COURSE_ID].authoredModules.some((item) => item.key === moved.result.key), true)
+  assert.equal(file.courses.map((item) => item.courseCode).join(","), "TH10,TOAN10")
+  const an = file.enrollments.filter((item) => item.userId === "learner-an" && item.workflowState === "active")
+  const ha = file.enrollments.filter((item) => item.userId === "teacher-ha" && item.type === "TeacherEnrollment")
+  assert.equal(an.length, 2)
+  assert.equal(ha.length, 2)
+  await withDb((db) => {
+    const visible = coursesForUser(db, "learner-an").map((item) => item.name)
+    assert.deepEqual(visible, ["Tin học 10", "Toán 10"])
+    assert.throws(
+      () =>
+        withCourse(db, MATH_COURSE_ID, "learner-an", () => {
+          db.module.title = "Hỏng"
+          db.org.weekLabel = "01/01 – 07/01/2026"
+          throw new HttpError(400, "dừng")
+        }),
+      (error: unknown) => error instanceof HttpError && error.message === "dừng",
+    )
+    assert.equal(db.module.title, "Bài 03 · Rẽ nhánh if–else")
+    assert.equal(db.org.weekLabel, rootWeek)
+    assert.equal(db.subjects[MATH_COURSE_ID].module.title, "Bài 01 · Mệnh đề")
+    assert.equal(db.subjects[MATH_COURSE_ID].weekLabel, "05/10 – 11/10/2026")
+    assert.throws(
+      () => withCourse(db, MATH_COURSE_ID, "admin-school", () => db.module.title),
+      (error: unknown) => error instanceof HttpError && error.status === 403,
+    )
+    const back = withCourse(db, "course-th10", "learner-an", () => modulesPayload(db, "student"))
+    assert.equal(back.drafts.length, 0)
+    assert.equal(back.pathRelease, null)
+  })
 })

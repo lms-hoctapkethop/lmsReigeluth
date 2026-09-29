@@ -74,11 +74,16 @@ const secondary: Record<SessionUser["role"], { href: string; label: string; icon
   admin: [{ href: "/about", label: "Mô hình học", icon: Compass }],
 }
 
+type CourseOption = { id: string; name: string; courseCode: string; offeringTitle: string }
+
 export function Shell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [heading, setHeading] = useState("Tin học 10 · Lớp 10A1 · Tuần 28/09 – 04/10/2026")
+  const [courseName, setCourseName] = useState("Tin học 10")
+  const [courses, setCourses] = useState<CourseOption[]>([])
+  const [activeCourseId, setActiveCourseId] = useState("course-th10")
   const [unread, setUnread] = useState(0)
   const items = nav[user.role]
   const extra = secondary[user.role]
@@ -87,12 +92,32 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
     fetch("/api/context")
       .then(async (response) => {
         if (!response.ok) return
-        const body = (await response.json()) as { org?: { offeringTitle: string; weekLabel: string }; unread?: number }
-        if (body.org) setHeading(`${body.org.offeringTitle} · Tuần ${body.org.weekLabel}`)
+        const body = (await response.json()) as {
+          org?: { offeringTitle: string; weekLabel: string; courseTitle: string }
+          unread?: number
+          courses?: CourseOption[]
+          activeCourseId?: string
+        }
+        if (body.org) {
+          setHeading(`${body.org.offeringTitle} · Tuần ${body.org.weekLabel}`)
+          setCourseName(body.org.courseTitle)
+        }
+        setCourses(body.courses ?? [])
+        if (body.activeCourseId) setActiveCourseId(body.activeCourseId)
         setUnread(body.unread ?? 0)
       })
       .catch(() => undefined)
   }, [pathname])
+
+  async function switchCourse(courseId: string) {
+    const response = await fetch("/api/courses", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ courseId }),
+    })
+    if (!response.ok) return
+    window.location.reload()
+  }
 
   async function logout() {
     await fetch("/api/session", { method: "DELETE" })
@@ -166,7 +191,7 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
         </nav>
         <div className="m-3 mt-6 rounded-2xl border border-[#d9ddea] bg-white p-3">
           <p className="text-sm font-medium text-[#22263b]">{user.name}</p>
-          <p className="text-[13px] text-[#5b6476]">{labels[user.role]} · Tin học 10</p>
+          <p className="text-[13px] text-[#5b6476]">{labels[user.role]} · {courseName}</p>
           <button type="button" className="mt-3 min-h-11 text-sm font-medium text-[#5150df] hover:text-[#4342c4]" onClick={logout}>
             Thoát phiên
           </button>
@@ -174,9 +199,28 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
       </aside>
       <div className="min-w-0">
         <header className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-[#d9ddea] bg-white px-4 md:min-h-16 md:px-6 xl:min-h-[72px] xl:px-8">
-          <div>
-            <p className="text-[13px] font-medium text-[#5150df]">Lớp học phần</p>
-            <p className="font-medium text-[#22263b]">{heading}</p>
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <div>
+              <p className="text-[13px] font-medium text-[#5150df]">Lớp học phần</p>
+              <p className="font-medium text-[#22263b]">{heading}</p>
+            </div>
+            {courses.length > 1 ? (
+              <label className="flex min-h-11 items-center gap-2 text-sm text-[#5b6476]">
+                <span>Khóa</span>
+                <select
+                  className="min-h-11 rounded-xl border border-[#d9ddea] bg-white px-3 text-sm font-medium text-[#22263b]"
+                  value={activeCourseId}
+                  aria-label="Chọn khóa học"
+                  onChange={(event) => switchCourse(event.target.value)}
+                >
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
           </div>
           <p className="text-sm text-[#5b6476]">
             {user.role === "student" ? "Lê An đang học" : user.role === "teacher" ? "Nguyễn Hà phụ trách" : user.role === "admin" ? "Quản trị nhà trường" : "Đang xem hồ sơ của Lê An"}

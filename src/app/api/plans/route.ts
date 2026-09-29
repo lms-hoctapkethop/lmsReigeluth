@@ -1,3 +1,5 @@
+import { resolveCourseId } from "@/lib/course-session"
+import { withCourse } from "@/lib/courses"
 import { commitWrite, HttpError, jsonError, requireExpectedRevision, withDb } from "@/lib/db"
 import { assertLearnerAccess, context } from "@/lib/learn"
 import { getSessionUser } from "@/lib/session"
@@ -8,10 +10,11 @@ export async function GET() {
   try {
     const user = await getSessionUser()
     if (!user) throw new HttpError(401, "Hãy đăng nhập lại.")
-    const data = await withDb((db) => {
+    const courseId = await resolveCourseId(user.id)
+    const data = await withDb((db) => withCourse(db, courseId, user.id, () => {
       assertLearnerAccess(db, user)
-      return { ...context(db), plans: db.plans, canEdit: user.role === "student", revision: db.revision }
-    })
+      return { ...context(db), plans: db.plans.map((item) => ({ ...item })), canEdit: user.role === "student", revision: db.revision }
+    }))
     return Response.json(data)
   } catch (error) {
     return jsonError(error)
@@ -30,9 +33,10 @@ export async function POST(request: Request) {
       expectedRevision?: number
     }
     const expectedRevision = requireExpectedRevision(body.expectedRevision)
+    const courseId = await resolveCourseId(user.id)
     const written = await commitWrite({
       expectedRevision,
-      apply: (db) => {
+      apply: (db) => withCourse(db, courseId, user.id, () => {
       assertLearnerAccess(db, user)
       if (user.role !== "student") {
         throw new HttpError(403, "Chỉ học sinh sửa được kế hoạch của mình.")
@@ -58,8 +62,8 @@ export async function POST(request: Request) {
         source: "personal",
         done: false,
       })
-      return { plans: db.plans }
-      },
+      return { plans: db.plans.map((item) => ({ ...item })) }
+      }),
     })
     return Response.json({ ...written.result, revision: written.revision })
   } catch (error) {

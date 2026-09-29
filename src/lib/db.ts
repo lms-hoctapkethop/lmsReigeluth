@@ -1,5 +1,6 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto"
 import { DEMO_ACCOUNTS } from "@/lib/accounts"
+import { ensureCatalog, type Course, type Enrollment, type SubjectBag } from "@/lib/course-catalog"
 import type { AssignmentWork, AuthoredModule, ItemFact, ModuleQuizAttempt, PathRelease } from "@/lib/module-types"
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync, writeSync } from "fs"
 import path from "path"
@@ -163,6 +164,9 @@ export type Db = {
   itemFacts: ItemFact[]
   moduleQuizAttempts: ModuleQuizAttempt[]
   assignmentWork: AssignmentWork[]
+  courses: Course[]
+  enrollments: Enrollment[]
+  subjects: Record<string, SubjectBag>
 }
 
 const file = path.join(process.cwd(), "data", "db.json")
@@ -356,6 +360,9 @@ function seed(): Db {
     guardianLink: defaultLink(),
     notifications: [],
     audit: [],
+    courses: [],
+    enrollments: [],
+    subjects: {},
   }
 }
 
@@ -447,15 +454,23 @@ function hydrate(parsed: Partial<Db>): Db {
     guardianLink: parsed.guardianLink ?? defaultLink(),
     notifications: parsed.notifications ?? [],
     audit: parsed.audit ?? [],
+    courses: parsed.courses ?? [],
+    enrollments: parsed.enrollments ?? [],
+    subjects: parsed.subjects ?? {},
   }
 }
 
 function read(): Db {
   try {
-    return hydrate(JSON.parse(readFileSync(/*turbopackIgnore: true*/ dbFile(), "utf8")) as Partial<Db>)
+    return finishRead(hydrate(JSON.parse(readFileSync(/*turbopackIgnore: true*/ dbFile(), "utf8")) as Partial<Db>))
   } catch {
-    return seed()
+    return finishRead(seed())
   }
+}
+
+function finishRead(db: Db) {
+  ensureCatalog(db)
+  return db
 }
 
 function writeAtomic(db: Db) {

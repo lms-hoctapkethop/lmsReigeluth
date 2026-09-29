@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { ErrorNote, Loading, formatWhen } from "@/components/state"
 
 type Task = { id: string; title: string; due: string; source: "assigned" | "personal"; done: boolean }
+type EnrolledCourse = { id: string; name: string; courseCode: string; offeringTitle: string; enrollmentType: string }
 type Overview = {
   user: { role: string; name: string }
   course: { name: string; module: string }
@@ -18,6 +19,8 @@ type Overview = {
   feedback: { teacher: string; at: string; excerpt: string } | null
   waitingReview: boolean
   familyNotes: number
+  enrolledCourses?: EnrolledCourse[]
+  activeCourseId?: string
 }
 
 function day(iso: string) {
@@ -86,6 +89,7 @@ function StudentHome({ data }: { data: Overview }) {
           {data.course.name} · Lớp {data.learner.className}. Hôm nay em nên làm việc tiếp theo bên dưới.
         </p>
       </div>
+      <CourseList data={data} />
       <section className="surface p-4 md:p-6">
         <p className="text-sm font-medium text-[#5150df]">Việc tiếp theo</p>
         {data.nextTask ? (
@@ -172,9 +176,10 @@ function TeacherHome({ data }: { data: Overview }) {
         <Link href="/teaching" className="rounded-2xl bg-[#eeedff] p-4 text-[#5150df] md:p-6">
           <p className="text-sm font-medium">Lớp học phần</p>
           <p className="mt-2 text-xl font-semibold">{data.course.module}</p>
-          <p className="mt-2 text-sm">Một lớp, một học sinh trong lát cắt này.</p>
+          <p className="mt-2 text-sm">Khóa đang mở. Cùng lớp này còn khóa khác trên thanh đầu trang.</p>
         </Link>
       </div>
+      <CourseList data={data} />
       <section className="surface p-4 md:p-6">
         <h2 className="text-xl font-semibold">Xem trước hàng chờ</h2>
         {data.submission && data.waitingReview ? (
@@ -201,6 +206,7 @@ function GuardianHome({ data }: { data: Overview }) {
           Lớp {data.learner.className} · {data.course.name}. Đây là hồ sơ được phép xem, không phải tài khoản của phụ huynh để nộp bài.
         </p>
       </div>
+      <CourseList data={data} />
       <section className="surface p-4 md:p-6">
         <h2 className="text-xl font-semibold">Điều cần chú ý</h2>
         {data.nextTask ? (
@@ -232,6 +238,30 @@ function GuardianHome({ data }: { data: Overview }) {
       <Feedback data={data} empty="Giáo viên chưa công bố phản hồi." />
       <Support data={data} />
     </div>
+  )
+}
+
+function CourseList({ data }: { data: Overview }) {
+  const courses = data.enrolledCourses ?? []
+  if (courses.length === 0) return null
+  return (
+    <section className="surface p-4 md:p-6">
+      <h2 className="text-xl font-semibold">Các khóa đang ghi danh</h2>
+      <ul className="mt-4 grid gap-3 md:grid-cols-2">
+        {courses.map((course) => {
+          const open = course.id === data.activeCourseId
+          return (
+            <li key={course.id} className="rounded-2xl border border-[#d9ddea] bg-white p-4">
+              <p className="font-medium">{course.name}</p>
+              <p className="mt-1 text-sm text-[#5b6476]">
+                {course.courseCode} · {course.offeringTitle}
+              </p>
+              <p className="mt-2 text-sm text-[#5150df]">{open ? "Đang mở" : "Chọn khóa này ở thanh đầu trang"}</p>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 

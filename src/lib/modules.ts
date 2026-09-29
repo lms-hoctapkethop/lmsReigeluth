@@ -1,3 +1,5 @@
+import { catalogCourses } from "@/lib/course-catalog"
+import { currentCourseId } from "@/lib/courses"
 import { HttpError, LEARNER, notify, recordAudit, type Db } from "@/lib/db"
 import type { AssignmentWork, AuthoredModule, ItemFact, ModuleItem, ModuleRelease, PathRelease } from "@/lib/module-types"
 
@@ -89,7 +91,8 @@ function clipText(value: string, max: number) {
 export function createLesson(db: Db, title: string) {
   const name = clipText(title, 160).replace(/\s+/g, " ")
   if (name.length < 3) throw new HttpError(400, "Tên bài cần ít nhất 3 ký tự.")
-  const key = `TH10-GV-${Date.now().toString(36)}`
+  const code = catalogCourses().find((item) => item.id === currentCourseId(db))?.courseCode ?? "TH10"
+  const key = `${code}-GV-${Date.now().toString(36)}`
   const moduleDoc: AuthoredModule = {
     key,
     versionKey: `${key}.v1`,

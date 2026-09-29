@@ -1,4 +1,4 @@
-> Tài liệu này không phải đặc tả để xây. Nó cho phép `min_score` ngay lát cắt đầu và gộp giao lớp thành một lần phát hành. Đặc tả đang dùng là kiến trúc 3.2.1, cùng `P1a_Tren_App_Hien_Co.md` và `Hop_dong_lenh_ghi.md`. P1a đã được code trên Next.js và file JSON. Trên dữ liệu trường, giao lớp đã bật và kho 34 bài nằm ở dạng bản soạn, chưa phát hành cho lớp.
+> Tài liệu này không phải đặc tả để xây. Nó cho phép `min_score` ngay lát cắt đầu và gộp giao lớp thành một lần phát hành. Đặc tả đang dùng là kiến trúc 3.2.1, cùng `P1a_Tren_App_Hien_Co.md` và `Hop_dong_lenh_ghi.md`. P1a đã được code trên Next.js và file JSON. Trên dữ liệu trường, giao lớp đã bật và kho 34 bài nằm ở dạng bản soạn, chưa phát hành cho lớp. App đang chạy đã có Course và Enrollment: Tin học 10 ở gốc file, Toán 10 trong túi riêng. File này vẫn không phải hợp đồng xây.
 
 # Kiến trúc module bài học theo cách của Canvas
 

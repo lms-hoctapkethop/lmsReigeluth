@@ -127,7 +127,7 @@ export default function ModulesPage() {
       <div>
         <h1 className="text-2xl font-semibold">Soạn và giao bài</h1>
         <p className="mt-2 max-w-3xl text-[#5b6476]">
-          Tạo bài mới hoặc mở một bài có sẵn. Viết trang bài học và đề bài tập, đặt hạn nộp, lưu, rồi giao cho lớp 10A1. Học sinh chỉ thấy bài đã giao. Tuần đang chạy là {data.weekLabel}. Bài trên mục Khóa học không đổi.
+          Tạo bài mới hoặc mở một bài có sẵn trong khóa đang chọn. Viết trang bài học và đề bài tập, đặt hạn nộp, lưu, rồi giao cho lớp 10A1. Học sinh chỉ thấy bài đã giao của khóa đó. Tuần đang chạy là {data.weekLabel}. Bài trên mục Khóa học của khóa này không đổi. Kho bài của khóa khác không bị giao theo.
         </p>
       </div>
       {error ? <ErrorNote message={error} /> : null}

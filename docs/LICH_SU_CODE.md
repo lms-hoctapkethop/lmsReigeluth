@@ -124,3 +124,13 @@ W01, W01-shape, W02, W05, W06, W10, W12 và `canvas-import` gọi lại trên ti
 W03, W08, W09, W10, W11, W12 và W04 với `review-1` chạy lại trên bản sao mới `/tmp/hcn-reaudit-w/db.json`, cổng 4318, rồi tiến trình đó đã tắt. Kết quả từng ca trùng bảng trên. Sau các ca đó, hash file lớp vẫn là hash đầu lần kiểm.
 
 Trong lúc kiểm, site công khai ghi thêm vào file lớp: 09:53:11 quản trị gửi cập nhật tổ chức, rồi ba `POST /api/modules` trả 200. Lần đọc sau đó: revision 41, SHA-256 `65c27255a10c9739135c5cd7d141ff9d0471b3e52efb5cec1bc211d4dcf0b20a`. Tuần, tên trường, lớp, môn, bài 03, cờ giao lớp, `pathRelease` null, 35 bản soạn và nội dung 34 bài so với gói nhập vẫn như trước. Lần nộp 0, decision 0, review 0, quiz bài 03 vẫn 12. Hai dòng nhật ký là bật giao lớp và cập nhật tổ chức.
+
+## Nhiều khóa trên một lớp
+
+Tham chiếu Canvas `Course` (`course_code`, `workflow_state`, `has_many :enrollments`, `published?` khi state là `available`) và `Enrollment` (`belongs_to` course và user, `StudentEnrollment` / `TeacherEnrollment`, `workflow_state` active). Phụ huynh là `ObserverEnrollment`.
+
+Tin học 10 (`course-th10`, mã `TH10`) kế thừa đúng các trường gốc: bài `Bài 03 · Rẽ nhánh if–else`, tuần, bản soạn, `pathRelease`, nháp, lần nộp, review, decision, quiz, kế hoạch. Toán 10 (`course-toan10`, mã `TOAN10`) nằm trong `subjects`, bài đang học là `Bài 01 · Mệnh đề`, không chép bài 03. `classDeliveryEnabled`, người dùng, nhật ký, thông báo, biên nhận và revision vẫn là của cả file. Cookie `hcn_course` chọn khóa cho từng phiên. Đọc không ghi catalog xuống file. Lần ghi nghiệp vụ kế tiếp mới lưu `courses`, `enrollments` và túi Toán.
+
+`npm test` sau thay đổi này: bốn subtest pass. Subtest thứ tư giao một bài trong Toán, đổi tuần của túi Toán thành `05/10 – 11/10/2026`, rồi kiểm file: tuần gốc và `Tin học 10` còn `28/09 – 04/10/2026`, bài gốc còn `Bài 03 · Rẽ nhánh if–else`, `pathRelease` gốc null, danh sách bản soạn gốc không thêm khóa `TOAN10-GV-`. Túi Toán giữ bài mệnh đề và bài đã giao. Học sinh có hai enrollment active. Giáo viên có hai `TeacherEnrollment`. Quản trị không có enrollment và bị từ chối khi mở Toán. Ném lỗi giữa chừng không để tuần hay bài của hai khóa dính vào nhau.
+
+W07, thẩm định chuyên gia 71 KC và xuất Canvas vẫn NOT_RUN.

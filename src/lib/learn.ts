@@ -10,6 +10,7 @@ import {
   recordAudit,
   type Db,
 } from "@/lib/db"
+import { coursesForUser, currentCourseId } from "@/lib/courses"
 import type { SessionUser } from "@/lib/session"
 
 export function assertLearnerAccess(db: Db, user: SessionUser) {
@@ -94,6 +95,8 @@ export function overview(db: Db, user: SessionUser) {
     exploreDone: db.exploreDone,
     familyNotes: db.familyNotes.length,
     waitingReview: Boolean(latest) && !published,
+    enrolledCourses: coursesForUser(db, user.id),
+    activeCourseId: currentCourseId(db),
   }
 }
 
@@ -162,7 +165,7 @@ export function submitWork(
 ) {
   assertLearnerAccess(db, user)
   if (user.role !== "student") throw new HttpError(403, "Chỉ học sinh nộp được bài của mình.")
-  const key = `${user.id}:submit:${input.idempotencyKey}`
+  const key = `${user.id}:${currentCourseId(db)}:submit:${input.idempotencyKey}`
   if (!input.code.trim() || input.reflection.trim().length < 12) {
     throw new HttpError(400, "Cần có mã và một nhận xét đủ để người khác hiểu lựa chọn của bạn.")
   }

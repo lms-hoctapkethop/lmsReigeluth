@@ -1,6 +1,6 @@
 # Học cùng nhau
 
-Website học tập cho một lớp học phần Tin học 10. Học sinh lập kế hoạch, học bài rẽ nhánh `if–else`, nộp bài và nhận biên nhận. Giáo viên công bố nhận xét. Phụ huynh xem hồ sơ của con và ghi nhận đồng hành.
+Website học tập cho một trường, lớp 10A1. Một học sinh học nhiều khóa, một giáo viên dạy nhiều khóa. Lát cắt này có Tin học 10 và Toán 10. Tin học 10 giữ bài rẽ nhánh `if–else` và các bản soạn đã có. Toán 10 mở bài mệnh đề riêng. Học sinh lập kế hoạch, nộp bài và nhận biên nhận. Giáo viên công bố nhận xét. Phụ huynh xem hồ sơ của con và ghi nhận đồng hành.
 
 Dữ liệu nằm trong `data/db.json` trên máy đang chạy. Tải lại trang không xóa bài đã nộp.
 
@@ -38,7 +38,9 @@ Lệch `draft.version` khi lưu nháp hoặc nộp bài thực hành vẫn là H
 
 Khóa đang nằm trong bộ nhớ của một tiến trình, kèm file `data/writer.lock` ghi PID. Chỉ chạy một `next dev` hoặc một `next start` cho cùng một file dữ liệu. Tiến trình thứ hai nhận HTTP 503 mã `SINGLE_WRITER`.
 
-Giáo viên mở Soạn và giao để thêm bài, viết trang bài học và đề bài tập, đặt hạn nộp, rồi giao hoặc thu bài. Học sinh chỉ thấy bài đã giao, ở mục Bài được giao. Tuần `28/09 – 04/10/2026` và bài trên mục Khóa học không đổi. Kho 34 bài không bị giao hàng loạt. `min_score` và cổng KC vẫn bị từ chối.
+Giáo viên mở Soạn và giao để thêm bài, viết trang bài học và đề bài tập, đặt hạn nộp, rồi giao hoặc thu bài. Việc soạn và giao nằm trong khóa đang chọn trên thanh đầu trang. Học sinh chỉ thấy bài đã giao của khóa đó, ở mục Bài được giao. Tuần `28/09 – 04/10/2026` và bài `Bài 03 · Rẽ nhánh if–else` của Tin học 10 không đổi khi thao tác trên Toán 10. Kho 34 bài không bị giao hàng loạt. `min_score` và cổng KC vẫn bị từ chối.
+
+Khóa học theo Canvas: mỗi khóa có `courseCode` và trạng thái `available`. Ghi danh có `StudentEnrollment`, `TeacherEnrollment` và `ObserverEnrollment`, trạng thái `active`. Tin học 10 nằm ở các trường gốc của file JSON. Toán 10 nằm trong túi `subjects`. Cookie `hcn_course` chọn khóa cho phiên, không ghi một khóa đang mở chung cho cả trường. Người chưa được ghi danh không mở được khóa đó.
 
 ```bash
 npm test

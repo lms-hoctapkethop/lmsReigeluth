@@ -1,4 +1,6 @@
 import { suggestAuthoring } from "@/lib/authoring"
+import { resolveCourseId } from "@/lib/course-session"
+import { withCourse } from "@/lib/courses"
 import { commitWrite, HttpError, jsonError, LEARNER, requireExpectedRevision, withDb } from "@/lib/db"
 import { createLesson, deliverModule, deliverPath, markItem, modulesPayload, rejectAttainmentWrite, rejectDisabledDelivery, sampleWeekModule, saveAuthoredModule, saveLessonDraft, submitAssignment, submitModuleQuiz, unpublishModule } from "@/lib/modules"
 import type { AuthoredModule } from "@/lib/module-types"
@@ -16,7 +18,8 @@ export async function GET(request: Request) {
       if (user.role !== "teacher") throw new HttpError(403, "Chỉ giáo viên xem nội dung đề xuất.")
       return Response.json(suggestAuthoring(suggest))
     }
-    const data = await withDb((db) => modulesPayload(db, user.role))
+    const courseId = await resolveCourseId(user.id)
+    const data = await withDb((db) => withCourse(db, courseId, user.id, () => modulesPayload(db, user.role)))
     return Response.json(data)
   } catch (error) {
     return jsonError(error)
@@ -30,9 +33,10 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Record<string, unknown>
     rejectAttainmentWrite(body)
     const expectedRevision = requireExpectedRevision(body.expectedRevision)
+    const courseId = await resolveCourseId(user.id)
     const written = await commitWrite({
       expectedRevision,
-      apply: (db) => {
+      apply: (db) => withCourse(db, courseId, user.id, () => {
         rejectDisabledDelivery(body, db.classDeliveryEnabled)
         const weekLabel = db.org.weekLabel
         const lessonTitle = db.module.title
@@ -105,7 +109,7 @@ export async function POST(request: Request) {
           }))
         }
         throw new HttpError(400, "Không rõ thao tác.")
-      },
+      }),
     })
     return Response.json({ ...written.result, revision: written.revision })
   } catch (error) {
