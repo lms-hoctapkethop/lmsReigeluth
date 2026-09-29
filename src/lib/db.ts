@@ -449,7 +449,7 @@ function hydrate(parsed: Partial<Db>): Db {
 
 function read(): Db {
   try {
-    return hydrate(JSON.parse(readFileSync(dbFile(), "utf8")) as Partial<Db>)
+    return hydrate(JSON.parse(readFileSync(/*turbopackIgnore: true*/ dbFile(), "utf8")) as Partial<Db>)
   } catch {
     return seed()
   }
@@ -457,38 +457,38 @@ function read(): Db {
 
 function writeAtomic(db: Db) {
   const target = dbFile()
-  mkdirSync(path.dirname(target), { recursive: true })
+  mkdirSync(/*turbopackIgnore: true*/ path.dirname(target), { recursive: true })
   const temporary = `${target}.${process.pid}.tmp`
-  writeFileSync(temporary, JSON.stringify(db, null, 2))
-  renameSync(temporary, target)
+  writeFileSync(/*turbopackIgnore: true*/ temporary, JSON.stringify(db, null, 2))
+  renameSync(/*turbopackIgnore: true*/ temporary, target)
 }
 
 function ensureWriter() {
   if (lockHeldByThisProcess) return
   const lock = lockPath()
-  mkdirSync(path.dirname(lock), { recursive: true })
+  mkdirSync(/*turbopackIgnore: true*/ path.dirname(lock), { recursive: true })
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const fd = openSync(lock, "wx")
+      const fd = openSync(/*turbopackIgnore: true*/ lock, "wx")
       writeSync(fd, String(process.pid))
       closeSync(fd)
       lockHeldByThisProcess = true
       return
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error
-      const holder = Number(readFileSync(lock, "utf8"))
+      const holder = Number(readFileSync(/*turbopackIgnore: true*/ lock, "utf8"))
       if (holder === process.pid) {
         lockHeldByThisProcess = true
         return
       }
-      if (Number.isInteger(holder) && holder > 0 && existsSync(`/proc/${holder}`)) {
+      if (Number.isInteger(holder) && holder > 0 && existsSync(/*turbopackIgnore: true*/ `/proc/${holder}`)) {
         throw new HttpError(
           503,
           "Đang có một tiến trình khác ghi dữ liệu. Khi khóa còn nằm trong bộ nhớ, app chỉ cho một writer.",
           { code: "SINGLE_WRITER" },
         )
       }
-      unlinkSync(lock)
+      unlinkSync(/*turbopackIgnore: true*/ lock)
     }
   }
   throw new HttpError(503, "Không giữ được khóa ghi.", { code: "SINGLE_WRITER" })
@@ -509,7 +509,7 @@ function exclusive<T>(fn: () => T): Promise<T> {
 process.on("exit", () => {
   if (!lockHeldByThisProcess) return
   try {
-    unlinkSync(lockPath())
+    unlinkSync(/*turbopackIgnore: true*/ lockPath())
   } catch {
     // The next process reclaims a stale lock when this pid is gone.
   }

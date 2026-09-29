@@ -28,10 +28,23 @@ Stdout của lần chạy sau khi sửa kiểu trong file kiểm thử (cùng c�
 
 Sau kiểm thử, `data/db.json` của máy này vẫn không có trường `revision`, không có `classDeliveryEnabled`, `weekLabel` vẫn `28/09 – 04/10/2026`, chưa có module soạn.
 
+## Kết quả HTTP trên server tạm
+
+`next start` cổng 43141, `HCN_DB_PATH=/tmp/hcn-ui/db.json` (bản sao). Không đụng `data/db.json`.
+
+- Giáo viên tạo mẫu: 5 dòng, 3 requirement, revision 1, tuần `28/09 – 04/10/2026`, `classDeliveryEnabled` false.
+- Lưu tiêu đề tăng revision. `action: "deliver"` trả HTTP 403 mã `CLASS_DELIVERY_OFF`. Thiếu `expectedRevision` trả HTTP 400.
+- Học sinh không thấy bản soạn. `GET /api/learn` vẫn là bài `Bài 03 · Rẽ nhánh if–else`, tuần không đổi, revision có trong payload.
+- Lưu nháp với `version: 9` trả HTTP 409, câu “Bản nháp trên máy chủ đã mới hơn. Hãy tải lại trước khi lưu.”, không có mã `REVISION_CONFLICT`.
+
+Trên trình duyệt, cùng server: giáo viên mở Module soạn thảo, thấy giao lớp tắt và mẫu số 3, lưu tiêu đề “Tuần mẫu trên lớp”, tải lại vẫn còn tiêu đề đó. Tổng quan vẫn hiện tuần `28/09 – 04/10/2026` và bài 03. Không có nút giao lớp.
+
+Sau các thao tác đó, `data/db.json` vẫn không có `revision`, không có `classDeliveryEnabled`, tuần vẫn `28/09 – 04/10/2026`. File tạm có bản soạn, `pathRelease` null, giao lớp false.
+
 ## Còn NOT_RUN
 
 - Nhập và phát hành kho 34 bài: NOT_RUN.
 - Bật giao lớp trên `data/db.json` của trường: NOT_RUN, và không được bật ở bước này.
-- Vòng HTTP thật (đăng nhập, `POST /api/modules`) và thao tác trên trình duyệt: NOT_RUN cho đến khi có biên bản riêng ở cuối file này.
+- Triển khai lên máy chủ trường: NOT_RUN.
 - Các ca hợp đồng ghi ngoài bảng P1a-01 đến P1a-10: NOT_RUN.
 - Thẩm định chuyên gia 71 KC và xuất Canvas: NOT_RUN.
