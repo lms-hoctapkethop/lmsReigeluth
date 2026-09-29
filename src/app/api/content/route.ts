@@ -1,4 +1,4 @@
-import { HttpError, jsonError, withDb, type ModuleDoc } from "@/lib/db"
+import { commitWrite, HttpError, jsonError, requireExpectedRevision, withDb, type ModuleDoc } from "@/lib/db"
 import { contentPayload, publishModule, saveModuleDraft } from "@/lib/content"
 import { getSessionUser } from "@/lib/session"
 
@@ -19,16 +19,20 @@ export async function POST(request: Request) {
   try {
     const user = await getSessionUser()
     if (!user) throw new HttpError(401, "Hãy đăng nhập lại.")
-    const body = (await request.json()) as { action?: string; draft?: ModuleDoc }
-    const data = await withDb((db) => {
-      if (body.action === "save") {
-        if (!body.draft) throw new HttpError(400, "Thiếu nội dung bản nháp.")
-        return saveModuleDraft(db, user, body.draft)
-      }
-      if (body.action === "publish") return publishModule(db, user)
-      throw new HttpError(400, "Không rõ thao tác.")
+    const body = (await request.json()) as { action?: string; draft?: ModuleDoc; expectedRevision?: number }
+    const expectedRevision = requireExpectedRevision(body.expectedRevision)
+    const written = await commitWrite({
+      expectedRevision,
+      apply: (db) => {
+        if (body.action === "save") {
+          if (!body.draft) throw new HttpError(400, "Thiếu nội dung bản nháp.")
+          return saveModuleDraft(db, user, body.draft)
+        }
+        if (body.action === "publish") return publishModule(db, user)
+        throw new HttpError(400, "Không rõ thao tác.")
+      },
     })
-    return Response.json(data)
+    return Response.json({ ...written.result, revision: written.revision })
   } catch (error) {
     return jsonError(error)
   }

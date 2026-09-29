@@ -29,6 +29,7 @@ export default function ContentEditPage() {
   const [notice, setNotice] = useState("")
   const [confirming, setConfirming] = useState(false)
   const [pending, setPending] = useState(false)
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     fetch("/api/content")
@@ -36,6 +37,7 @@ export default function ContentEditPage() {
         const body = await response.json()
         if (!response.ok) throw new Error(body.error || "Không tải được bản nháp.")
         setDraft(body.draft)
+        setRevision(body.revision ?? 0)
         setExplore((body.draft.exploreBody as string[]).join("\n\n"))
       })
       .catch((reason: Error) => setError(reason.message || "Lỗi mạng."))
@@ -56,11 +58,12 @@ export default function ContentEditPage() {
       const response = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "save", draft: next }),
+        body: JSON.stringify({ action: "save", draft: next, expectedRevision: revision }),
       })
       const body = await response.json()
       if (!response.ok) throw new Error(body.error || "Chưa lưu được bản nháp.")
       setDraft(body.draft)
+      if (typeof body.revision === "number") setRevision(body.revision)
       setNotice("Đã lưu bản nháp. Học sinh chưa thấy thay đổi này.")
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Lỗi mạng.")
@@ -77,14 +80,14 @@ export default function ContentEditPage() {
       const saved = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "save", draft: payload() }),
+        body: JSON.stringify({ action: "save", draft: payload(), expectedRevision: revision }),
       })
       const savedBody = await saved.json()
       if (!saved.ok) throw new Error(savedBody.error || "Chưa lưu được trước khi phát hành.")
       const response = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "publish" }),
+        body: JSON.stringify({ action: "publish", expectedRevision: savedBody.revision }),
       })
       const body = await response.json()
       if (!response.ok) throw new Error(body.error || "Chưa phát hành được.")

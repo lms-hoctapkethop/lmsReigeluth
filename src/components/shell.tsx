@@ -38,6 +38,7 @@ const nav: Record<SessionUser["role"], { href: string; label: string; icon: type
     { href: "/dashboard", label: "Tổng quan", icon: LayoutDashboard },
     { href: "/teaching", label: "Lớp giảng dạy", icon: Users },
     { href: "/teaching/content", label: "Nội dung", icon: Library },
+    { href: "/teaching/modules", label: "Module soạn thảo", icon: Library },
     { href: "/assessment", label: "Chờ phản hồi", icon: ClipboardCheck },
     { href: "/notifications", label: "Thông báo", icon: Bell },
   ],

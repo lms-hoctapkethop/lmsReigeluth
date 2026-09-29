@@ -38,6 +38,7 @@ export function context(db: Db) {
       week: db.org.weekLabel,
     },
     school: db.org.school,
+    revision: db.revision,
   }
 }
 
@@ -162,8 +163,6 @@ export function submitWork(
   assertLearnerAccess(db, user)
   if (user.role !== "student") throw new HttpError(403, "Chỉ học sinh nộp được bài của mình.")
   const key = `${user.id}:submit:${input.idempotencyKey}`
-  const existing = db.idempotency[key]
-  if (existing) return { receipt: existing, duplicate: true }
   if (!input.code.trim() || input.reflection.trim().length < 12) {
     throw new HttpError(400, "Cần có mã và một nhận xét đủ để người khác hiểu lựa chọn của bạn.")
   }

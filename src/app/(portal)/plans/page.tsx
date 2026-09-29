@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { EmptyNote, ErrorNote, Loading } from "@/components/state"
 
 type Plan = { id: string; title: string; due: string; source: "assigned" | "personal"; done: boolean }
-type Payload = { plans: Plan[]; canEdit: boolean; course: { week: string } }
+type Payload = { plans: Plan[]; canEdit: boolean; course: { week: string }; revision: number }
 
 export default function PlansPage() {
   const [data, setData] = useState<Payload | null>(null)
@@ -35,14 +35,14 @@ export default function PlansPage() {
     const response = await fetch("/api/plans", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "toggle", id }),
+      body: JSON.stringify({ action: "toggle", id, expectedRevision: data?.revision }),
     })
     const body = await response.json()
     if (!response.ok) {
       setError(body.error)
       return
     }
-    setData((current) => (current ? { ...current, plans: body.plans } : current))
+    setData((current) => (current ? { ...current, plans: body.plans, revision: body.revision ?? current.revision } : current))
   }
 
   async function addPlan(event: React.FormEvent) {
@@ -51,14 +51,14 @@ export default function PlansPage() {
     const response = await fetch("/api/plans", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, due }),
+      body: JSON.stringify({ title, due, expectedRevision: data?.revision }),
     })
     const body = await response.json()
     if (!response.ok) {
       setError(body.error)
       return
     }
-    setData((current) => (current ? { ...current, plans: body.plans } : current))
+    setData((current) => (current ? { ...current, plans: body.plans, revision: body.revision ?? current.revision } : current))
     setTitle("")
     setOpen(false)
     setNotice("Đã thêm việc vào kế hoạch.")

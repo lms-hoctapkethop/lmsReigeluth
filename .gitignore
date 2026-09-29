@@ -35,6 +35,8 @@ yarn-error.log*
 
 # runtime data
 /data/db.json
+/data/writer.lock
+/data/*.tmp
 
 # vercel
 .vercel

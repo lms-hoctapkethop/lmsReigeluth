@@ -27,6 +27,7 @@ export default function AssessmentPage() {
   const [marks, setMarks] = useState<Record<string, { met: boolean; note: string }>>({})
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     async function run() {
@@ -37,6 +38,7 @@ export default function AssessmentPage() {
         const body = await response.json()
         if (!response.ok) throw new Error(body.error)
         setQueue(body)
+        setRevision(body.revision ?? 0)
         const initial: Record<string, { met: boolean; note: string }> = {}
         for (const criterion of body.criteria) initial[criterion.id] = { met: false, note: "" }
         setMarks(initial)
@@ -45,6 +47,7 @@ export default function AssessmentPage() {
         const body = await response.json()
         if (!response.ok) throw new Error(body.error)
         setLearn(body)
+        setRevision(body.revision ?? 0)
         setAnswers(body.quiz.map(() => -1))
       }
     }
@@ -56,7 +59,7 @@ export default function AssessmentPage() {
     const response = await fetch("/api/learn", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "quiz", answers }),
+      body: JSON.stringify({ action: "quiz", answers, expectedRevision: revision }),
     })
     const body = await response.json()
     if (!response.ok) {
@@ -76,6 +79,7 @@ export default function AssessmentPage() {
       body: JSON.stringify({
         versionNo: queue.latest.versionNo,
         marks: Object.entries(marks).map(([id, value]) => ({ id, ...value })),
+        expectedRevision: revision,
       }),
     })
     const body = await response.json()

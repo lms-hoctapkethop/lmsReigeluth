@@ -12,6 +12,7 @@ export function contentPayload(db: Db, user: SessionUser) {
   return {
     published: db.module,
     draft: db.moduleDraft,
+    revision: db.revision,
   }
 }
 

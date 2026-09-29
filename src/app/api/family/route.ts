@@ -1,4 +1,4 @@
-import { HttpError, jsonError, notify, recordAudit, withDb } from "@/lib/db"
+import { commitWrite, HttpError, jsonError, notify, recordAudit, requireExpectedRevision, withDb } from "@/lib/db"
 import { assertLearnerAccess, context, overview } from "@/lib/learn"
 import { getSessionUser } from "@/lib/session"
 
@@ -23,8 +23,11 @@ export async function POST(request: Request) {
   try {
     const user = await getSessionUser()
     if (!user) throw new HttpError(401, "Hãy đăng nhập lại.")
-    const body = (await request.json()) as { note?: string }
-    const data = await withDb((db) => {
+    const body = (await request.json()) as { note?: string; expectedRevision?: number }
+    const expectedRevision = requireExpectedRevision(body.expectedRevision)
+    const written = await commitWrite({
+      expectedRevision,
+      apply: (db) => {
       assertLearnerAccess(db, user)
       if (user.role !== "guardian") throw new HttpError(403, "Chỉ phụ huynh được liên kết mới ghi nhận đồng hành.")
       const note = body.note?.trim() ?? ""
@@ -49,8 +52,9 @@ export async function POST(request: Request) {
       })
       recordAudit(db, { actorId: user.id, actorName: user.name, action: "Ghi hỗ trợ gia đình", target: "Lê An" })
       return { notes: db.familyNotes, context: context(db) }
+      },
     })
-    return Response.json(data)
+    return Response.json({ ...written.result, revision: written.revision })
   } catch (error) {
     return jsonError(error)
   }

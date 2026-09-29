@@ -28,7 +28,7 @@ export function adminUsers(db: Db, user: SessionUser) {
 
 export function adminOrg(db: Db, user: SessionUser) {
   requireAdmin(user)
-  return { org: db.org, link: db.guardianLink }
+  return { org: db.org, link: db.guardianLink, revision: db.revision }
 }
 
 export function saveOrg(db: Db, user: SessionUser, input: OrgProfile) {

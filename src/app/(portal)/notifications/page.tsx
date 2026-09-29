@@ -9,6 +9,7 @@ type Item = { id: string; title: string; summary: string; href: string; createdA
 
 export default function NotificationsPage() {
   const [items, setItems] = useState<Item[] | null>(null)
+  const [revision, setRevision] = useState(0)
   const [error, setError] = useState("")
 
   async function load() {
@@ -16,6 +17,7 @@ export default function NotificationsPage() {
     const body = await response.json()
     if (!response.ok) throw new Error(body.error || "Không tải được thông báo.")
     setItems(body.items)
+    setRevision(body.revision ?? 0)
   }
 
   useEffect(() => {
@@ -27,14 +29,16 @@ export default function NotificationsPage() {
     const response = await fetch("/api/notifications", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(id ? { id } : { all: true }),
+      body: JSON.stringify(id ? { id, expectedRevision: revision } : { all: true, expectedRevision: revision }),
     })
     const body = await response.json()
     if (!response.ok) {
+      if (typeof body.revision === "number") setRevision(body.revision)
       setError(body.error || "Chưa đánh dấu được.")
       return
     }
     setItems(body.items)
+    if (typeof body.revision === "number") setRevision(body.revision)
   }
 
   if (error && !items) return <ErrorNote message={error} />

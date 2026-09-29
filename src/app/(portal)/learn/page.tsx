@@ -30,12 +30,14 @@ export default function LearnPage() {
   const [version, setVersion] = useState(1)
   const [dirty, setDirty] = useState(false)
   const [pending, setPending] = useState(false)
+  const [revision, setRevision] = useState(0)
 
   async function load() {
     const response = await fetch("/api/learn")
     const body = await response.json()
     if (!response.ok) throw new Error(body.error || "Không mở được bài học.")
     setData(body)
+    setRevision(body.revision ?? 0)
     if (body.practice.draft) {
       setCode(body.practice.draft.code)
       setReflection(body.practice.draft.reflection)
@@ -56,7 +58,7 @@ export default function LearnPage() {
       const response = await fetch("/api/learn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, expectedRevision: revision }),
       })
       const body = await response.json()
       if (!response.ok) {
@@ -66,9 +68,11 @@ export default function LearnPage() {
           setVersion(body.draft.version)
           setDirty(false)
         }
+        if (typeof body.revision === "number") setRevision(body.revision)
         setError(body.error || "Không lưu được.")
         return null
       }
+      if (typeof body.revision === "number") setRevision(body.revision)
       return body
     } catch {
       setError("Mất kết nối. Nội dung trên màn hình vẫn còn, chưa được ghi là đã lưu.")

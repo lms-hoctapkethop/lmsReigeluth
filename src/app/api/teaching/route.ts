@@ -1,4 +1,4 @@
-import { HttpError, jsonError, withDb } from "@/lib/db"
+import { commitWrite, HttpError, jsonError, requireExpectedRevision, withDb } from "@/lib/db"
 import { publishReview, teachingPayload } from "@/lib/learn"
 import { getSessionUser } from "@/lib/session"
 
@@ -23,14 +23,18 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       versionNo?: number
       marks?: { id: string; met: boolean; note: string }[]
+      expectedRevision?: number
     }
-    const data = await withDb((db) =>
-      publishReview(db, user, {
-        versionNo: Number(body.versionNo),
-        marks: body.marks ?? [],
-      }),
-    )
-    return Response.json(data)
+    const expectedRevision = requireExpectedRevision(body.expectedRevision)
+    const written = await commitWrite({
+      expectedRevision,
+      apply: (db) =>
+        publishReview(db, user, {
+          versionNo: Number(body.versionNo),
+          marks: body.marks ?? [],
+        }),
+    })
+    return Response.json({ ...written.result, revision: written.revision })
   } catch (error) {
     return jsonError(error)
   }

@@ -1,6 +1,7 @@
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "crypto"
 import { DEMO_ACCOUNTS } from "@/lib/accounts"
-import { mkdirSync, readFileSync, writeFileSync } from "fs"
+import type { AuthoredModule, ItemFact, ModuleQuizAttempt, PathRelease } from "@/lib/module-types"
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync, writeSync } from "fs"
 import path from "path"
 
 export type Role = "student" | "teacher" | "guardian" | "admin"
@@ -130,7 +131,16 @@ export type AuditEvent = {
   target: string
 }
 
+export type CommandReceipt = {
+  fingerprint: string
+  revision: number
+  receipt: string
+  result: unknown
+}
+
 export type Db = {
+  revision: number
+  receipts: Record<string, CommandReceipt>
   users: User[]
   plans: PlanItem[]
   exploreDone: boolean
@@ -147,6 +157,11 @@ export type Db = {
   guardianLink: GuardianLink
   notifications: AppNotification[]
   audit: AuditEvent[]
+  authoredModules: AuthoredModule[]
+  pathRelease: PathRelease | null
+  classDeliveryEnabled: boolean
+  itemFacts: ItemFact[]
+  moduleQuizAttempts: ModuleQuizAttempt[]
 }
 
 const file = path.join(process.cwd(), "data", "db.json")
@@ -277,6 +292,8 @@ function seed(): Db {
     ...hashPassword(account.password),
   }))
   return {
+    revision: 0,
+    receipts: {},
     users,
     plans: [
       {
@@ -328,6 +345,11 @@ function seed(): Db {
     idempotency: {},
     module: defaultModule("published"),
     moduleDraft: defaultModule("draft"),
+    authoredModules: [],
+    pathRelease: null,
+    classDeliveryEnabled: false,
+    itemFacts: [],
+    moduleQuizAttempts: [],
     org: defaultOrg(),
     guardianLink: defaultLink(),
     notifications: [],
@@ -362,6 +384,15 @@ export function recordAudit(db: Db, input: { actorId: string; actorName: string;
 }
 
 let chain: Promise<unknown> = Promise.resolve()
+let lockHeldByThisProcess = false
+
+function dbFile() {
+  return process.env.HCN_DB_PATH || file
+}
+
+function lockPath() {
+  return process.env.HCN_LOCK_PATH || path.join(path.dirname(dbFile()), "writer.lock")
+}
 
 function hydrate(parsed: Partial<Db>): Db {
   const users = parsed.users ?? []
@@ -377,12 +408,26 @@ function hydrate(parsed: Partial<Db>): Db {
       })
     }
   }
+  const receipts = { ...(parsed.receipts ?? {}) }
+  const versions = parsed.versions ?? []
+  for (const [key, value] of Object.entries(parsed.idempotency ?? {})) {
+    if (receipts[key]) continue
+    const version = versions.find((item) => item.receipt === value.receipt)
+    receipts[key] = {
+      fingerprint: version ? commandFingerprint({ code: version.code, reflection: version.reflection }) : `legacy:${value.receipt}`,
+      revision: parsed.revision ?? 0,
+      receipt: value.receipt,
+      result: { receipt: value, duplicate: true },
+    }
+  }
   return {
+    revision: parsed.revision ?? 0,
+    receipts,
     users,
     plans: parsed.plans ?? [],
     exploreDone: parsed.exploreDone ?? false,
     draft: parsed.draft ?? seed().draft,
-    versions: parsed.versions ?? [],
+    versions,
     reviews: parsed.reviews ?? [],
     decisions: parsed.decisions ?? [],
     quizzes: parsed.quizzes ?? [],
@@ -390,6 +435,11 @@ function hydrate(parsed: Partial<Db>): Db {
     idempotency: parsed.idempotency ?? {},
     module: parsed.module ?? defaultModule("published"),
     moduleDraft: parsed.moduleDraft ?? defaultModule("draft"),
+    authoredModules: parsed.authoredModules ?? [],
+    pathRelease: parsed.pathRelease ?? null,
+    classDeliveryEnabled: parsed.classDeliveryEnabled === true,
+    itemFacts: parsed.itemFacts ?? [],
+    moduleQuizAttempts: parsed.moduleQuizAttempts ?? [],
     org: parsed.org ?? defaultOrg(),
     guardianLink: parsed.guardianLink ?? defaultLink(),
     notifications: parsed.notifications ?? [],
@@ -399,27 +449,131 @@ function hydrate(parsed: Partial<Db>): Db {
 
 function read(): Db {
   try {
-    return hydrate(JSON.parse(readFileSync(file, "utf8")) as Partial<Db>)
+    return hydrate(JSON.parse(readFileSync(dbFile(), "utf8")) as Partial<Db>)
   } catch {
-    const db = seed()
-    mkdirSync(path.dirname(file), { recursive: true })
-    writeFileSync(file, JSON.stringify(db, null, 2))
-    return db
+    return seed()
   }
 }
 
-export function withDb<T>(fn: (db: Db) => T): Promise<T> {
+function writeAtomic(db: Db) {
+  const target = dbFile()
+  mkdirSync(path.dirname(target), { recursive: true })
+  const temporary = `${target}.${process.pid}.tmp`
+  writeFileSync(temporary, JSON.stringify(db, null, 2))
+  renameSync(temporary, target)
+}
+
+function ensureWriter() {
+  if (lockHeldByThisProcess) return
+  const lock = lockPath()
+  mkdirSync(path.dirname(lock), { recursive: true })
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const fd = openSync(lock, "wx")
+      writeSync(fd, String(process.pid))
+      closeSync(fd)
+      lockHeldByThisProcess = true
+      return
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error
+      const holder = Number(readFileSync(lock, "utf8"))
+      if (holder === process.pid) {
+        lockHeldByThisProcess = true
+        return
+      }
+      if (Number.isInteger(holder) && holder > 0 && existsSync(`/proc/${holder}`)) {
+        throw new HttpError(
+          503,
+          "Đang có một tiến trình khác ghi dữ liệu. Khi khóa còn nằm trong bộ nhớ, app chỉ cho một writer.",
+          { code: "SINGLE_WRITER" },
+        )
+      }
+      unlinkSync(lock)
+    }
+  }
+  throw new HttpError(503, "Không giữ được khóa ghi.", { code: "SINGLE_WRITER" })
+}
+
+function exclusive<T>(fn: () => T): Promise<T> {
   const run = chain.then(() => {
-    const db = read()
-    const result = fn(db)
-    writeFileSync(file, JSON.stringify(db, null, 2))
-    return result
+    ensureWriter()
+    return fn()
   })
   chain = run.then(
     () => undefined,
     () => undefined,
   )
   return run
+}
+
+process.on("exit", () => {
+  if (!lockHeldByThisProcess) return
+  try {
+    unlinkSync(lockPath())
+  } catch {
+    // The next process reclaims a stale lock when this pid is gone.
+  }
+})
+
+export function withDb<T>(fn: (db: Db) => T): Promise<T> {
+  return exclusive(() => fn(read()))
+}
+
+export function requireExpectedRevision(value: unknown) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new HttpError(400, "Thiếu revision của bản dữ liệu. Hãy tải lại trang.")
+  }
+  return value
+}
+
+export function commandFingerprint(payload: unknown) {
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex")
+}
+
+export function commitWrite<T>(command: {
+  expectedRevision: number
+  idempotencyKey?: string
+  fingerprint?: string
+  apply: (db: Db) => T
+}): Promise<{ result: T; revision: number; duplicate: boolean }> {
+  return exclusive(() => {
+    const db = read()
+    if (command.idempotencyKey) {
+      if (!command.fingerprint) throw new HttpError(400, "Thiếu dấu nội dung của lệnh ghi.")
+      const existing = db.receipts[command.idempotencyKey]
+      if (existing) {
+        if (existing.fingerprint !== command.fingerprint) {
+          throw new HttpError(422, "Mã gửi lại này đã dùng cho một nội dung khác.", { code: "IDEMPOTENCY_MISMATCH" })
+        }
+        const stored = existing.result
+        const result =
+          stored && typeof stored === "object" ? ({ ...stored, duplicate: true } as T) : (stored as T)
+        return { result, revision: db.revision, duplicate: true }
+      }
+    }
+    if (db.revision !== command.expectedRevision) {
+      throw new HttpError(409, "Bản dữ liệu đã đổi. Hãy tải lại rồi thử lại.", {
+        code: "REVISION_CONFLICT",
+        revision: db.revision,
+      })
+    }
+    const result = command.apply(db)
+    db.revision += 1
+    if (command.idempotencyKey && command.fingerprint) {
+      const receipt =
+        result && typeof result === "object" && "receipt" in result && typeof (result as { receipt?: unknown }).receipt === "string"
+          ? (result as { receipt: string }).receipt
+          : `rev-${db.revision}`
+      db.receipts[command.idempotencyKey] = {
+        fingerprint: command.fingerprint,
+        revision: db.revision,
+        receipt,
+        result,
+      }
+    }
+    writeAtomic(db)
+    return { result, revision: db.revision, duplicate: false }
+  })
 }
 
 export function publicUser(user: User) {
@@ -457,12 +611,13 @@ export function hashBody(code: string, reflection: string) {
 }
 
 export class HttpError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public extra?: Record<string, unknown>,
-  ) {
+  status: number
+  extra?: Record<string, unknown>
+
+  constructor(status: number, message: string, extra?: Record<string, unknown>) {
     super(message)
+    this.status = status
+    this.extra = extra
   }
 }
 

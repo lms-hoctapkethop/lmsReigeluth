@@ -1,4 +1,4 @@
-import { HttpError, jsonError, withDb, type OrgProfile } from "@/lib/db"
+import { commitWrite, HttpError, jsonError, requireExpectedRevision, withDb, type OrgProfile } from "@/lib/db"
 import { adminOrg, saveOrg } from "@/lib/admin"
 import { getSessionUser } from "@/lib/session"
 
@@ -18,8 +18,13 @@ export async function POST(request: Request) {
   try {
     const user = await getSessionUser()
     if (!user) throw new HttpError(401, "Hãy đăng nhập lại.")
-    const body = (await request.json()) as OrgProfile
-    return Response.json(await withDb((db) => saveOrg(db, user, body)))
+    const body = (await request.json()) as OrgProfile & { expectedRevision?: number }
+    const expectedRevision = requireExpectedRevision(body.expectedRevision)
+    const written = await commitWrite({
+      expectedRevision,
+      apply: (db) => saveOrg(db, user, body),
+    })
+    return Response.json({ ...written.result, revision: written.revision })
   } catch (error) {
     return jsonError(error)
   }

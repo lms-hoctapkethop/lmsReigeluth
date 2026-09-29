@@ -20,12 +20,14 @@ export default function FamilyPage() {
   const [note, setNote] = useState("Tối thứ Năm tôi ngồi cùng con xem lại ví dụ điểm số.")
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [revision, setRevision] = useState(0)
 
   async function load() {
     const response = await fetch("/api/family")
     const body = await response.json()
     if (!response.ok) throw new Error(body.error)
     setData(body)
+    setRevision(body.revision ?? 0)
   }
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function FamilyPage() {
     const response = await fetch("/api/family", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ note }),
+      body: JSON.stringify({ note, expectedRevision: revision }),
     })
     const body = await response.json()
     if (!response.ok) {

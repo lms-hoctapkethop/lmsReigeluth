@@ -16,6 +16,7 @@ export default function OrganizationPage() {
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
   const [pending, setPending] = useState(false)
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     fetch("/api/admin/organization")
@@ -23,6 +24,7 @@ export default function OrganizationPage() {
         const body = await response.json()
         if (!response.ok) throw new Error(body.error || "Không tải được tổ chức học.")
         setOrg(body.org)
+        setRevision(body.revision ?? 0)
         setReady(true)
       })
       .catch((reason: Error) => setError(reason.message || "Lỗi mạng."))
@@ -37,11 +39,12 @@ export default function OrganizationPage() {
       const response = await fetch("/api/admin/organization", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(org),
+        body: JSON.stringify({ ...org, expectedRevision: revision }),
       })
       const body = await response.json()
       if (!response.ok) throw new Error(body.error || "Chưa lưu được.")
       setOrg(body.org)
+      if (typeof body.revision === "number") setRevision(body.revision)
       setNotice("Đã lưu. Thanh đầu trang sẽ hiện tên lớp học phần mới.")
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Lỗi mạng.")

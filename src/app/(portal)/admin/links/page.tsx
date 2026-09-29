@@ -13,6 +13,7 @@ export default function LinksPage() {
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
   const [pending, setPending] = useState(false)
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
     fetch("/api/admin/links")
@@ -20,6 +21,7 @@ export default function LinksPage() {
         const body = await response.json()
         if (!response.ok) throw new Error(body.error || "Không tải được liên kết.")
         setLink(body.link)
+        setRevision(body.revision ?? 0)
       })
       .catch((reason: Error) => setError(reason.message || "Lỗi mạng."))
   }, [])
@@ -34,11 +36,12 @@ export default function LinksPage() {
       const response = await fetch("/api/admin/links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: link.status, reason: link.reason }),
+        body: JSON.stringify({ status: link.status, reason: link.reason, expectedRevision: revision }),
       })
       const body = await response.json()
       if (!response.ok) throw new Error(body.error || "Chưa lưu được liên kết.")
       setLink(body.link)
+      if (typeof body.revision === "number") setRevision(body.revision)
       setNotice("Đã lưu liên kết. Phụ huynh chỉ xem hồ sơ khi trạng thái là đang hiệu lực.")
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Lỗi mạng.")

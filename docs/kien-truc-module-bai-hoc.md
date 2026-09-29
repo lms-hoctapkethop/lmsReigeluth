@@ -1,6 +1,8 @@
+> Tài liệu này không phải đặc tả để xây. Nó cho phép `min_score` ngay lát cắt đầu và gộp giao lớp thành một lần phát hành. Đặc tả đang dùng là kiến trúc 3.2.1, cùng `P1a_Tren_App_Hien_Co.md` và `Hop_dong_lenh_ghi.md`. P1a đã được code trên Next.js và file JSON; giao lớp trên dữ liệu trường vẫn tắt. Kho 34 bài chưa được nhập.
+
 # Kiến trúc module bài học theo cách của Canvas
 
-Tài liệu này chỉ mô tả kiến trúc. Chưa có mã, chưa đổi dữ liệu đang chạy.
+Tài liệu này chỉ mô tả kiến trúc. Mã ứng dụng và dữ liệu đang chạy không lấy file này làm hợp đồng.
 
 Mốc: 29/09/2026. Phạm vi: một trường, lớp 10A1, khóa Tin học 10. Tham chiếu hành vi là **Modules** của Canvas LMS. Mô hình học vẫn là Học cùng nhau: hoàn thành một mục trong module và được xác nhận đạt mục tiêu là hai việc khác nhau.
 
