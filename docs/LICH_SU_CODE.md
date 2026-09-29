@@ -13,6 +13,7 @@ Mốc: 29/09/2026. Nhánh `main`. App vẫn là Next.js, phiên cookie, file JSO
 - Module P1a nằm cạnh bài `if–else` hiện có: năm loại mục, ảnh chụp bất biến, quiz hoàn thành bằng lần nộp và không ghi KC, `min_score` và cổng KC trả `FEATURE_NOT_ENABLED`.
 - `classDeliveryEnabled` chỉ đúng khi file ghi đúng `true`. API `action: "deliver"` gọi `rejectDisabledDelivery` và từ chối `CLASS_DELIVERY_OFF` trước khi vào vùng ghi. Ca kiểm thử bật cờ chỉ trên file tạm.
 - Tuần lớp trong seed và trong `data/db.json` giữ `28/09 – 04/10/2026`. Kho 34 bài không được nhập.
+- Các lời gọi file của adapter có chú thích `turbopackIgnore` để bản build không kéo cả cây mã vào gói server.
 
 ## Kết quả `npm test` đã chạy
 
