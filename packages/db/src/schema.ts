@@ -309,6 +309,123 @@ export interface OutboxEventsTable {
   processed_at: Date | null
 }
 
+export interface ModulesTable {
+  id: Generated<string>
+  school_id: string
+  course_id: string
+  owner_id: string
+  created_at: Generated<Date>
+}
+
+export interface ModuleCollaboratorsTable {
+  module_id: string
+  user_id: string
+  role: 'editor' | 'viewer'
+}
+
+export interface ModuleDraftsTable {
+  module_id: string
+  school_id: string
+  revision: number
+  payload: unknown
+  updated_by: string
+  updated_at: Date
+}
+
+export interface ModuleVersionsTable {
+  id: Generated<string>
+  school_id: string
+  module_id: string
+  version_no: number
+  title: string
+  description: string | null
+  requirement_ids: string[]
+  coverage_report: unknown
+  coverage_ack: unknown | null
+  digest: string
+  published_by: string
+  published_at: Generated<Date>
+}
+
+export interface RubricVersionsTable {
+  id: Generated<string>
+  module_version_id: string
+  title: string
+  created_at: Generated<Date>
+}
+
+export interface RubricCriteriaTable {
+  id: Generated<string>
+  rubric_version_id: string
+  position: number
+  title: string
+  kc_version_id: string | null
+  level_meets: string
+  level_developing: string
+  level_not_yet: string
+}
+
+export interface ModuleItemsTable {
+  id: Generated<string>
+  module_version_id: string
+  position: number
+  item_type: 'header' | 'page' | 'assignment' | 'quiz' | 'link'
+  indent: number
+  title: string
+  body: unknown | null
+  url: string | null
+  completion_rule: 'none' | 'view' | 'self_mark' | 'submit'
+  rubric_version_id: string | null
+  requirement_ids: string[]
+}
+
+export interface AssessmentVersionsTable {
+  id: Generated<string>
+  module_version_id: string
+  module_item_id: string
+  purpose: 'diagnostic' | 'practice' | 'exit_ticket' | 'self_assessment' | 'summative'
+  max_attempts: number | null
+  show_feedback: 'immediate' | 'after_submit' | 'after_due' | 'never'
+  hints_enabled: boolean
+  shuffle_options: boolean
+}
+
+export interface QuestionItemsTable {
+  id: Generated<string>
+  assessment_version_id: string
+  position: number
+  qtype: 'single_choice' | 'multi_choice' | 'numeric' | 'short_text'
+  stem: unknown
+  options: unknown | null
+  bloom_target: number
+  variant_group: string | null
+  difficulty_prior: 'easy' | 'medium' | 'hard' | null
+  difficulty_calibrated: string | null
+  provisional: boolean
+  hints: unknown
+  source: 'teacher' | 'library' | 'ai_proposal' | 'import'
+  ai_proposal_id: string | null
+  approved_by: string | null
+}
+
+export interface QuestionKeysTable {
+  question_item_id: string
+  key: unknown
+  rationale: unknown | null
+}
+
+export interface QuestionKcLinksTable {
+  question_item_id: string
+  kc_version_id: string
+  role: 'required' | 'observable'
+}
+
+export interface OptionMisconceptionsTable {
+  question_item_id: string
+  option_id: string
+  misconception_id: string
+}
+
 export interface Database {
   schools: SchoolsTable
   users: UsersTable
@@ -336,4 +453,16 @@ export interface Database {
   offering_enrollments: OfferingEnrollmentsTable
   idempotency_keys: IdempotencyKeysTable
   outbox_events: OutboxEventsTable
+  modules: ModulesTable
+  module_collaborators: ModuleCollaboratorsTable
+  module_drafts: ModuleDraftsTable
+  module_versions: ModuleVersionsTable
+  rubric_versions: RubricVersionsTable
+  rubric_criteria: RubricCriteriaTable
+  module_items: ModuleItemsTable
+  assessment_versions: AssessmentVersionsTable
+  question_items: QuestionItemsTable
+  question_keys: QuestionKeysTable
+  question_kc_links: QuestionKcLinksTable
+  option_misconceptions: OptionMisconceptionsTable
 }

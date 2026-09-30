@@ -129,7 +129,7 @@ export function rootGaps(prereq, status, maxDepth = 3) {
 // ---------------------------------------------------------------- 6. Độ phủ (tệp 09 mục 4)
 // draft: { requirementIds, items: [{ type, questions?: [{kcObservable, qtype, source, approvedBy, hints, purpose}], rubric?: {criteria:[{kcVersionId}]} }] }
 // reqKcs: Map<requirementId, { bloom, kcs: string[] }> (chỉ link approved); approvedKcs: Set
-export function computeCoverage(draft, reqKcs, approvedKcs) {
+export function computeCoverage(draft, reqKcs, approvedKcs, prereqKcs = new Set()) {
   const warnings = [];
   const rows = draft.requirementIds.map((rid) => {
     const r = reqKcs.get(rid) ?? { bloom: null, kcs: [] };
@@ -148,7 +148,7 @@ export function computeCoverage(draft, reqKcs, approvedKcs) {
       const t = `item${i}.q${j}`;
       if (it.purpose === 'practice' && (q.hints ?? []).length === 0) warnings.push({ code: 'V03', level: 'caution', target: t });
       if ((q.qtype === 'single_choice' || q.qtype === 'multi_choice') && q.unmappedDistractors > 0) warnings.push({ code: 'V04', level: 'info', target: t });
-      if (q.kcObservable.some((k) => !approvedKcs.has(k) || !scopeKcs.has(k))) warnings.push({ code: 'V05', level: 'block', target: t });
+      if (q.kcObservable.some((k) => !approvedKcs.has(k) || (!scopeKcs.has(k) && !(it.purpose === 'diagnostic' && prereqKcs.has(k))))) warnings.push({ code: 'V05', level: 'block', target: t });
       if (q.source === 'ai_proposal' && !q.approvedBy) warnings.push({ code: 'V07', level: 'block', target: t });
     });
     (it.rubric?.criteria ?? []).forEach((c, j) => { if (!c.kcVersionId) warnings.push({ code: 'V08', level: 'caution', target: `item${i}.c${j}` }); });
@@ -240,6 +240,14 @@ export const VECTORS = [
       { requirementIds: ['r1'], items: [{ type: 'quiz', purpose: 'diagnostic', questions: [{ kcObservable: ['k9'], qtype: 'numeric', source: 'ai_proposal' }] }, { type: 'assignment', rubric: { criteria: [{ kcVersionId: 'k1' }, { kcVersionId: null }] } }] },
       new Map([['r1', { bloom: 3, kcs: ['k1'] }]]), new Set(['k1'])).warnings.map((w) => w.code),
     ['V05', 'V07', 'V08']],
+  ['V05 diagnostic direct prereq allowed', () => computeCoverage(
+      { requirementIds: ['r1'], items: [{ type: 'quiz', purpose: 'diagnostic', questions: [{ kcObservable: ['k1', 'kp'], qtype: 'single_choice', source: 'teacher', hints: [] }] }] },
+      new Map([['r1', { bloom: 3, kcs: ['k1'] }]]), new Set(['k1', 'kp']), new Set(['kp'])).warnings.map((w) => w.code),
+    []],
+  ['V05 practice direct prereq blocks', () => computeCoverage(
+      { requirementIds: ['r1'], items: [{ type: 'quiz', purpose: 'practice', questions: [{ kcObservable: ['k1', 'kp'], qtype: 'single_choice', source: 'teacher', hints: ['h'] }] }] },
+      new Map([['r1', { bloom: 3, kcs: ['k1'] }]]), new Set(['k1', 'kp']), new Set(['kp'])).warnings.map((w) => w.code),
+    ['V05']],
 ];
 
 // ---------------------------------------------------------------- runner

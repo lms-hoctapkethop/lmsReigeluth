@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query'
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Link, Outlet, redirect, RouterProvider, useLoaderData, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
@@ -11,6 +11,10 @@ import { roleLabel } from './labels.ts'
 import adminStyles from './admin.module.css'
 import styles from './shell.module.css'
 import './ui/tokens.css'
+
+const StudioList = lazy(() => import('./studio/list.tsx'))
+const StudioEditor = lazy(() => import('./studio/editor.tsx'))
+const StudioPreview = lazy(() => import('./studio/preview.tsx'))
 
 const queryClient = new QueryClient()
 
@@ -92,6 +96,7 @@ function Shell() {
           ) : null}
           {showCurriculum ? <Link to="/chuyen-mon">Chuyên môn</Link> : null}
           {me.activeContext.role === 'teacher' ? <Link to="/day">Lớp đang dạy</Link> : null}
+          {me.activeContext.role === 'teacher' ? <Link to="/day/soan">Soạn bài</Link> : null}
           {me.activeContext.role === 'student' ? <Link to="/hoc">Lớp của em</Link> : null}
           {me.activeContext.role === 'guardian' ? <Link to="/gia-dinh">Con của tôi</Link> : null}
         </nav>
@@ -153,6 +158,9 @@ const router = createBrowserRouter([
       { path: 'quan-tri/phu-huynh', element: <AdminPage page="guardians" /> },
       { path: 'chuyen-mon', element: <CurriculumPage /> },
       { path: 'day', element: <TeachHome /> },
+      { path: 'day/soan', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioList /></Suspense> },
+      { path: 'day/soan/:moduleId', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioEditor /></Suspense> },
+      { path: 'day/soan/:moduleId/xem-truoc', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioPreview /></Suspense> },
       { path: 'hoc', element: <LearnHome /> },
       { path: 'gia-dinh', element: <FamilyHome /> },
     ],

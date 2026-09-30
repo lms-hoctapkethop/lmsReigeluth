@@ -4,7 +4,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main, m1-auth, m2-org, m3-curriculum]
+    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - name: Reference vectors (must stay 37/37)
+      - name: Reference vectors (must stay 39/39)
         run: node tests/reference/pure.reference.mjs
       - name: Unit + integration (Testcontainers postgres:18)
         run: |

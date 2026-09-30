@@ -38,9 +38,6 @@ const roles = ['admin', 'teacher', 'student', 'guardian'] as const
 const schoolsKeys = ['an', 'binh'] as const
 const implemented = ['org.manage', 'guardian_link.verify', 'guardian_link.revoke', 'curriculum.read', 'curriculum.propose', 'curriculum.review'] as const
 const later: [Action, string][] = [
-  ['module.create', 'M4'],
-  ['module.edit', 'M4'],
-  ['module.publish', 'M4'],
   ['release.create', 'M5'],
   ['release.change', 'M5'],
   ['release.read_learner', 'M5'],
@@ -81,6 +78,33 @@ describe('ma trận quyền M2', () => {
   }
 })
 
+describe('ma trận module.edit và module.publish', () => {
+  const actor = (role: 'admin' | 'teacher' | 'student' | 'guardian') => ({
+    userId: personas.gvLan.subject,
+    schoolId: schools.an.id,
+    roles: [role],
+  })
+  const facts = { authorAssigned: true, moduleOwner: true, moduleEditor: false }
+  for (const action of ['module.create', 'module.edit', 'module.publish'] as const) {
+    for (const role of roles) {
+      it(`${action} ${role}`, () => {
+        const decision = can(actor(role), action, action === 'module.create' ? { authorAssigned: true } : facts)
+        const allow = role === 'teacher'
+        expect(decision.allow).toBe(allow)
+      })
+    }
+  }
+  it('module.edit từ chối giáo viên không được phân công author', () => {
+    expect(can(actor('teacher'), 'module.edit', { moduleOwner: true }).allow).toBe(false)
+  })
+  it('module.edit cho collaborator editor có author', () => {
+    expect(can(actor('teacher'), 'module.edit', { authorAssigned: true, moduleEditor: true }).allow).toBe(true)
+  })
+  it('module.create từ chối khi thiếu phân công author', () => {
+    expect(can(actor('teacher'), 'module.create', {}).allow).toBe(false)
+  })
+})
+
 describe.skipIf(!ready)('HTTP tổ chức hai trường', () => {
   let postgres: Postgres18
   let adminDb: Kysely<Database>
@@ -115,7 +139,9 @@ describe.skipIf(!ready)('HTTP tổ chức hai trường', () => {
 
   beforeEach(async () => {
     await sql`
-      TRUNCATE offering_enrollments, teacher_assignments, offering_class_links, offerings, courses,
+      TRUNCATE option_misconceptions, question_kc_links, question_keys, question_items, assessment_versions,
+        module_items, rubric_criteria, rubric_versions, module_versions, module_drafts, module_collaborators, modules,
+        offering_enrollments, teacher_assignments, offering_class_links, offerings, courses,
         class_memberships, admin_classes, academic_years, guardian_links, curriculum_reviewers,
         school_memberships, outbox_events, idempotency_keys, sessions, audit_log
       RESTART IDENTITY CASCADE

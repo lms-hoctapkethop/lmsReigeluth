@@ -8,6 +8,7 @@ import { IdpAdminError, type IdpAdmin } from '@hcn/domain'
 import type { AppConfig } from './config.ts'
 import { KeycloakAdmin } from './adapters/keycloak-admin.ts'
 import { registerAdminRoutes } from './routes/admin.ts'
+import { registerAuthoringRoutes } from './routes/authoring.ts'
 import { registerCurriculumRoutes } from './routes/curriculum.ts'
 import { registerAuthRoutes } from './routes/auth.ts'
 import { registerMeRoutes } from './routes/me.ts'
@@ -86,6 +87,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerMeRoutes(app, options.db)
   registerOfferingRoutes(app, options.db)
   registerCurriculumRoutes(app, options.db)
+  registerAuthoringRoutes(app, options.db)
   registerAdminRoutes(app, options.db, resolveIdp(options.config, options.idpAdmin), options.config.oidcIssuer)
   return app
 }

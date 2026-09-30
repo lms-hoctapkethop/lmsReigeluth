@@ -34,6 +34,19 @@ export default tseslint.config(
           patterns: ['@hcn/domain', '@hcn/db', 'fastify'],
         },
       ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'Chỉ apps/web/src/studio/math.tsx được render HTML của KaTeX.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['apps/web/src/studio/math.tsx'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
 )

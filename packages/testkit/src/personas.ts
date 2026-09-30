@@ -336,6 +336,64 @@ export async function seedIdentity(db: Kysely<Database>, options: { issuer: stri
     .execute()
 
   await seedCurriculumFixture(db)
+  await seedMaliciousPreview(db)
+}
+
+export const maliciousPreviewModuleId = '50000000-0000-4000-8000-000000000001'
+
+async function seedMaliciousPreview(db: Kysely<Database>): Promise<void> {
+  await db
+    .insertInto('modules')
+    .values({
+      id: maliciousPreviewModuleId,
+      school_id: schools.an.id,
+      course_id: courses.tin10.id,
+      owner_id: personas.gvLan.subject,
+    })
+    .onConflict((conflict) => conflict.column('id').doNothing())
+    .execute()
+  const payload = {
+    schema: 'module-draft/1',
+    title: 'Xem trước độc',
+    requirementIds: [],
+    items: [{
+      clientKey: 'page-sec',
+      type: 'page',
+      title: 'Trang độc',
+      indent: 0,
+      completion: 'none',
+      body: {
+        format: 'hcn-rich/1',
+        blocks: [
+          { type: 'paragraph', children: [{ text: 'xem', marks: [{ type: 'link', href: 'javascript:alert(1)' }] }] },
+          { type: 'paragraph', children: [{ text: 'data', marks: [{ type: 'link', href: 'data:text/html,hi' }] }] },
+          { type: 'paragraph', children: [{ text: 'vb', marks: [{ type: 'link', href: 'vbscript:msgbox(1)' }] }] },
+          { type: 'paragraph', children: [{ text: 'caps', marks: [{ type: 'link', href: 'JavaScript:alert(1)' }] }] },
+          { type: 'paragraph', children: [{ text: 'space', marks: [{ type: 'link', href: ' javascript:alert(1)' }] }] },
+          { type: 'paragraph', children: [{ text: 'ctrl', marks: [{ type: 'link', href: '\u0001javascript:alert(1)' }] }] },
+          { type: 'paragraph', children: [{ text: '<b>đậm</b>' }] },
+          { type: 'widget', text: 'khối lạ' },
+          { type: 'code', language: 'html', text: '<script>alert(1)</script>' },
+          { type: 'math', tex: '\\href{https://evil.test}{x}' },
+          { type: 'math', tex: '\\url{https://evil.test}' },
+          { type: 'math', tex: '\\htmlClass{xss}{y}' },
+          { type: 'image', fileId: '00000000-0000-4000-8000-000000000099', alt: 'ảnh độc' },
+        ],
+      },
+    }],
+  }
+  await db
+    .insertInto('module_drafts')
+    .values({
+      module_id: maliciousPreviewModuleId,
+      school_id: schools.an.id,
+      revision: 1,
+      payload: sql`${JSON.stringify(payload)}::jsonb`,
+      updated_by: personas.gvLan.subject,
+      updated_at: new Date('2026-09-04T00:00:00Z'),
+    })
+    .onConflict((conflict) => conflict.column('module_id').doNothing())
+    .execute()
 }
 
 async function seedCurriculumFixture(db: Kysely<Database>): Promise<void> {
