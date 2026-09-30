@@ -26,6 +26,7 @@ export function computeCoverage(
   draft: CoverageDraft,
   reqKcs: Map<string, { bloom: number | null; kcs: string[] }>,
   approvedKcs: Set<string>,
+  prereqKcs: Set<string> = new Set(),
 ): { rows: { requirementId: string; bloom: number | null; choiceObservations: number; productObservations: number }[]; warnings: CoverageWarning[]; blocking: boolean } {
   const warnings: CoverageWarning[] = []
   const rows = draft.requirementIds.map((rid) => {
@@ -54,7 +55,7 @@ export function computeCoverage(
       if ((question.qtype === 'single_choice' || question.qtype === 'multi_choice') && (question.unmappedDistractors ?? 0) > 0) {
         warnings.push({ code: 'V04', level: 'info', target })
       }
-      if (question.kcObservable.some((kc) => !approvedKcs.has(kc) || !scopeKcs.has(kc))) {
+      if (question.kcObservable.some((kc) => outOfScope(kc, approvedKcs, scopeKcs, prereqKcs, item.purpose))) {
         warnings.push({ code: 'V05', level: 'block', target })
       }
       if (question.source === 'ai_proposal' && !question.approvedBy) warnings.push({ code: 'V07', level: 'block', target })
@@ -64,4 +65,10 @@ export function computeCoverage(
     })
   })
   return { rows, warnings, blocking: warnings.some((warning) => warning.level === 'block') }
+}
+
+function outOfScope(kc: string, approvedKcs: Set<string>, scopeKcs: Set<string>, prereqKcs: Set<string>, purpose: string | undefined): boolean {
+  if (!approvedKcs.has(kc)) return true
+  if (scopeKcs.has(kc)) return false
+  return !(purpose === 'diagnostic' && prereqKcs.has(kc))
 }

@@ -89,7 +89,9 @@ describe.skipIf(!ready)('importUsers', () => {
       RESTART IDENTITY CASCADE
     `.execute(adminDb)
     await sql`
-      TRUNCATE offering_enrollments, teacher_assignments, offering_class_links, offerings, courses,
+      TRUNCATE option_misconceptions, question_kc_links, question_keys, question_items, assessment_versions,
+        module_items, rubric_criteria, rubric_versions, module_versions, module_drafts, module_collaborators, modules,
+        offering_enrollments, teacher_assignments, offering_class_links, offerings, courses,
         class_memberships, admin_classes, academic_years, guardian_links, curriculum_reviewers,
         school_memberships, outbox_events, idempotency_keys, sessions, audit_log
       RESTART IDENTITY CASCADE

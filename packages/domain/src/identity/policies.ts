@@ -38,6 +38,10 @@ export type Action =
 
 export type Facts = {
   membershipActive?: boolean
+  /** Giáo viên đang có phân công `author` trên một offering của khóa. */
+  authorAssigned?: boolean
+  moduleOwner?: boolean
+  moduleEditor?: boolean
 }
 
 export type Decision =
@@ -68,10 +72,13 @@ export function can(actor: Actor, action: Action, facts: Facts): Decision {
         ? { allow: true }
         : { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'module.create':
+      if (!actor.roles.includes('teacher')) return { allow: false, reason: 'CAPABILITY_MISSING' }
+      return facts.authorAssigned ? { allow: true } : { allow: false, reason: 'NOT_ASSIGNED' }
     case 'module.edit':
     case 'module.publish':
-      // TODO(M4)
-      return { allow: false, reason: 'CAPABILITY_MISSING' }
+      if (!actor.roles.includes('teacher')) return { allow: false, reason: 'CAPABILITY_MISSING' }
+      if (!facts.authorAssigned) return { allow: false, reason: 'NOT_ASSIGNED' }
+      return facts.moduleOwner || facts.moduleEditor ? { allow: true } : { allow: false, reason: 'NOT_ASSIGNED' }
     case 'release.create':
     case 'release.change':
     case 'release.read_learner':

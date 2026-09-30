@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Học cùng nhau API
-  version: 3.2.0
+  version: 3.3.0
   description: |
     Hợp đồng API lõi của LMS Học cùng nhau. Mọi endpoint dưới /api/v1 yêu cầu cookie phiên `hcn_sid`.
     Request không an toàn (POST/PUT/PATCH/DELETE) yêu cầu header `X-CSRF-Token` và `Origin` hợp lệ.
@@ -620,7 +620,41 @@ paths:
       responses:
         '200': { description: Đã duyệt lỗi hiểu sai }
 
+  /api/v1/authoring/courses:
+    get:
+      tags: [authoring]
+      operationId: listAuthorCourses
+      responses:
+        '200':
+          description: Khóa học giáo viên đang được phân công author
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, title, subjectCode, grade]
+                  properties:
+                    id: { $ref: '#/components/schemas/Uuid' }
+                    title: { type: string }
+                    subjectCode: { type: string }
+                    grade: { type: integer }
+  /api/v1/authoring/catalog:
+    get:
+      tags: [authoring]
+      operationId: authoringCatalog
+      parameters:
+        - { name: courseId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '200': { description: YCCĐ, KC đã duyệt và lỗi hiểu sai để soạn bài }
   /api/v1/modules:
+    get:
+      tags: [authoring]
+      operationId: listMyModules
+      parameters:
+        - { name: courseId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '200': { description: Module của giáo viên trong khóa }
     post:
       tags: [authoring]
       operationId: createModule
@@ -666,6 +700,15 @@ paths:
       parameters: [ { $ref: '#/components/parameters/ModuleId' }, { $ref: '#/components/parameters/Csrf' } ]
       responses:
         '200': { description: Ma trận độ phủ và cảnh báo, content: { application/json: { schema: { $ref: '#/components/schemas/CoverageReport' } } } }
+  /api/v1/modules/{moduleId}/draft/preview:
+    get:
+      tags: [authoring]
+      operationId: previewModuleDraftAsLearner
+      parameters: [ { $ref: '#/components/parameters/ModuleId' } ]
+      responses:
+        '200':
+          description: Bản chiếu học sinh, không đáp án, không ghi tiến độ
+          content: { application/json: { schema: { $ref: '#/components/schemas/LearnerRelease' } } }
   /api/v1/modules/{moduleId}/versions:
     post:
       tags: [authoring]
@@ -1210,6 +1253,7 @@ components:
       properties:
         moduleId: { $ref: '#/components/schemas/Uuid' }
         revision: { type: integer }
+        courseId: { $ref: '#/components/schemas/Uuid' }
         payload: { $ref: '#/components/schemas/ModuleDraftPayload' }
         updatedAt: { type: string, format: date-time }
         latestVersionNo: { type: [integer, 'null'] }
@@ -1237,7 +1281,21 @@ components:
               level: { type: string, enum: [block, caution, info] }
               target: { type: string }
               message: { type: string }
+              replacementVersionId: { $ref: '#/components/schemas/Uuid' }
+              replacementVersionNo: { type: integer }
         blocking: { type: boolean }
+        superseded:
+          type: array
+          items:
+            type: object
+            required: [kcVersionId, replacementVersionId, replacementVersionNo]
+            properties:
+              kcVersionId: { $ref: '#/components/schemas/Uuid' }
+              replacementVersionId: { $ref: '#/components/schemas/Uuid' }
+              replacementVersionNo: { type: integer }
+    LearnerRelease:
+      type: object
+      description: DTO học sinh từ toLearnerRelease. Không có answerKey, rationale, optionMisconceptions, kcRequired.
     ModuleVersionSummary:
       type: object
       properties:

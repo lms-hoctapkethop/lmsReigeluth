@@ -261,4 +261,30 @@ describe('hàm thuần docs/06', () => {
       ).warnings.map((warning) => warning.code),
     ).toEqual(['V05', 'V07', 'V08'])
   })
+  it('V05 diagnostic direct prereq allowed', () => {
+    expect(
+      computeCoverage(
+        {
+          requirementIds: ['r1'],
+          items: [{ type: 'quiz', purpose: 'diagnostic', questions: [{ kcObservable: ['k1', 'kp'], qtype: 'single_choice', source: 'teacher', hints: [] }] }],
+        },
+        new Map([['r1', { bloom: 3, kcs: ['k1'] }]]),
+        new Set(['k1', 'kp']),
+        new Set(['kp']),
+      ).warnings.map((warning) => warning.code),
+    ).toEqual([])
+  })
+  it('V05 practice direct prereq blocks', () => {
+    expect(
+      computeCoverage(
+        {
+          requirementIds: ['r1'],
+          items: [{ type: 'quiz', purpose: 'practice', questions: [{ kcObservable: ['k1', 'kp'], qtype: 'single_choice', source: 'teacher', hints: ['h'] }] }],
+        },
+        new Map([['r1', { bloom: 3, kcs: ['k1'] }]]),
+        new Set(['k1', 'kp']),
+        new Set(['kp']),
+      ).warnings.map((warning) => warning.code),
+    ).toEqual(['V05'])
+  })
 })

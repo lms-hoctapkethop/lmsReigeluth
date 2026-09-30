@@ -28,6 +28,42 @@
       "review_status": "unverified"
     },
     {
+      "code791": "140110.0601a6",
+      "extraction": "clean",
+      "flags": [],
+      "text": "Viết được chương trình tuần tự với biến và câu lệnh.",
+      "source_doc": "QD791_PL22_TinHoc",
+      "source_locator": "Trang 6",
+      "review_status": "approved"
+    },
+    {
+      "code791": "140110.0602a3",
+      "extraction": "clean",
+      "flags": [],
+      "text": "Dùng được vòng lặp đếm.",
+      "source_doc": "QD791_PL22_TinHoc",
+      "source_locator": "Trang 6",
+      "review_status": "approved"
+    },
+    {
+      "code791": "140110.0603b4",
+      "extraction": "clean",
+      "flags": [],
+      "text": "Kiểm thử được chương trình đơn giản.",
+      "source_doc": "QD791_PL22_TinHoc",
+      "source_locator": "Trang 7",
+      "review_status": "approved"
+    },
+    {
+      "code791": "020107.0101a4",
+      "extraction": "clean",
+      "flags": [],
+      "text": "Cộng được hai phân số.",
+      "source_doc": "QD791_PL_Toan",
+      "source_locator": "Bảng 2",
+      "review_status": "approved"
+    },
+    {
       "code791": "140110.0101a4",
       "extraction": "clean",
       "flags": [],
@@ -85,6 +121,42 @@
       "createdBy": "reviewer.toan"
     },
     {
+      "code": "KC-TIN10-CAULENH",
+      "subject": "1401",
+      "grade": 10,
+      "name": "Câu lệnh",
+      "observable": "Viết được câu lệnh gán.",
+      "status": "approved",
+      "source": "import"
+    },
+    {
+      "code": "KC-TIN10-KIEMTHU",
+      "subject": "1401",
+      "grade": 10,
+      "name": "Kiểm thử",
+      "observable": "Nêu được ca kiểm thử.",
+      "status": "approved",
+      "source": "import"
+    },
+    {
+      "code": "KC-TOAN7-PHANSO",
+      "subject": "0201",
+      "grade": 7,
+      "name": "Phân số lớp 7",
+      "observable": "Cộng được phân số cùng mẫu.",
+      "status": "approved",
+      "source": "import"
+    },
+    {
+      "code": "KC-TOAN6-PHANSO",
+      "subject": "0201",
+      "grade": 6,
+      "name": "Phân số lớp 6",
+      "observable": "Rút gọn được phân số.",
+      "status": "approved",
+      "source": "import"
+    },
+    {
       "code": "KC-TIN10-DEXUAT",
       "subject": "1401",
       "grade": 10,
@@ -96,19 +168,30 @@
     }
   ],
   "links": [
-    { "requirement": "140110.0101a", "kc": "KC-TIN10-RENHANH", "status": "approved" }
+    { "requirement": "140110.0101a", "kc": "KC-TIN10-RENHANH", "status": "approved" },
+    { "requirement": "140110.0601a", "kc": "KC-TIN10-CAULENH", "status": "approved" },
+    { "requirement": "140110.0602a", "kc": "KC-TIN10-LAP", "status": "approved" },
+    { "requirement": "140110.0603b", "kc": "KC-TIN10-KIEMTHU", "status": "approved" },
+    { "requirement": "020107.0101a", "kc": "KC-TOAN7-PHANSO", "status": "approved" }
   ],
   "edges": [
     { "from": "KC-TIN10-DIEUKIEN", "to": "KC-TIN10-RENHANH", "type": "prerequisite", "status": "approved" },
     { "from": "KC-TIN10-RENHANH", "to": "KC-TIN10-LAP", "type": "prerequisite", "status": "approved" },
     { "from": "KC-TIN10-RENHANH", "to": "KC-TIN10-DIEUKIEN", "type": "prerequisite", "status": "proposed" },
-    { "from": "KC-TIN10-DIEUKIEN", "to": "KC-TOAN10-SO", "type": "prerequisite", "status": "proposed" }
+    { "from": "KC-TIN10-DIEUKIEN", "to": "KC-TOAN10-SO", "type": "prerequisite", "status": "proposed" },
+    { "from": "KC-TOAN6-PHANSO", "to": "KC-TOAN7-PHANSO", "type": "prerequisite", "status": "approved" }
   ],
   "misconceptions": [
     {
       "code": "M-TIN10-RENHANH",
       "kc": "KC-TIN10-RENHANH",
       "description": "Nhầm else luôn chạy cùng if.",
+      "status": "approved"
+    },
+    {
+      "code": "M-TIN10-CAULENH",
+      "kc": "KC-TIN10-CAULENH",
+      "description": "Quên phép gán và viết dấu bằng.",
       "status": "approved"
     }
   ]

@@ -4,6 +4,20 @@ export { WEIGHTS, observationFromCriterion, observationFromResponse } from './in
 export { R0_VERSION, r0Estimate } from './insight/r0.ts'
 export { rootGaps } from './insight/rootGaps.ts'
 export { computeCoverage } from './authoring/coverage.ts'
+export { draftDigest } from './authoring/digest.ts'
+export {
+  createModule,
+  getModuleDraft,
+  saveModuleDraft,
+  listMyModules,
+  listAuthorCourses,
+  authoringCatalog,
+  previewModuleDraftAsLearner,
+  revisionFrom,
+} from './authoring/draft.ts'
+export { validateModuleDraft, type CoverageReportDto } from './authoring/validate.ts'
+export { publishModuleVersion, type ModuleVersionSummary } from './authoring/publish.ts'
+export { toLearnerRelease } from './learning/projection.ts'
 export { DomainError, type ErrorCode } from './errors.ts'
 export { safeReturnTo } from './identity/returnTo.ts'
 export { can, authorize, type Actor, type Action, type Facts, type Decision, type Role } from './identity/policies.ts'

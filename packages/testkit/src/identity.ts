@@ -7,6 +7,7 @@ export {
   guardianLinks,
   offerings,
   personas,
+  maliciousPreviewModuleId,
   schools,
   seedIdentity,
 } from './personas.ts'
