@@ -166,7 +166,7 @@ function can(actor: Actor, action: Action, facts: Facts): Decision
 | 401 | `UNAUTHENTICATED` | Không có phiên hoặc hết hạn |
 | 403 | `FORBIDDEN`, `CSRF_FAILED` | Không có quyền; CSRF sai |
 | 404 | `NOT_FOUND` | Không tồn tại hoặc không được thấy |
-| 409 | `REVISION_CONFLICT`, `IDEMPOTENCY_KEY_REUSED`, `REQUEST_IN_PROGRESS`, `SUBMISSION_VERSION_CHANGED`, `ALREADY_PUBLISHED`, `ATTEMPT_LIMIT_REACHED` | Xung đột trạng thái |
+| 409 | `REVISION_CONFLICT`, `IDEMPOTENCY_KEY_REUSED`, `REQUEST_IN_PROGRESS`, `SUBMISSION_VERSION_CHANGED`, `ALREADY_PUBLISHED`, `ATTEMPT_LIMIT_REACHED`, `ALREADY_ANSWERED` | Xung đột trạng thái |
 | 410 | `RELEASE_CLOSED` | Quá `accept_until` hoặc late_policy = reject sau hạn |
 | 413 | `FILE_TOO_LARGE` | > 25 MiB |
 | 415 | `FILE_TYPE_NOT_ALLOWED` | MIME thật ngoài allowlist |

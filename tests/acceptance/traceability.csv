@@ -168,3 +168,11 @@ J09,docs/09 mục 5.1,"Công bố có quyết định, hồ sơ",L5,e2e/journeys
 J10,docs/09 mục 5.1,"PH xem con, thử URL khác",L5,e2e/journeys/J10.spec.ts,M7,todo,
 J11,docs/09 mục 5.1,"Toán 7 phiếu ra lớp, định dạng số",L5,tests/e2e/journeys/J11.spec.ts,M6,pass,tests/e2e/journeys/J11.spec.ts J11
 J12,docs/09 mục 5.1,Bản đồ nhiệt sau worker,L5,e2e/journeys/J12.spec.ts,M8,todo,
+DB30,db/tests,Tệp gắn bài nộp đúng chủ và đã quét,L2,db/tests/file_guards_invariants.sql,M7,todo,
+DB31,db/tests,Ảnh nội dung chỉ ảnh sạch,L2,db/tests/file_guards_invariants.sql,M7,todo,
+DB32,db/tests,content_files bất biến,L2,db/tests/file_guards_invariants.sql,M7,todo,
+DB33,db/tests,Kết quả tiêu chí đã công bố bất biến,L2,db/tests/review_guards_invariants.sql,M7,todo,
+DB34,db/tests,Quyết định đúng HS và offering của review,L2,db/tests/review_guards_invariants.sql,M7,todo,
+DB35,db/tests,Một quyết định gốc; chuỗi không đổi đối tượng,L2,db/tests/review_guards_invariants.sql,M7,todo,
+DB36,db/tests,Đồng hành gia đình chỉ committed → cancelled,L2,db/tests/review_guards_invariants.sql,M7,todo,
+DB37,db/tests,Thông báo chỉ đổi read_at,L2,db/tests/review_guards_invariants.sql,M7,todo,

@@ -78,14 +78,47 @@ Test: `packages/testkit/authz/matrix.ts` sinh ca cho mọi ô (cho phép và t�
 
 ## 4 Chương trình và KC
 
-- `reviewRequirement`: người có `curriculum.review` đổi `review_status`: `unverified → source_checked → approved` hoặc `rejected`. Hàng `extraction=check` phải có ghi chú đối chiếu khi chuyển `source_checked`.
-- `proposeKc`: tạo `knowledge_components` + `kc_versions(status='proposed', version_no=1)` + `requirement_kc_links(status='proposed')`.
-- `reviewKcVersion`: đổi trạng thái; sửa nội dung = tạo version mới (`version_no+1`), version cũ chuyển `superseded` khi version mới được duyệt.
-- `proposeKcEdge`, `reviewKcEdge`: trigger DB từ chối chu trình → map lỗi `KC_EDGE_CYCLE` (422).
-- `proposeMisconception`, `reviewMisconception`: lỗi hiểu sai gắn một KC; chỉ `approved` được dùng trong câu hỏi.
-- Chỉ KC version `approved` và cạnh `approved` được dùng cho module publish, R0 và bản đồ nhiệt.
+Dữ liệu chương trình dùng chung mọi trường (không có `school_id`). Quyền `curriculum.review` theo `curriculum_reviewers(user_id, subject_code)`; chỉ cấp bằng CLI `grant-reviewer` của người vận hành, không có API (quản trị một trường không được trao quyền thẩm định dùng chung). `curriculum.propose` cho mọi user có membership `teacher` active.
+
+Quy tắc chung cho mọi lệnh duyệt:
+
+- Người duyệt phải có `curriculum_reviewers` cho môn của đối tượng; với cạnh, cho **cả hai** môn ở hai đầu. Thiếu → 403.
+- **Không tự duyệt**: người duyệt khác người đề xuất (`created_by`). Vi phạm → 422 `VALIDATION_FAILED`, `details.reason = "SELF_REVIEW"`. Dữ liệu `import` (seed) không có người đề xuất nên ai có quyền cũng duyệt được.
+- Mỗi lần đổi trạng thái ghi một dòng `curriculum_review_log` (append-only) và audit trong cùng transaction.
+- Chuyển trạng thái chỉ theo máy trạng thái; sai → 422. Đã ở trạng thái cuối (`approved`, `rejected`) thì không duyệt lại; muốn đổi thì đề xuất mới.
+
+Lệnh:
+
+- `reviewRequirement` (If-Match, revision = `updated_at` tính bằng micro giây): `unverified → source_checked → approved`, hoặc `unverified|source_checked → rejected`. Hàng `extraction = 'check'` bắt buộc `note` khi sang `source_checked`. `correctedText` chỉ khi đang `unverified` hoặc `source_checked`: cập nhật `text`, ghi `old_text`/`new_text` vào nhật ký. Không đổi `code791_stem`.
+- `proposeKc`: tạo `knowledge_components` + `kc_versions(version_no=1, status='proposed', created_by)` + `requirement_kc_links(status='proposed')`. YCCĐ phải cùng môn, cùng lớp với KC và không ở `rejected`.
+- `proposeKcVersion`: sửa nội dung = version mới `version_no+1`, `proposed`. Mỗi KC tối đa một version `proposed` → 409.
+- `reviewKcVersion`:
+  - `rejected`: chỉ đổi trạng thái.
+  - `approved` khi KC chưa có version approved: đổi trạng thái; duyệt kèm các `requirement_kc_links` proposed của version này nếu người duyệt không bỏ.
+  - `approved` khi đã có version approved cũ: trong **một transaction** version cũ → `superseded`; chép các cạnh approved chạm version cũ (trừ `dropEdgeIds`) sang version mới với `status='approved'`, `source` giữ nguyên, `rationale = 'carried from v<n>'`; chép liên kết YCCĐ approved (trừ `dropLinkIds`). Chép cạnh tạo chu trình → toàn bộ rollback, 422 `KC_EDGE_CYCLE`. Module đã publish vẫn trỏ version cũ (lịch sử bất biến).
+- `proposeKcEdge`: hai đầu là version `approved` hoặc `proposed` (không superseded/rejected), `from ≠ to`. Trùng → 409.
+- `reviewKcEdge`: trigger DB chặn chu trình (SQLSTATE 23514, thông điệp bắt đầu `KC_EDGE_CYCLE`) → 422 `KC_EDGE_CYCLE`, `details` gồm hai mã KC. Chỉ duyệt `approved` được khi cả hai đầu đã `approved`.
+- `reviewRequirementKcLink`: đổi `status`, tùy chọn `coverage`.
+- `proposeMisconception`, `reviewMisconception`: gắn một KC; chỉ `approved` dùng được trong câu hỏi (V04).
+
+Đọc:
+
+- Đồ thị dùng cho publish, R0, lộ trình và bản đồ nhiệt **chỉ** lấy từ view `effective_kc_edges` (cạnh approved, hai đầu approved). Repository không có hàm nào khác trả cạnh cho các nơi này (B04).
+- `listKcEdges?status=proposed` và hàng đợi thẩm định chỉ cho người có `curriculum.propose` hoặc `curriculum.review`.
+- HS và PH đọc YCCĐ qua offering; chỉ thấy YCCĐ `approved` hoặc `source_checked` (hàng `unverified` chỉ GV thấy, có nhãn "chưa thẩm định").
 
 ## 5 Soạn bài
+
+### 5.0 Quy tắc chung của bản nháp (chốt ở 3.3)
+
+- **Quyền `module.edit`**: chủ module; hoặc collaborator `editor`; hoặc GV có phân công `author` còn hiệu lực cho một offering cùng `course_id`. Quản lý collaborator chưa có ở M4 (bảng có sẵn, API để sau).
+- **Phạm vi YCCĐ**: `requirementIds` (cấp module và cấp mục) phải thuộc cùng môn, cùng lớp với course và có `review_status` `approved` hoặc `source_checked`; YCCĐ `unverified`/`rejected` → 422 khi lưu.
+- **Trường do server sở hữu** (client gửi lên thì 422, INV-01): `source` của câu hỏi luôn là `teacher` khi lưu qua API; `approvedBy`; `provisional`. Câu `ai_proposal` chỉ vào bản nháp qua pipeline AI (M9+); test V07 dùng dữ liệu chèn trực tiếp.
+- **KC và lỗi hiểu sai**: `kcRequired`, `kcObservable`, `kcVersionId` của tiêu chí phải là KC version `approved` lúc lưu. Nếu sau đó version bị `superseded`, bản nháp vẫn lưu được nhưng `validate` báo V05 và Studio đề nghị "Cập nhật lên version mới" (đổi id, người soạn xác nhận). Lỗi hiểu sai gắn phương án phải `approved` và `misconceptions.kc_id` trùng `kc_id` của một KC observable của câu.
+- **Chẩn đoán tiên quyết**: quiz `purpose = 'diagnostic'` được quan sát KC là tiên quyết trực tiếp (trong `effective_kc_edges`, loại `prerequisite`) của KC trong phạm vi, kể cả KC ngoài lớp như Toán 6, Toán 9 (docs/06 mục 6, V05). Mục khác thì không.
+- **Rich text**: chỉ JSON `hcn-rich/1` (docs/03 mục 4.2), không có HTML. Server kiểm bằng zod `.strict()`, giới hạn độ dài (đoạn ≤ 5 000 ký tự, code ≤ 20 000, math ≤ 1 000), link chỉ `https:` (URL parse lại, từ chối `javascript:`, `data:`, `vbscript:`, ký tự điều khiển). Khối `image` → 422 `FEATURE_NOT_ENABLED` cho tới M5 (cần `files`).
+- **Hiển thị**: React render từng khối; không `dangerouslySetInnerHTML` ngoại trừ đầu ra `katex.renderToString(expr, { throwOnError: false, trust: false, strict: 'warn', maxSize: 10, maxExpand: 100 })`. Code block hiển thị dạng văn bản, không chạy.
+- **Digest**: sha256 hex của payload sau khi bỏ mọi `clientKey`, chuẩn hóa theo RFC 8785 (JCS). Cùng nội dung → cùng digest bất kể thứ tự khóa.
 
 ### 5.1 createModule
 
@@ -116,9 +149,25 @@ Test: `packages/testkit/authz/matrix.ts` sinh ca cho mọi ô (cho phép và t�
   6. Với mỗi quiz: INSERT `assessment_versions`, `question_items`, `question_keys`, `question_kc_links`, `option_misconceptions`.
   7. Audit `module.publish`.
 - **Output** `ModuleVersionSummary`.
-- **Test** C01, C02, C07; P1a-02 (sửa nháp sau publish không đổi version đã publish); publish lại cùng key → cùng version.
+- Publish không có thay đổi so với version trước (digest trùng) → vẫn tạo version mới? **Không**: trả 409 `ALREADY_PUBLISHED` kèm `details.versionNo` của version trùng digest.
+- **Test** C01, C02, C07; P1a-02 (sửa nháp sau publish không đổi version đã publish); publish lại cùng key → cùng version; C10/AC08 ở mức version (rubric sửa trong nháp, publish v2, v1 và rubric_versions của v1 không đổi); A07 (sau publish, mọi hàng của v1 không UPDATE/DELETE được, kể cả bằng hcn_app).
+
+### 5.5 Đọc
+
+- `getModuleDraft` (có `answerKey`, `rationale`, `optionMisconceptions`) chỉ cho người có `module.edit`; người chỉ xem (phân công `view`) → 404.
+- `previewModuleDraftAsLearner` dùng **đúng** hàm chiếu DTO học sinh sẽ dùng ở M5 (`toLearnerRelease`), có test snapshot chứng minh không chứa `answerKey`, `rationale`, `optionMisconceptions`, `kcRequired`. Không ghi tiến độ.
+- `listMyModules`, `listModuleVersions` theo quyền trên.
+
 
 ## 6 Giao bài
+
+### 6.0 Chốt ở 3.4 (M5)
+
+- `releaseModules`: mọi `moduleVersionId` thuộc module có `course_id` trùng course của offering; người giao có phân công `release` còn hiệu lực. Lịch lưu UTC; web nhập theo `Asia/Ho_Chi_Minh`. `availableFrom` được phép ở quá khứ (giao ngay). Trả `ReleaseReceipt`. Idempotency lưu cả receipt (không có dữ liệu nhạy cảm).
+- `changeSchedule`: chỉ đổi `due_at`, `accept_until`; `available_from` không đổi. Không kiểm lại bài đã nộp (giữ `is_late` cũ).
+- `listReleases` (GV) và `getLearnerToday` (HS) đọc từ `module_releases`; HS chỉ thấy release của offering đang ghi danh `active` và `available_from ≤ now()`. Trước giờ mở → 404, không phải 403 (P1a-09).
+- Outbox `ReleaseCreated`, `SubmissionSubmitted` chưa có consumer ở M5: worker đánh dấu `done` khi không có consumer đăng ký. Consumer thêm ở mốc sau đọc sự kiện mới; không phát lại sự kiện cũ (ghi rõ trong code của registry).
+
 
 ### 6.1 releaseModules
 
@@ -134,6 +183,33 @@ Test: `packages/testkit/authz/matrix.ts` sinh ca cho mọi ô (cho phép và t�
 - Bài đã nộp giữ `is_late` như lúc nộp; không tính lại.
 
 ## 7 Học tập
+
+### 7.0 Chốt ở 3.4 (M5)
+
+- **Cấu hình nộp bài** (`module_items.submission_config`, migration 0006): `{types: ["text"|"code"|"rich"…], allowFiles, maxFiles ≤ 10}`; NULL = `{types:["text"], allowFiles:true, maxFiles:10}`. ModuleDraft thêm trường tùy chọn `submission` cho assignment (packages/contracts); `publishModuleVersion` ghi vào cột này. Version đã publish trước 3.4 dùng mặc định. `saveSubmissionDraft` từ chối `body.type` ngoài `types` (422) và `fileIds` khi `allowFiles=false` hoặc vượt `maxFiles` (422).
+- **Tệp của bài nộp**: `fileIds` phải có `owner_id` = HS, cùng trường; code hiện chặn tệp đã gắn bài nộp khác (`FILE_ATTACHED`), giữ nguyên. Khi nộp, mọi tệp phải `clean`; DB có trigger chặn thêm (0007, DB27). `pending` → 423 `FILE_NOT_SCANNED`; `infected` hoặc `error` → 422 `FILE_REJECTED` kèm `details.fileIds`, web yêu cầu tải lại tệp khác.
+- **Tải lên**:
+  - `@fastify/multipart` với `limits.fileSize = 25 MiB`, `files = 1`; tệp bị cắt (`truncated`) → xóa tệp tạm, 413. Caddy đặt `request_body max_size 26MB` cho `/api/v1/files`.
+  - Loại tệp: `file-type` trên byte thật. Nếu `file-type` không nhận ra: chỉ chấp nhận khi đuôi `.txt` hoặc `.py`, nội dung UTF-8 hợp lệ và không có byte NUL → `text/plain` hoặc `text/x-python`. Đuôi và MIME phải khớp (ví dụ `.pdf` nhưng byte là ZIP → 415). Không nhận `.docm/.xlsm/.pptm`, SVG, HTML.
+  - Tên lưu là UUID; `original_name` chỉ để hiển thị, cắt còn 200 ký tự, bỏ ký tự điều khiển và `/ \`.
+  - Giới hạn 20 tệp/10 phút/người (docs/04 mục 5).
+- **Quét ClamAV** (consumer `files.scan` của `FileUploaded`):
+  - Gửi `INSTREAM` tới clamd, chunk 64 KiB, timeout 30 s. `OK` → `clean`; `FOUND` → `infected`; lỗi mạng hoặc timeout → ném lỗi để outbox thử lại theo lũy thừa; sau 3 lần của riêng consumer này → `error`.
+  - `infected`: chuyển byte sang `FILE_STORAGE_DIR/.quarantine/<storage_key>` (không đổi `storage_key` trong DB; worker không có quyền sửa cột này), ghi audit `file.infected` (actor NULL, `details = {fileId, signature}`).
+  - Không gửi tệp ra ngoài máy chủ (INV-14).
+- **Tải xuống**:
+  - Quyền: chủ tệp; GV có phân công `review` hoặc `view` với offering của một bài nộp có phiên bản chứa tệp; HS hoặc PH khi tệp nằm trong `content_files` của module version đã giao cho offering họ được xem. Không có quyền → 404.
+  - Chỉ `clean`; `pending` → 423; `infected`/`error` → 404.
+  - Header luôn có: `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox; default-src 'none'`, `Cache-Control: private, no-store`, `Content-Type` = `mime_detected`. `Content-Disposition: attachment; filename*=UTF-8''<tên mã hóa RFC 5987>`; riêng ảnh trong `content_files` dùng `inline`.
+- **Ảnh trong nội dung** (bật khối `image` của `hcn-rich/1`): `fileId` phải là ảnh `clean` (png, jpeg, webp) cùng trường, do người soạn tải lên; `alt` bắt buộc. `publishModuleVersion` ghi `content_files(module_version_id, module_item_id, file_id, alt)` cho mọi ảnh trong version (0006); 0007 buộc ảnh `clean` và bất biến (DB28, DB29). Ảnh chưa `clean` lúc publish → 422 `VALIDATION_FAILED` `details.reason = "IMAGE_NOT_CLEAN"`.
+- **Tiến độ**: `markViewed`/`selfMark` chỉ nhận POST từ HS có ghi danh; GV xem trước, PH xem, GET, prefetch không ghi (P1a-07).
+- **Nháp bài làm**: server là nguồn sự thật; không lưu nội dung bài vào `localStorage`/`sessionStorage`. Web giữ trong bộ nhớ, tự lưu sau 2 giây ngừng gõ, thử lại theo lũy thừa khi mất mạng, cảnh báo `beforeunload` khi còn thay đổi chưa lưu. Chỉ hiện "Đã lưu lúc HH:mm" sau 200 (A05).
+- **Worker**:
+  - Vòng lặp: `SELECT … FROM outbox_events WHERE status='pending' AND available_at ≤ now() ORDER BY id FOR UPDATE SKIP LOCKED LIMIT 20`, mỗi sự kiện một transaction. Consumer idempotent qua `processed_events(event_id, consumer)`.
+  - Lỗi → `attempts+1`, `available_at = now() + least(2^attempts × 5 s, 1 h)`, `last_error` (không chứa nội dung bài). `attempts ≥ 8` → `dead`, metric `outbox_dead` tăng.
+  - Job dọn dẹp mỗi giờ: xóa `idempotency_keys` quá 7 ngày, `sessions` hết hạn quá 1 ngày (quyền cấp ở 0006). Không xóa tệp ở pilot.
+  - Nhiều tiến trình worker chạy song song không xử lý trùng (test hai worker cùng lúc).
+
 
 ### 7.1 markViewed, selfMark
 
@@ -178,6 +254,28 @@ Test: `packages/testkit/authz/matrix.ts` sinh ca cho mọi ô (cho phép và t�
 
 ## 8 Quiz
 
+### 8.0 Chốt ở 3.5, khớp code M6 (79d1c56)
+
+- **Lượt làm**: `startAttempt` có Idempotency (scope `start:<releaseId>:<itemId>`), trả 201 cả khi nối lại lượt `in_progress` của cùng (HS, release, assessment). `max_attempts` NULL: diagnostic, exit_ticket hiểu là 1; practice, self_assessment, summative không giới hạn. Khóa hàng `quiz_attempts` (FOR UPDATE) trong mọi lệnh ghi của lượt để tránh trùng `try_no`.
+- **Trả lời** (`answerQuestion`, Idempotency-Key bắt buộc, scope `answer:<attemptId>:<questionId>`): gửi lại do mạng chập chờn không được tăng `try_no` (trọng số practice phụ thuộc lần thử).
+  - practice: `try_no = max + 1` trong khóa lượt; câu đã đúng → 409 `ALREADY_ANSWERED` (`details.reason = ALREADY_CORRECT`); lượt đã nộp → `SUBMITTED`.
+  - mục đích khác: được trả lời lại trước khi nộp; mỗi lần là một hàng mới (`try_no` tăng); khi nộp **chỉ hàng cuối** của mỗi câu được chấm và sinh quan sát.
+  - `response` đúng một dạng theo qtype (zod `.strict()`); sai dạng hoặc trường lạ (`correct`, `score`…) → 422 (C08). Số không phân tích được → 422 kèm thông điệp docs/06 mục 1, không lưu hàng (A14, INV-12).
+  - **"Em chưa học phần này"** (B05): `response = {"notLearned": true}`, hợp lệ ở mọi mục đích trừ practice (practice → 422 reason `NOT_LEARNED`); lưu `correct = NULL`; không sinh quan sát; tính 0 vào `score` nhưng vẫn tính vào `max_score`; báo cáo GV đếm riêng.
+  - `hints_used` của hàng = giá trị `attempt_hint_usage` tại lúc trả lời.
+- **Gợi ý** (`requestHint`, không cần Idempotency-Key): chỉ practice có `hints_enabled`, câu chưa đúng; tối đa số gợi ý của câu (≤ 3); hết → 409 `ALREADY_ANSWERED` reason `NO_MORE_HINTS`; không phải practice → reason `HINTS_DISABLED`; câu đã đúng → reason `ALREADY_CORRECT`.
+- **Phản hồi cho HS**:
+  - practice: luôn trả `correct` ngay (kể cả `show_feedback = never`); sai và phương án có lỗi hiểu sai `approved` → `feedback` là mô tả lỗi; **không bao giờ** trả đáp án đúng hay `rationale` (code M6 chưa trả `rationale`; giữ vậy).
+  - diagnostic: không bao giờ trả đáp án đúng (giữ ngân hàng câu dùng lại); sau khi nộp chỉ trả `score/maxScore` nếu `show_feedback ≠ 'never'`.
+  - mục đích khác practice: `never` không lộ; `immediate` lộ đúng/sai ngay; `after_submit` sau nộp; `after_due` khi đã nộp, release có `due_at` và đã quá hạn (không có hạn thì không lộ). Code M6 không trả `correctAnswer` ở bất kỳ trường hợp nào; giữ vậy tới khi có yêu cầu từ GV.
+  - Mọi đường ra (JSON, HTML, source map, cache) có test không chứa khóa (SEC-08, A04, C09).
+- **Nộp lượt**: điểm câu theo docs/06 mục 2 (multi_choice `partial` cho điểm lẻ, `correct = (điểm = 1)`); `score` = tổng điểm hàng cuối của từng câu, làm tròn 3 chữ số; `max_score` = số câu; `submitted_at` lấy `Meta.clock` của server. Tiến độ `completed` bất kể điểm (P1a-05). Không ghi `attainment_decisions` (P1a-10, AC09).
+- **Outbox**: `QuestionAnswered` (practice: mỗi lần trả lời; mục đích khác: khi nộp, chỉ hàng cuối; payload `responseIds` là chuỗi id nối bằng dấu phẩy). Chưa có consumer ở M6, worker đánh dấu `done`; M8 thêm consumer **và** job backfill đọc thẳng `question_responses` (idempotent theo `source_ref`) để không mất dữ liệu phát sinh trước M8.
+- **Giới hạn** 60 request/phút/HS cho `answerQuestion`, `requestHint` (docs/04 mục 5).
+- **Không có** đồng hồ đếm giờ, bảng xếp hạng, ô chat tự do (B13: màn quiz không có ô nhập văn bản nào ngoài ô trả lời của câu `numeric`/`short_text`).
+- `min_score`, KC gate cho điều kiện mở mục → 422 `FEATURE_NOT_ENABLED` (P1a-06).
+
+
 Quy tắc chấm, chuẩn hóa số, trọng số ở docs/06.
 
 ### 8.1 startAttempt
@@ -212,6 +310,27 @@ Quy tắc chấm, chuẩn hóa số, trọng số ở docs/06.
 - Không ghi `attainment_decisions` (P1a-10, AC09).
 
 ## 9 Đánh giá
+
+### 9.0 Chốt ở 3.6 (M7)
+
+- **Hàng chờ** (`getReviewQueue`): bài nộp có phiên bản hiện hành chưa có review `published`, trong các offering GV có phân công `review`; sắp theo `submitted_at` tăng dần, phân trang con trỏ `(submitted_at, id)`; lọc theo mục, trạng thái muộn. Không trả nội dung bài trong danh sách.
+- **Bản nháp review**: mỗi phiên bản bài nộp một nháp (UNIQUE sẵn có). Mọi GV có phân công `review` với offering đều sửa được; `reviewer_id` = người lưu gần nhất; công bố ghi người công bố vào audit. HS không bao giờ đọc được nháp.
+- **Công bố** (`publishReview`, body `{expectedRevision, expectedSubmissionVersionId, outcome, decisions: [{requirementId, decision, reason?}]}`):
+  - thứ tự khóa: `submissions` → `reviews` → `pg_advisory_xact_lock(hashtextextended(learner||offering||requirement, 0))` cho từng YCCĐ có quyết định, theo thứ tự `requirementId` tăng dần để tránh deadlock;
+  - quyết định mới nối vào quyết định hiện hành (`attainment_current`) của (HS, offering, YCCĐ); lỗi UNIQUE (hai gốc, hai nhánh) → 409 `REVISION_CONFLICT` kèm `details.reason = "DECISION_CHANGED"`;
+  - `decisions` rỗng → không có hàng `attainment_decisions` (C06); `reason` bắt buộc khi đã có quyết định hiện hành;
+  - DB chặn quyết định dựa trên review của HS khác hoặc offering khác (0008, DB34).
+- **Thay quyết định** (`supersedeDecision`): quyết định đích phải hiện hành (không → 409 `REVISION_CONFLICT`); `reviewId` là review `published` của chính HS trong cùng offering; `reason` ≥ 5 ký tự.
+- **Hồ sơ** (`getLearnerRecords`): ba lớp riêng (docs/06 mục 7) cho một offering; mỗi lớp kèm "cập nhật lúc…". HS xem của mình; GV có phân công bất kỳ; PH qua liên kết `verified`. Người khác → 404 (B09).
+- **Cổng PH**: `listMyChildren`, `getChildOverview` chỉ trả dữ liệu đã công bố: tiến độ, review `published` (nhận xét chung và mức từng tiêu chí), quyết định hiện hành, việc sắp đến hạn. Không có nháp, không có nội dung bài làm, không có `needs` (HCN22-05). Liên kết bị thu hồi → 404 ngay request sau (A02).
+- **Đồng hành gia đình**: `commitFamilySupport` (≤ 500 ký tự, gắn một offering của con), `cancelFamilySupport`; DB chỉ cho `committed → cancelled` (DB36).
+- **Thông báo** (consumer `notify`, bảng `notifications`, UNIQUE `(recipient_id, source_event)`):
+  - `ReleaseCreated` → HS ghi danh active của offering; `ReviewPublished` → HS và PH `verified`; `DecisionSuperseded` → HS và PH `verified`;
+  - `due_soon`: job mỗi giờ, cho HS chưa nộp mục `submit` có `due_at` trong 24 giờ tới; `source_event = uuid v5(namespace cố định trong code, "due_soon:<releaseId>:<itemId>:<learnerId>")` để chạy lại không trùng;
+  - payload chỉ `{title, href}`; không nhận xét, không điểm; `markNotificationRead` chỉ đổi `read_at` (DB37).
+  - Sự kiện M5/M6 đã `done` không phát lại (thông báo cũ không cần bù).
+- **Worker an toàn khi sập** (A08, AC11): mỗi consumer ghi `processed_events` trong cùng transaction với tác dụng của nó; test giết worker sau commit và trước khi đánh dấu outbox `done` rồi chạy lại → không trùng thông báo.
+
 
 ### 9.1 openReview
 

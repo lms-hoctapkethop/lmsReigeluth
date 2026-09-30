@@ -52,7 +52,7 @@ erDiagram
 
 ## 2 Bất biến được DB cưỡng chế
 
-Đã có ca kiểm thử trong `db/tests/schema_invariants.sql` (DB01–DB16, chạy trong CI).
+Ca kiểm thử chạy trong CI: `schema_invariants.sql` (DB01–DB16), `curriculum_review_invariants.sql` (DB17–DB21, 0005), `learning_invariants.sql` (DB22–DB26, 0006), `quiz_invariants.sql` (DB27–DB29, M6), `file_guards_invariants.sql` (DB30–DB32, 0007), `review_guards_invariants.sql` (DB33–DB37, 0008). Tổng 101 dòng PASS.
 
 | Bất biến | Cơ chế | Ca |
 |---|---|---|
@@ -71,6 +71,16 @@ erDiagram
 | Liên kết PH hợp lệ | CHECK + UNIQUE partial | DB14 |
 | Worker không đọc khóa, không ghi quyết định/giao bài | GRANT theo role | DB15 |
 | Tệp ≤ 25 MiB | CHECK | DB16 |
+| Nhật ký thẩm định chương trình chỉ thêm | trigger `forbid_mutation`, GRANT SELECT/INSERT (0005) | DB17 |
+| Đồ thị hiệu lực chỉ gồm cạnh approved giữa hai version approved; kiểm chu trình bỏ qua version đã thay | view `effective_kc_edges`, trigger `kc_edges_no_cycle` (0005) | DB18–DB20 |
+| Cấu hình nộp bài, alt ảnh, lịch giao, tệp, bài nộp | CHECK và UNIQUE (0006) | DB22–DB26 |
+| Lượt quiz, câu trả lời chỉ thêm, gợi ý, quyền đọc khóa đáp án | CHECK, trigger, GRANT (0003, 0004) | DB27–DB29 |
+| Tệp gắn bài nộp: đúng chủ, cùng trường, `clean` | trigger `submission_version_files_check` (0007) | DB30 |
+| Ảnh nội dung chỉ png/jpeg/webp `clean`; `content_files` bất biến, `hcn_app` chỉ SELECT/INSERT | trigger + GRANT (0007) | DB31, DB32 |
+| Kết quả tiêu chí của review đã công bố bất biến | trigger `review_criterion_results_guard` (0008) | DB33 |
+| Quyết định chỉ dựa trên review của chính HS, đúng offering; một gốc cho mỗi (HS, offering, YCCĐ); chuỗi thay thế không đổi đối tượng | trigger + UNIQUE partial (0008) | DB34, DB35 |
+| Đồng hành gia đình chỉ `committed → cancelled`, nội dung bất biến | trigger (0008) | DB36 |
+| `hcn_app` chỉ đổi `notifications.read_at`, không xóa | GRANT cột (0008) | DB37 |
 
 Bất biến **không** thể cưỡng chế bằng DB, phải có test use case: phân quyền theo quan hệ (INV-02, INV-03), DTO không chứa khóa (INV-06), idempotency theo body (INV-07), revision (INV-09).
 
