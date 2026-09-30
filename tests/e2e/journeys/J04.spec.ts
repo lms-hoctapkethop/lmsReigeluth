@@ -19,6 +19,7 @@ test('J04 giao bài mở sau 2 phút thì hs.minh mới thấy', async ({ browse
     await expect(student.getByRole('link', { name: title })).toHaveCount(0)
     await expectNoSeriousAxe(student)
     setClock(new Date(opened.getTime() + 3 * 60 * 1000).toISOString())
+    await new Promise((resolve) => setTimeout(resolve, 1200))
     await student.goto('/hoc')
     await expect(student.getByRole('link', { name: title })).toBeVisible()
     await student.goto(`/hoc/bai/${released.releaseId}/muc/${released.itemId}`)

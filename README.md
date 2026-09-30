@@ -102,7 +102,7 @@ Không có gói đặc tả 3.5, không có mục README "Thay đổi 3.5", và 
 - `answerQuestion` và `requestHint` mỗi loại 60 lần/phút/người, nhóm rate-limit riêng, không cộng vào trần 120 của lệnh ghi.
 - `UPSTREAM_IDP_ERROR` (502) khi `importUsers` gặp Keycloak `unavailable`. Timeout từng dòng vẫn là `IDP_TIMEOUT` trong kết quả lô, không đổi ca import cũ. Ca 502 dùng app riêng vì app dùng chung đã hết 5 lần import mỗi giờ.
 - Quiz chỉ có câu trắc nghiệm trên YCCĐ Bloom từ 5 trở lên bị cảnh báo V02 (chưa có sản phẩm). Phát hành phải kèm acknowledgement `{ code: 'V02', target: requirementId, reason }`.
-- Đồng hồ giả chỉ khi `NODE_ENV=test` hoặc `HCN_TEST_CLOCK=1`. Production có `HCN_NOW` hoặc `HCN_CLOCK_FILE` thì không khởi động. Tệp đồng hồ đọc tối đa một lần mỗi giây. Playwright đặt `HCN_TEST_CLOCK=1` để J04 vẫn dùng tệp.
+- Đồng hồ giả chỉ khi `NODE_ENV=test` hoặc `HCN_TEST_CLOCK=1`. Production có `HCN_NOW` hoặc `HCN_CLOCK_FILE` thì không khởi động. Tệp đồng hồ đọc tối đa một lần mỗi giây. Playwright đặt `HCN_TEST_CLOCK=1` để J04 vẫn dùng tệp. J04 chờ 1,2 giây sau khi đổi giờ trước lần tải tiếp theo.
 - SEC-08 quét JSON sau khi bỏ `label`, `stem`, `openedHints`, `text` (học sinh phải thấy nhãn phương án). Vị trí phương án đúng giữ thứ tự tác giả. Phản hồi quiz có `Cache-Control: private, no-store`. Bản build bật source map `hidden`; script quét HTML, bundle và `.map`.
 - Seed không có `M-TIN10-01`. J05 dùng `M-TIN10-CAULENH` ("Quên phép gán và viết dấu bằng."). `optionMisconceptions` nhận id, không nhận mã.
 - Ô quiz không ghi `localStorage` hay `sessionStorage`. Tải lại gọi `startAttempt` với khóa mới và đọc `questionStates`. Ô số không điền lại nội dung đã gõ vì DTO không trả `raw`.

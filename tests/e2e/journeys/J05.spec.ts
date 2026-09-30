@@ -34,7 +34,7 @@ test('J05 hs.minh luyện tập, xem gợi ý và nộp', async ({ browser }) =>
     await login(student, 'hs.minh')
     await student.setViewportSize({ width: 360, height: 800 })
     await student.goto(`/hoc/bai/${released.releaseId}`)
-    await expect(student.getByRole('heading', { name: 'Luyện tập lệnh' })).toBeVisible()
+    await expect(student.getByRole('heading', { level: 1, name: 'Luyện tập lệnh' })).toBeVisible()
     await student.getByRole('button', { name: '3.5' }).click()
     await expect(student.getByText(misconception?.description ?? '')).toBeVisible()
     await student.getByRole('button', { name: 'Xem gợi ý 1' }).click()

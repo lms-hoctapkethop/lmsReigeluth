@@ -28,7 +28,7 @@ test('J11 hs.binh phiếu ra lớp Toán 7, định dạng số, không ô chat'
     await login(student, 'hs.binh')
     await student.setViewportSize({ width: 360, height: 800 })
     await student.goto(`/hoc/bai/${released.releaseId}`)
-    await expect(student.getByRole('heading', { name: 'Phiếu ra lớp phân số' })).toBeVisible()
+    await expect(student.getByRole('heading', { level: 1, name: 'Phiếu ra lớp phân số' })).toBeVisible()
     const field = student.locator('[data-quiz-answer="true"]')
     await field.fill('1.000')
     await student.getByRole('button', { name: 'Lưu câu trả lời' }).click()
