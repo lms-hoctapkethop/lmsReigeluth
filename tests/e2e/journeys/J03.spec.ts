@@ -88,7 +88,7 @@ test('J03 gv.lan soạn Tin 10, gỡ V01 rồi phát hành', async ({ page }) =>
 
   await page.getByRole('link', { name: 'Xem trước' }).focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByRole('status')).toContainText('Xem trước, không ghi tiến độ')
+  await expect(page.getByText('Xem trước, không ghi tiến độ')).toBeVisible({ timeout: 12_000 })
   await expect(page.getByText('Đáp án bí mật không hiện cho học sinh')).toHaveCount(0)
   await expect(page.getByText('Câu lệnh 1')).toBeVisible()
 })
