@@ -336,7 +336,13 @@ describe.skipIf(!ready)('chương trình M3', () => {
     expect(response.statusCode).toBe(200)
     const body = response.json() as { reviewStatus: string; code791Stem: string }[]
     expect(body.every((item) => item.reviewStatus === 'approved' || item.reviewStatus === 'source_checked')).toBe(true)
-    expect(body.map((item) => item.code791Stem).sort()).toEqual(['140110.0101a', '140110.0200b'])
+    expect(body.map((item) => item.code791Stem).sort()).toEqual([
+      '140110.0101a',
+      '140110.0200b',
+      '140110.0601a',
+      '140110.0602a',
+      '140110.0603b',
+    ])
     expect(Object.keys(body[0] ?? {}).sort()).toEqual(
       ['code791Stem', 'extraction', 'grade', 'id', 'reviewStatus', 'revision', 'sourceDoc', 'sourceLocator', 'subjectCode', 'text'].sort(),
     )

@@ -115,6 +115,7 @@ export default function StudioEditor() {
   const draftRef = useRef<Draft | null>(null)
   const revisionRef = useRef(1)
   const saving = useRef(false)
+  const saveGeneration = useRef(0)
   const courseId = loaded.data?.courseId ?? ''
   const catalog = useQuery({
     queryKey: ['author-catalog', courseId],
@@ -140,9 +141,14 @@ export default function StudioEditor() {
     void readJson<Report>(`/api/v1/modules/${moduleId}/draft/validate`).then(setReport).catch(() => setReport(null))
   }, [loaded.data, moduleId])
 
+  function scheduleFlush(delay: number) {
+    window.setTimeout(() => { void flush() }, delay)
+  }
+
   async function flush() {
     const current = draftRef.current
     if (!current || !dirty.current || saving.current || conflictRef.current) return
+    const generation = saveGeneration.current
     saving.current = true
     const response = await fetch(`/api/v1/modules/${moduleId}/draft`, {
       method: 'PUT',
@@ -159,21 +165,23 @@ export default function StudioEditor() {
     if (response.status === 409) {
       dirty.current = false
       conflictRef.current = true
-      setLocalCopy(JSON.stringify(current, null, 2))
+      setLocalCopy(JSON.stringify(draftRef.current ?? current, null, 2))
       setConflict(true)
       return
     }
     if (!response.ok) {
       setStatus('Chưa lưu được. Hãy điền đủ KC và nội dung.')
+      if (dirty.current && saveGeneration.current !== generation) scheduleFlush(2000)
       return
     }
     const body = await response.json() as { revision: number }
     revisionRef.current = body.revision
     setRevision(body.revision)
-    dirty.current = false
-    setStatus('Đã lưu')
+    if (saveGeneration.current === generation) dirty.current = false
+    setStatus(saveGeneration.current === generation ? 'Đã lưu' : 'Sẽ lưu sau 2 giây.')
     const next = await readJson<Report>(`/api/v1/modules/${moduleId}/draft/validate`).catch(() => null)
     if (next) setReport(next)
+    if (dirty.current && !conflictRef.current) scheduleFlush(2000)
   }
 
   useEffect(() => {
@@ -192,6 +200,7 @@ export default function StudioEditor() {
   function update(next: Draft) {
     draftRef.current = next
     dirty.current = true
+    saveGeneration.current += 1
     setDraft(next)
     setStatus('Sẽ lưu sau 2 giây.')
   }

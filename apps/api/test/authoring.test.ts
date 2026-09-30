@@ -333,26 +333,26 @@ describe.skipIf(!ready)('soạn bài M4', () => {
     const criterion = await adminDb.selectFrom('rubric_criteria').select('id').where('rubric_version_id', '=', rubric.id).executeTakeFirstOrThrow()
     const assessment = await adminDb.selectFrom('assessment_versions').select('id').where('module_version_id', '=', versionId).executeTakeFirstOrThrow()
     const question = await adminDb.selectFrom('question_items').select('id').where('assessment_version_id', '=', assessment.id).executeTakeFirstOrThrow()
-    const attempts = [
-      sql`UPDATE module_versions SET title = 'đổi' WHERE id = ${versionId}`.execute(db),
-      sql`DELETE FROM module_versions WHERE id = ${versionId}`.execute(db),
-      sql`UPDATE module_items SET title = 'đổi' WHERE id = ${item.id}`.execute(db),
-      sql`DELETE FROM module_items WHERE id = ${item.id}`.execute(db),
-      sql`UPDATE rubric_versions SET title = 'đổi' WHERE id = ${rubric.id}`.execute(db),
-      sql`DELETE FROM rubric_versions WHERE id = ${rubric.id}`.execute(db),
-      sql`UPDATE rubric_criteria SET title = 'đổi' WHERE id = ${criterion.id}`.execute(db),
-      sql`DELETE FROM rubric_criteria WHERE id = ${criterion.id}`.execute(db),
-      sql`UPDATE assessment_versions SET shuffle_options = true WHERE id = ${assessment.id}`.execute(db),
-      sql`DELETE FROM assessment_versions WHERE id = ${assessment.id}`.execute(db),
-      sql`UPDATE question_items SET bloom_target = 3 WHERE id = ${question.id}`.execute(db),
-      sql`DELETE FROM question_items WHERE id = ${question.id}`.execute(db),
-      sql`UPDATE question_keys SET key = '{"option":"b"}'::jsonb WHERE question_item_id = ${question.id}`.execute(db),
-      sql`DELETE FROM question_keys WHERE question_item_id = ${question.id}`.execute(db),
-      sql`UPDATE question_kc_links SET role = 'required' WHERE question_item_id = ${question.id} AND role = 'observable'`.execute(db),
-      sql`DELETE FROM question_kc_links WHERE question_item_id = ${question.id}`.execute(db),
-      sql`DELETE FROM option_misconceptions WHERE question_item_id = ${question.id}`.execute(db),
+    const statements = [
+      sql`UPDATE module_versions SET title = 'đổi' WHERE id = ${versionId}`,
+      sql`DELETE FROM module_versions WHERE id = ${versionId}`,
+      sql`UPDATE module_items SET title = 'đổi' WHERE id = ${item.id}`,
+      sql`DELETE FROM module_items WHERE id = ${item.id}`,
+      sql`UPDATE rubric_versions SET title = 'đổi' WHERE id = ${rubric.id}`,
+      sql`DELETE FROM rubric_versions WHERE id = ${rubric.id}`,
+      sql`UPDATE rubric_criteria SET title = 'đổi' WHERE id = ${criterion.id}`,
+      sql`DELETE FROM rubric_criteria WHERE id = ${criterion.id}`,
+      sql`UPDATE assessment_versions SET shuffle_options = true WHERE id = ${assessment.id}`,
+      sql`DELETE FROM assessment_versions WHERE id = ${assessment.id}`,
+      sql`UPDATE question_items SET bloom_target = 3 WHERE id = ${question.id}`,
+      sql`DELETE FROM question_items WHERE id = ${question.id}`,
+      sql`UPDATE question_keys SET key = '{"option":"b"}'::jsonb WHERE question_item_id = ${question.id}`,
+      sql`DELETE FROM question_keys WHERE question_item_id = ${question.id}`,
+      sql`UPDATE question_kc_links SET role = 'required' WHERE question_item_id = ${question.id} AND role = 'observable'`,
+      sql`DELETE FROM question_kc_links WHERE question_item_id = ${question.id}`,
+      sql`DELETE FROM option_misconceptions WHERE question_item_id = ${question.id}`,
     ]
-    for (const attempt of attempts) await expect(attempt).rejects.toThrow(/append-only/)
+    for (const statement of statements) await expect(statement.execute(db)).rejects.toThrow(/append-only/)
   })
 
   it('C01 thiếu quan sát thì 422 COVERAGE_BLOCKED đúng YCCĐ', async () => {
