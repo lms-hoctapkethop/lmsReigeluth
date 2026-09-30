@@ -48,5 +48,5 @@ test('M3 reviewer.tin duyệt chương trình bằng bàn phím', async ({ page 
   await page.keyboard.press('Enter')
   await page.getByRole('button', { name: 'Duyệt' }).focus()
   await page.keyboard.press('Enter')
-  await expect(page.getByText(/Cạnh này tạo thành vòng/)).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('Cạnh này tạo thành vòng')
 })
