@@ -30,6 +30,8 @@ const schema = z.object({
   sessionMaxDays: z.coerce.number().int().positive(),
   trustProxy: z.array(cidr),
   port: z.coerce.number().int().positive(),
+  keycloakProvisionerClientId: z.string().min(1).optional(),
+  keycloakProvisionerSecret: z.string().min(1).optional(),
 })
 
 export type AppConfig = z.infer<typeof schema>
@@ -45,6 +47,8 @@ const envByField: Record<string, string> = {
   sessionMaxDays: 'SESSION_MAX_DAYS',
   trustProxy: 'TRUST_PROXY',
   port: 'PORT',
+  keycloakProvisionerClientId: 'KEYCLOAK_PROVISIONER_CLIENT_ID',
+  keycloakProvisionerSecret: 'KEYCLOAK_PROVISIONER_SECRET',
 }
 
 function readSecret(env: NodeJS.ProcessEnv, name: string): string | undefined {
@@ -77,6 +81,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionMaxDays: env.SESSION_MAX_DAYS ?? '7',
     trustProxy,
     port: env.PORT ?? '4319',
+    keycloakProvisionerClientId: env.KEYCLOAK_PROVISIONER_CLIENT_ID,
+    keycloakProvisionerSecret: readSecret(env, 'KEYCLOAK_PROVISIONER_SECRET'),
   })
   if (!parsed.success) {
     const names = [

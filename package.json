@@ -13,11 +13,11 @@
     "lint": "eslint .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "vitest run",
-    "test:e2e": "playwright test tests/e2e/j01.spec.ts --project=chromium",
+    "test:e2e": "playwright test tests/e2e --project=chromium",
     "db:seed:test": "node --experimental-strip-types scripts/seed-test.ts",
     "db:migrate": "dbmate --migrations-dir db/migrations --no-dump-schema up",
     "db:types": "kysely-codegen --out-file packages/db/src/schema.ts --dialect postgres",
-    "db:seed:curriculum": "node scripts/seed-not-yet.mjs curriculum",
+    "db:seed:curriculum": "node --experimental-strip-types apps/api/src/cli.ts seed-curriculum db/seeds/curriculum_requirements.csv",
     "openapi:check": "node scripts/openapi-check.mjs",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm openapi:check && pnpm build"
   },

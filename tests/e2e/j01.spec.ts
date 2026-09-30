@@ -11,7 +11,7 @@ test('J01 đăng nhập, đổi ngữ cảnh GV sang PH, đăng xuất', async (
   await page.goto('/login-required?returnTo=/')
   await expectNoSeriousAxe(page)
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
-  await page.locator('#username').fill('gv.lan')
+  await page.locator('#username').fill('gv.lan.ph')
   await page.locator('#password').fill('Dev-12345')
   await page.locator('#kc-login').click()
   await expect(page.getByRole('heading', { name: /Giáo viên/ })).toBeVisible({ timeout: 20_000 })

@@ -1,11 +1,16 @@
 import cookie from '@fastify/cookie'
+import multipart from '@fastify/multipart'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { DestinationStream, Logger } from 'pino'
 import type { Kysely } from 'kysely'
 import type { Database } from '@hcn/db'
+import { IdpAdminError, type IdpAdmin } from '@hcn/domain'
 import type { AppConfig } from './config.ts'
+import { KeycloakAdmin } from './adapters/keycloak-admin.ts'
+import { registerAdminRoutes } from './routes/admin.ts'
 import { registerAuthRoutes } from './routes/auth.ts'
 import { registerMeRoutes } from './routes/me.ts'
+import { registerOfferingRoutes } from './routes/offerings.ts'
 import { registerCsrf } from './plugins/csrf.ts'
 import { registerErrorHandler } from './plugins/error-handler.ts'
 import { registerGuard } from './plugins/guard.ts'
@@ -19,6 +24,22 @@ export type BuildAppOptions = {
   config: AppConfig
   db: Kysely<Database>
   logStream?: DestinationStream
+  idpAdmin?: IdpAdmin
+}
+
+function resolveIdp(config: AppConfig, override?: IdpAdmin): IdpAdmin {
+  if (override) return override
+  if (!config.keycloakProvisionerSecret) {
+    const fail = async (): Promise<never> => {
+      throw new IdpAdminError('unavailable')
+    }
+    return { findByUsername: async () => null, createUser: fail, deleteUser: fail, setEnabled: fail, resetTemporaryPassword: fail }
+  }
+  return new KeycloakAdmin({
+    issuer: config.oidcIssuer,
+    clientId: config.keycloakProvisionerClientId ?? 'hcn-provisioner',
+    clientSecret: config.keycloakProvisionerSecret,
+  })
 }
 
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
@@ -37,6 +58,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     }
   })
   await app.register(cookie)
+  await app.register(multipart, { limits: { fileSize: 1024 * 1024, files: 1 } })
   registerRequestId(app)
   registerSession(app, options.db, options.config)
   await registerRateLimit(app)
@@ -61,5 +83,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   app.get('/health/live', { config: { public: true } }, async () => ({ status: 'live' }))
   registerAuthRoutes(app, options.db, options.config)
   registerMeRoutes(app, options.db)
+  registerOfferingRoutes(app, options.db)
+  registerAdminRoutes(app, options.db, resolveIdp(options.config, options.idpAdmin), options.config.oidcIssuer)
   return app
 }

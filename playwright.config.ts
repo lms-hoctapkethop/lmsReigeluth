@@ -20,6 +20,7 @@ export default defineConfig({
         OIDC_CLIENT_ID: 'hcn-web',
         OIDC_CLIENT_SECRET: 'dev-secret-hcn-web',
         COOKIE_SECRET: 'dev-cookie-secret-for-e2e-only-32',
+        KEYCLOAK_PROVISIONER_SECRET: 'dev-secret-hcn-provisioner',
         SESSION_TTL_HOURS: '12',
         SESSION_MAX_DAYS: '7',
         TRUST_PROXY: '',

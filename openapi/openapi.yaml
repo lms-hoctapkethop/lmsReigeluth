@@ -193,6 +193,7 @@ paths:
                 properties:
                   created: { type: array, items: { type: object, properties: { userId: { $ref: '#/components/schemas/Uuid' }, username: { type: string }, temporaryPassword: { type: string } } } }
                   errors: { type: array, items: { type: object, properties: { row: { type: integer }, code: { type: string }, message: { type: string } } } }
+                  passwordsRedacted: { type: boolean }
   /api/v1/admin/guardian-links:
     get:
       tags: [admin]
@@ -235,6 +236,158 @@ paths:
         content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 3 } } } } }
       responses:
         '200': { description: Đã thu hồi; có hiệu lực ngay request sau }
+
+  /api/v1/offerings/{offeringId}:
+    get:
+      tags: [learning]
+      operationId: getMyOffering
+      parameters: [ { $ref: '#/components/parameters/OfferingId' } ]
+      responses:
+        '200': { description: Offering trong phạm vi, content: { application/json: { schema: { $ref: '#/components/schemas/Offering' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/admin/academic-years:
+    get:
+      tags: [admin]
+      operationId: listAcademicYears
+      responses:
+        '200': { description: Năm học của trường }
+    post:
+      tags: [admin]
+      operationId: createAcademicYear
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [code, startsOn, endsOn], properties: { code: { type: string }, startsOn: { type: string }, endsOn: { type: string } } } } }
+      responses:
+        '201': { description: Đã tạo }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/v1/admin/classes:
+    get:
+      tags: [admin]
+      operationId: listAdminClasses
+      responses:
+        '200': { description: Lớp hành chính }
+    post:
+      tags: [admin]
+      operationId: createAdminClass
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [academicYearId, grade, code], properties: { academicYearId: { $ref: '#/components/schemas/Uuid' }, grade: { type: integer }, code: { type: string } } } } }
+      responses:
+        '201': { description: Đã tạo }
+  /api/v1/admin/classes/{classId}/learners:
+    get:
+      tags: [admin]
+      operationId: listClassLearners
+      parameters:
+        - { name: classId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '200': { description: Học sinh đang học lớp }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/admin/classes/transfer:
+    post:
+      tags: [admin]
+      operationId: transferClass
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [learnerId, toClassId, onDate], properties: { learnerId: { $ref: '#/components/schemas/Uuid' }, toClassId: { $ref: '#/components/schemas/Uuid' }, onDate: { type: string } } } } }
+      responses:
+        '200': { description: Đã chuyển lớp }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/v1/admin/courses:
+    get:
+      tags: [admin]
+      operationId: listCourses
+      responses:
+        '200': { description: Môn học của trường }
+    post:
+      tags: [admin]
+      operationId: createCourse
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [subjectCode, grade, title], properties: { subjectCode: { type: string }, grade: { type: integer }, title: { type: string } } } } }
+      responses:
+        '201': { description: Đã tạo }
+  /api/v1/admin/offerings/{offeringId}:
+    get:
+      tags: [admin]
+      operationId: getAdminOffering
+      parameters: [ { $ref: '#/components/parameters/OfferingId' } ]
+      responses:
+        '200': { description: Chi tiết phân công và ghi danh }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/admin/offerings/{offeringId}/assignments/{assignmentId}/end:
+    post:
+      tags: [admin]
+      operationId: endTeacherAssignment
+      parameters:
+        - { $ref: '#/components/parameters/OfferingId' }
+        - { name: assignmentId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Đã kết thúc phân công }
+  /api/v1/admin/offerings/{offeringId}/enrollments/withdraw:
+    post:
+      tags: [admin]
+      operationId: withdrawEnrollment
+      parameters: [ { $ref: '#/components/parameters/OfferingId' }, { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [learnerId], properties: { learnerId: { $ref: '#/components/schemas/Uuid' } } } } }
+      responses:
+        '200': { description: Đã thôi ghi danh }
+  /api/v1/admin/users:
+    get:
+      tags: [admin]
+      operationId: listSchoolUsers
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: role, in: query, schema: { type: string } }
+        - { name: classId, in: query, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { name: cursor, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Danh sách người dùng, phân trang con trỏ }
+  /api/v1/admin/users/{userId}/lock:
+    post:
+      tags: [admin]
+      operationId: lockUser
+      parameters:
+        - { name: userId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 3 } } } } }
+      responses:
+        '200': { description: Đã khóa }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/admin/users/{userId}/unlock:
+    post:
+      tags: [admin]
+      operationId: unlockUser
+      parameters:
+        - { name: userId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 3 } } } } }
+      responses:
+        '200': { description: Đã mở khóa }
+  /api/v1/admin/users/{userId}/reset-password:
+    post:
+      tags: [admin]
+      operationId: resetTemporaryPassword
+      parameters:
+        - { name: userId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200':
+          description: Mật khẩu tạm, không lưu, Cache-Control no-store
+          headers:
+            Cache-Control: { schema: { type: string } }
 
   /api/v1/curriculum/requirements:
     get:
@@ -805,7 +958,7 @@ components:
               type: string
               enum: [BAD_REQUEST, UNAUTHENTICATED, FORBIDDEN, CSRF_FAILED, NOT_FOUND, REVISION_CONFLICT, IDEMPOTENCY_KEY_REUSED, REQUEST_IN_PROGRESS,
                      SUBMISSION_VERSION_CHANGED, ALREADY_PUBLISHED, ATTEMPT_LIMIT_REACHED, RELEASE_CLOSED, FILE_TOO_LARGE, FILE_TYPE_NOT_ALLOWED,
-                     VALIDATION_FAILED, COVERAGE_BLOCKED, FEATURE_NOT_ENABLED, KC_EDGE_CYCLE, FILE_NOT_SCANNED, RATE_LIMITED, INTERNAL]
+                     VALIDATION_FAILED, COVERAGE_BLOCKED, FEATURE_NOT_ENABLED, KC_EDGE_CYCLE, FILE_NOT_SCANNED, RATE_LIMITED, INTERNAL, ASSIGNMENT_OVERLAP]
             message: { type: string }
             request_id: { type: string }
             details: { type: object, additionalProperties: true }

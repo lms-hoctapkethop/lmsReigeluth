@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import type { Kysely } from 'kysely'
 import { switchContextBody } from '@hcn/contracts'
 import type { Database } from '@hcn/db'
-import { DomainError, getMe, switchContext } from '@hcn/domain'
+import { DomainError, getChildOverview, getMe, listMyChildren, switchContext, systemClock } from '@hcn/domain'
 import { writeRateLimit } from '../plugins/rate-limit.ts'
 
 export function registerMeRoutes(app: FastifyInstance, db: Kysely<Database>): void {
@@ -28,6 +28,28 @@ export function registerMeRoutes(app: FastifyInstance, db: Kysely<Database>): vo
       request.auth.csrfToken,
       parsed.data,
       request.id,
+    )
+  })
+
+  app.get('/api/v1/me/children', async (request) => {
+    if (!request.auth) throw new DomainError('UNAUTHENTICATED')
+    return listMyChildren(db, {
+      actor: { userId: request.auth.userId, schoolId: request.auth.schoolId, roles: [request.auth.role] },
+      requestId: request.id,
+      clock: systemClock,
+    })
+  })
+
+  app.get<{ Params: { learnerId: string } }>('/api/v1/children/:learnerId/overview', async (request) => {
+    if (!request.auth) throw new DomainError('UNAUTHENTICATED')
+    return getChildOverview(
+      db,
+      {
+        actor: { userId: request.auth.userId, schoolId: request.auth.schoolId, roles: [request.auth.role] },
+        requestId: request.id,
+        clock: systemClock,
+      },
+      request.params.learnerId,
     )
   })
 }
