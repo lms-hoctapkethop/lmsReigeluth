@@ -18,6 +18,18 @@ export {
 export { validateModuleDraft, type CoverageReportDto } from './authoring/validate.ts'
 export { publishModuleVersion, type ModuleVersionSummary } from './authoring/publish.ts'
 export { toLearnerRelease } from './learning/projection.ts'
+export {
+  getLearnerToday,
+  getReleaseForLearner,
+  markViewed,
+  selfMark,
+  getSubmissionDraft,
+  saveSubmissionDraft,
+  submitAssignment,
+  getSubmission,
+} from './learning/commands.ts'
+export { releaseModules, changeSchedule, listReleases, listModuleVersions } from './release/commands.ts'
+export { uploadFile, readFileMeta, openDownload, dispositionHeader, type FileMeta } from './files/upload.ts'
 export { DomainError, type ErrorCode } from './errors.ts'
 export { safeReturnTo } from './identity/returnTo.ts'
 export { can, authorize, type Actor, type Action, type Facts, type Decision, type Role } from './identity/policies.ts'

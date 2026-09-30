@@ -16,6 +16,13 @@ export const writeRateLimit = {
   keyGenerator: (request: FastifyRequest) => request.auth?.userId ?? request.ip,
 }
 
+export const uploadRateLimit = {
+  max: 20,
+  timeWindow: '10 minutes',
+  groupId: 'upload',
+  keyGenerator: (request: FastifyRequest) => request.auth?.userId ?? request.ip,
+}
+
 export const importRateLimit = {
   max: 5,
   timeWindow: '1 hour',

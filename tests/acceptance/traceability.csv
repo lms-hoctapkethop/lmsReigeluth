@@ -15,26 +15,26 @@ INV-13,AGENTS.md,Không log dữ liệu nhạy cảm,L0/L3,lint rules + apps/api
 INV-14,AGENTS.md,Không gửi dữ liệu HS ra ngoài,L0/L3,lint rules + apps/api/test/integration,M0–M8,todo,
 P1a-01,2.1 tệp 07,"Header, page, link, assignment, quiz: 5 dòng, 3 requirement",L3,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 P1a-02,2.1 tệp 07,Sửa nháp sau giao không đổi snapshot và mẫu số,L3,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
-P1a-03,2.1 tệp 07,"Giao hai module, module hai lỗi → không ghi một phần",L3,apps/api/test/integration,M5,todo,
-P1a-04,2.1 tệp 07,Retry giao cùng key sau mất phản hồi → cùng receipt,L3,apps/api/test/integration,M5,todo,
+P1a-03,2.1 tệp 07,"Giao hai module, module hai lỗi → không ghi một phần",L3,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts P1a-03
+P1a-04,2.1 tệp 07,Retry giao cùng key sau mất phản hồi → cùng receipt,L3,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts P1a-04
 P1a-05,2.1 tệp 07,Quiz nộp điểm thấp vẫn hoàn thành,L3,apps/api/test/integration,M6,todo,
 P1a-06,2.1 tệp 07,min_score/KC gate → FEATURE_NOT_ENABLED,L3,apps/api/test/integration,M6,todo,
-P1a-07,2.1 tệp 07,GET/prefetch/GV xem trước/PH xem không sinh tiến độ,L3,apps/api/test/integration,M5,todo,
+P1a-07,2.1 tệp 07,GET/prefetch/GV xem trước/PH xem không sinh tiến độ,L3,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts P1a-07
 P1a-08,2.1 tệp 07,"Hai lệnh cùng revision → một commit, một 409",L3,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
-P1a-09,2.1 tệp 07,"Truy cập URL/API trực tiếp vẫn kiểm scope, lịch",L3,apps/api/test/integration,M5,todo,
+P1a-09,2.1 tệp 07,"Truy cập URL/API trực tiếp vẫn kiểm scope, lịch",L3,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts P1a-09
 P1a-10,2.1 tệp 07,Quiz/progress cố gửi attainment → từ chối,L3,apps/api/test/integration,M6,todo,
-AC01,Kiến trúc 1.0,Hai HS đổi learnerId/submissionId không đọc/sửa được của nhau,L3/L5/L6,,M5,todo,
+AC01,Kiến trúc 1.0,Hai HS đổi learnerId/submissionId không đọc/sửa được của nhau,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC01
 AC02,Kiến trúc 1.0,GV truy cập lớp chưa phân công bị từ chối,L3/L5/L6,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
 AC03,Kiến trúc 1.0,Thu hồi liên kết PH có hiệu lực request tiếp theo,L3/L5/L6,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
-AC04,Kiến trúc 1.0,Tải lại/đổi thiết bị đọc đúng bản nháp server,L3/L5/L6,,M5,todo,
-AC05,Kiến trúc 1.0,Hai request nộp đồng thời cùng key → một lần nộp,L3/L5/L6,,M5,todo,
-AC06,Kiến trúc 1.0,Commit rồi mất kết nối → gửi lại không nhân đôi,L3/L5/L6,,M5,todo,
+AC04,Kiến trúc 1.0,Tải lại/đổi thiết bị đọc đúng bản nháp server,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC04
+AC05,Kiến trúc 1.0,Hai request nộp đồng thời cùng key → một lần nộp,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC05
+AC06,Kiến trúc 1.0,Commit rồi mất kết nối → gửi lại không nhân đôi,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC06
 AC07,Kiến trúc 1.0,HS nộp v2 khi GV đang chấm v1 → xung đột,L3/L5/L6,,M7,todo,
 AC08,Kiến trúc 1.0,Sửa nội dung/rubric sau khi có bài nộp → bài cũ giữ phiên bản,L3/L5/L6,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 AC09,Kiến trúc 1.0,Quiz tối đa điểm không tự xác nhận mục tiêu,L3/L5/L6,,M6,todo,
 AC10,Kiến trúc 1.0,Công bố rồi sửa quyết định → lịch sử đủ,L3/L5/L6,,M7,todo,
 AC11,Kiến trúc 1.0,Worker ngừng rồi chạy lại → không trùng thông báo,L3/L5/L6,,M7,todo,
-AC12,Kiến trúc 1.0,Upload sai loại/quá lớn/chưa quét → từ chối/cách ly,L3/L5/L6,,M5,todo,
+AC12,Kiến trúc 1.0,Upload sai loại/quá lớn/chưa quét → từ chối/cách ly,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC12
 AC13,Kiến trúc 1.0,Khôi phục sang máy trống,L3/L5/L6,,M9,todo,
 AC14,Kiến trúc 1.0,"Bàn phím, zoom 200%, 360 px",L3/L5/L6,,M9,todo,
 AC15,Kiến trúc 1.0,Kịch bản tải,L3/L5/L6,,M9,todo,
@@ -43,7 +43,7 @@ A01,2.1 tệp 07,GV Tin10A1/Tin10A2/Toán10A3 chỉ có ba scope,L3/L5,apps/api/
 A02,2.1 tệp 07,"PH chỉ xem đúng con, dữ liệu đã công bố",L3/L5,,M7,todo,
 A03,2.1 tệp 07,Chuyển lớp giữ lịch sử,L3/L5,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
 A04,2.1 tệp 07,"Đáp án riêng: JSON, HTML, cache, asset, AI context",L3/L5,,M6,todo,
-A05,2.1 tệp 07,Autosave trước submit không nộp nhầm revision,L3/L5,,M5,todo,
+A05,2.1 tệp 07,Autosave trước submit không nộp nhầm revision,L3/L5,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts A05
 A06,2.1 tệp 07,Review cạnh tranh tạo conflict đúng,L3/L5,,M7,todo,
 A07,2.1 tệp 07,Dependency bất biến sau khi giao,L3/L5,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 A08,2.1 tệp 07,Outbox an toàn khi crash sau commit,L3/L5,,M7,todo,
@@ -51,7 +51,7 @@ A09,2.1 tệp 07,"Restore đủ DB và tệp, đúng checksum",L3/L5,,M9,todo,
 A10,2.1 tệp 07,Migration bảo toàn nghĩa release_id,L3/L5,,M9,todo,
 A11,2.1 tệp 07,Route/waiver có lịch sử (P2),L3/L5,,M10,todo,
 A12,2.1 tệp 07,Cổng KC không gây bế tắc (P2),L3/L5,,M10,todo,
-A13,2.1 tệp 07,Tệp và nhập liệu không tin cậy bị cô lập,L3/L5,,M5,todo,
+A13,2.1 tệp 07,Tệp và nhập liệu không tin cậy bị cô lập,L3/L5,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts A13
 A14,2.1 tệp 07,"Chấm số đúng validation, không chấm 0 khi sai định dạng",L3/L5,,M6,todo,
 A15,2.1 tệp 07,Assessment tương tác tiếp cận được,L3/L5,,M9,todo,
 A16,2.1 tệp 07,AI không có quyền quyết định,L3/L5,,M8,todo,
@@ -102,22 +102,29 @@ DB18,docs/05 mục 4,Version KC chép cạnh và liên kết,L3,apps/api/test/cu
 DB19,docs/05 mục 4,Chép cạnh gây vòng thì rollback,L3,apps/api/test/curriculum.test.ts,M3,pass,apps/api/test/curriculum.test.ts M3-VERSION-CYCLE
 DB20,docs/05 mục 4,Cấm tự duyệt,L3,apps/api/test/curriculum.test.ts,M3,pass,apps/api/test/curriculum.test.ts M3-SELF
 DB21,docs/05 mục 4,Đồ thị hiệu lực không gồm cạnh proposed,L2/L3,packages/db/src/repositories/kcGraph.ts,M3,pass,apps/api/test/curriculum.test.ts B04
+DB22,docs/05 mục 6,submission_config chỉ trên nhiệm vụ và đúng kiểu,L2,db/tests/learning_invariants.sql,M5,pass,db/tests/learning_invariants.sql DB22
+DB23,docs/05 mục 7,content_files alt và cùng trường,L2,db/tests/learning_invariants.sql,M5,pass,db/tests/learning_invariants.sql DB23
+DB24,docs/05 mục 6,lịch giao hạn sau giờ mở và nhận sau hạn,L2,db/tests/learning_invariants.sql,M5,pass,db/tests/learning_invariants.sql DB24
+DB25,docs/05 mục 7,tệp không rỗng không quá 25 MiB và trạng thái quét hợp lệ,L2,db/tests/learning_invariants.sql,M5,pass,db/tests/learning_invariants.sql DB25
+DB26,docs/05 mục 6,một bài nộp mỗi HS mỗi mục và phiên bản không sửa,L2,db/tests/learning_invariants.sql,M5,pass,db/tests/learning_invariants.sql DB26
+OA-01,docs/09,OpenAPI parse uniqueKeys và validate 3.1,L0,scripts/openapi-check.mjs,M5,pass,scripts/openapi-check.mjs
+OA-02,docs/09,Route đang chạy khớp paths của OpenAPI,L3,apps/api/test/openapi-routes.test.ts,M5,pass,apps/api/test/openapi-routes.test.ts OA-02
 SEC-01,docs/09 mục 6,IDOR,L3/L4/L6,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
 SEC-02,docs/09 mục 6,CSRF,L3/L4/L6,,M1,todo,
 SEC-03,docs/09 mục 6,Cờ cookie,L3/L4/L6,,M1,todo,
 SEC-04,docs/09 mục 6,Cố định phiên,L3/L4/L6,,M1,todo,
 SEC-05,docs/09 mục 6,Thu hồi quyền tức thì,L3/L4/L6,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
 SEC-06,docs/09 mục 6,XSS học liệu/bài nộp,L3/L4/L6,packages/contracts/src/json/sec06.test.ts,M4,pass,packages/contracts/src/json/sec06.test.ts; tests/e2e/journeys/SEC-06.spec.ts
-SEC-07,docs/09 mục 6,"Tệp đa hình, EICAR",L3/L4/L6,,M5,todo,
+SEC-07,docs/09 mục 6,"Tệp đa hình, EICAR",L3/L4/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts SEC-07
 SEC-08,docs/09 mục 6,Lộ đáp án,L3/L4/L6,,M6,todo,
-SEC-09,docs/09 mục 6,Gán thuộc tính hàng loạt,L3/L4/L6,,M5,todo,
+SEC-09,docs/09 mục 6,Gán thuộc tính hàng loạt,L3/L4/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts SEC-09
 SEC-10,docs/09 mục 6,Leo quyền qua ngữ cảnh,L3/L4/L6,,M1,todo,
 SEC-11,docs/09 mục 6,Open redirect,L3/L4/L6,,M1,todo,
 SEC-12,docs/09 mục 6,Rate limit,L3/L4/L6,,M9,todo,
 SEC-13,docs/09 mục 6,Dò mật khẩu,L3/L4/L6,,M9,todo,
 SEC-14,docs/09 mục 6,Fuzz SQL/unicode,L3/L4/L6,,M9,todo,
 SEC-15,docs/09 mục 6,Header bảo mật,L3/L4/L6,,M9,todo,
-SEC-16,docs/09 mục 6,Log không chứa bí mật,L3/L4/L6,,M5,todo,
+SEC-16,docs/09 mục 6,Log không chứa bí mật,L3/L4/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts SEC-16
 SEC-17,docs/09 mục 6,Worker không đọc đáp án,L3/L4/L6,,M0,todo,
 SEC-18,docs/09 mục 6,Liệt kê tài nguyên,L3/L4/L6,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
 SEC-19,docs/09 mục 6,Lỗ hổng phụ thuộc,L3/L4/L6,,M0,todo,
@@ -146,9 +153,9 @@ REL-06,docs/09 mục 9,Migration + hoàn tác app,L6,staging + biên bản,M9,to
 J01,docs/09 mục 5.1,"Đăng nhập, ngữ cảnh, đăng xuất",L5,e2e/journeys/J01.spec.ts,M1,todo,
 J02,docs/09 mục 5.1,Quản trị tổ chức,L5,tests/e2e/journeys/J02.spec.ts,M2,pass,tests/e2e/journeys/J02.spec.ts
 J03,docs/09 mục 5.1,"Soạn, V01, publish",L5,tests/e2e/journeys/J03.spec.ts,M4,pass,tests/e2e/journeys/J03.spec.ts
-J04,docs/09 mục 5.1,Giao có lịch,L5,e2e/journeys/J04.spec.ts,M5,todo,
+J04,docs/09 mục 5.1,Giao có lịch,L5,tests/e2e/journeys/J04.spec.ts,M5,pass,tests/e2e/journeys/J04.spec.ts
 J05,docs/09 mục 5.1,"Luyện tập, gợi ý, lỗi hiểu sai",L5,e2e/journeys/J05.spec.ts,M6,todo,
-J06,docs/09 mục 5.1,"Soạn bài, mất mạng, nộp",L5,e2e/journeys/J06.spec.ts,M5,todo,
+J06,docs/09 mục 5.1,"Soạn bài, mất mạng, nộp",L5,tests/e2e/journeys/J06.spec.ts,M5,pass,tests/e2e/journeys/J06.spec.ts
 J07,docs/09 mục 5.1,"Chấm, công bố không quyết định",L5,e2e/journeys/J07.spec.ts,M7,todo,
 J08,docs/09 mục 5.1,Nộp v2 khi GV mở v1,L5,e2e/journeys/J08.spec.ts,M7,todo,
 J09,docs/09 mục 5.1,"Công bố có quyết định, hồ sơ",L5,e2e/journeys/J09.spec.ts,M7,todo,

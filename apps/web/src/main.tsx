@@ -3,7 +3,7 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Link, Outlet, redirect, RouterProvider, useLoaderData, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
-import { Accounts, AdminHome, FamilyHome, Guardians, LearnHome, OfferingAdmin, TeachHome } from './admin.tsx'
+import { Accounts, AdminHome, FamilyHome, Guardians, OfferingAdmin, TeachHome } from './admin.tsx'
 import { CurriculumHome } from './curriculum.tsx'
 import { readJson } from './admin-api.ts'
 import { fetchMe, logout, switchContext } from './api.ts'
@@ -15,6 +15,11 @@ import './ui/tokens.css'
 const StudioList = lazy(() => import('./studio/list.tsx'))
 const StudioEditor = lazy(() => import('./studio/editor.tsx'))
 const StudioPreview = lazy(() => import('./studio/preview.tsx'))
+const LearnToday = lazy(() => import('./learn/today.tsx').then((mod) => ({ default: mod.LearnToday })))
+const LearnClass = lazy(() => import('./learn/class.tsx').then((mod) => ({ default: mod.LearnClass })))
+const LearnRelease = lazy(() => import('./learn/release.tsx').then((mod) => ({ default: mod.LearnRelease })))
+const LearnTask = lazy(() => import('./learn/task.tsx').then((mod) => ({ default: mod.LearnTask })))
+const AssignWork = lazy(() => import('./teach/assign.tsx').then((mod) => ({ default: mod.AssignWork })))
 
 const queryClient = new QueryClient()
 
@@ -158,10 +163,14 @@ const router = createBrowserRouter([
       { path: 'quan-tri/phu-huynh', element: <AdminPage page="guardians" /> },
       { path: 'chuyen-mon', element: <CurriculumPage /> },
       { path: 'day', element: <TeachHome /> },
+      { path: 'day/lop/:id/giao', element: <Suspense fallback={<p>Đang mở giao bài</p>}><AssignWork /></Suspense> },
       { path: 'day/soan', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioList /></Suspense> },
       { path: 'day/soan/:moduleId', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioEditor /></Suspense> },
       { path: 'day/soan/:moduleId/xem-truoc', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioPreview /></Suspense> },
-      { path: 'hoc', element: <LearnHome /> },
+      { path: 'hoc', element: <Suspense fallback={<p>Đang tải việc cần làm</p>}><LearnToday /></Suspense> },
+      { path: 'hoc/lop/:id', element: <Suspense fallback={<p>Đang tải lớp</p>}><LearnClass /></Suspense> },
+      { path: 'hoc/bai/:releaseId', element: <Suspense fallback={<p>Đang tải bài</p>}><LearnRelease /></Suspense> },
+      { path: 'hoc/bai/:releaseId/muc/:itemId', element: <Suspense fallback={<p>Đang tải nhiệm vụ</p>}><LearnTask /></Suspense> },
       { path: 'gia-dinh', element: <FamilyHome /> },
     ],
   },

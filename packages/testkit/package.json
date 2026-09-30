@@ -8,7 +8,8 @@
     "./identity": "./src/identity.ts",
     "./personas": "./src/personas.ts",
     "./idp": "./src/idp.ts",
-    "./idp-admin": "./src/fake-idp-admin.ts"
+    "./idp-admin": "./src/fake-idp-admin.ts",
+    "./clamd": "./src/clamd.ts"
   },
   "dependencies": {
     "@hcn/db": "workspace:*",

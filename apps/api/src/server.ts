@@ -9,6 +9,7 @@ import type { AppConfig } from './config.ts'
 import { KeycloakAdmin } from './adapters/keycloak-admin.ts'
 import { registerAdminRoutes } from './routes/admin.ts'
 import { registerAuthoringRoutes } from './routes/authoring.ts'
+import { registerLearningRoutes } from './routes/learning.ts'
 import { registerCurriculumRoutes } from './routes/curriculum.ts'
 import { registerAuthRoutes } from './routes/auth.ts'
 import { registerMeRoutes } from './routes/me.ts'
@@ -27,6 +28,7 @@ export type BuildAppOptions = {
   db: Kysely<Database>
   logStream?: DestinationStream
   idpAdmin?: IdpAdmin
+  storageDir?: string
 }
 
 function resolveIdp(config: AppConfig, override?: IdpAdmin): IdpAdmin {
@@ -50,6 +52,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     trustProxy: options.config.trustProxy.length > 0 ? options.config.trustProxy.join(',') : false,
     genReqId: requestIdFrom,
     logger: false,
+    bodyLimit: 26 * 1024 * 1024,
   })
   const registeredRoutes: { method: string; url: string; isPublic: boolean }[] = []
   app.decorate('registeredRoutes', registeredRoutes)
@@ -60,7 +63,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     }
   })
   await app.register(cookie)
-  await app.register(multipart, { limits: { fileSize: 1024 * 1024, files: 1 } })
+  await app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024, files: 1 }, throwFileSizeLimit: false })
   registerRequestId(app)
   registerSession(app, options.db, options.config)
   await registerRateLimit(app)
@@ -88,6 +91,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   registerOfferingRoutes(app, options.db)
   registerCurriculumRoutes(app, options.db)
   registerAuthoringRoutes(app, options.db)
+  registerLearningRoutes(app, options.db, options.storageDir ?? process.env.FILE_STORAGE_DIR ?? '/tmp/hcn-files')
   registerAdminRoutes(app, options.db, resolveIdp(options.config, options.idpAdmin), options.config.oidcIssuer)
   return app
 }

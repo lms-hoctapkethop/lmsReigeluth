@@ -19,6 +19,7 @@ export const errorCodes = [
   'FEATURE_NOT_ENABLED',
   'KC_EDGE_CYCLE',
   'FILE_NOT_SCANNED',
+  'FILE_REJECTED',
   'RATE_LIMITED',
   'INTERNAL',
 ] as const
@@ -46,6 +47,7 @@ const statusByCode: Record<ErrorCode, number> = {
   FEATURE_NOT_ENABLED: 422,
   KC_EDGE_CYCLE: 422,
   FILE_NOT_SCANNED: 423,
+  FILE_REJECTED: 422,
   RATE_LIMITED: 429,
   INTERNAL: 500,
 }
@@ -71,6 +73,7 @@ const messageByCode: Record<ErrorCode, string> = {
   FEATURE_NOT_ENABLED: 'Chức năng chưa được bật.',
   KC_EDGE_CYCLE: 'Cạnh này tạo thành vòng.',
   FILE_NOT_SCANNED: 'Tệp chưa được quét xong.',
+  FILE_REJECTED: 'Tệp không được chấp nhận.',
   RATE_LIMITED: 'Bạn thao tác quá nhanh. Hãy thử lại sau.',
   INTERNAL: 'Đã có lỗi. Hãy thử lại.',
 }

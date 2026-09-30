@@ -108,7 +108,7 @@ export async function publishModuleVersion(
         })
         .returning(['id', 'published_at'])
         .executeTakeFirstOrThrow()
-      await insertItems(trx, version.id, draft)
+      await insertItems(trx, version.id, draft, meta.actor.schoolId)
       await audit(trx, meta, {
         action: 'module.publish',
         objectType: 'module_version',
@@ -148,7 +148,26 @@ export async function publishModuleVersion(
   }
 }
 
-async function insertItems(db: Db | Trx, moduleVersionId: string, draft: ModuleDraftStored): Promise<void> {
+function collectImages(value: unknown, out: { fileId: string; alt: string }[]): void {
+  if (!value || typeof value !== 'object') return
+  if (Array.isArray(value)) {
+    for (const child of value) collectImages(child, out)
+    return
+  }
+  const row = value as Record<string, unknown>
+  if (row.type === 'image' && typeof row.fileId === 'string' && typeof row.alt === 'string') out.push({ fileId: row.fileId, alt: row.alt })
+  for (const child of Object.values(row)) collectImages(child, out)
+}
+
+async function insertItems(db: Db | Trx, moduleVersionId: string, draft: ModuleDraftStored, schoolId: string): Promise<void> {
+  const images = [] as { fileId: string; alt: string }[]
+  collectImages(draft, images)
+  for (const image of images) {
+    const file = await db.selectFrom('files').select(['school_id', 'scan_status']).where('id', '=', image.fileId).executeTakeFirst()
+    if (!file || file.school_id !== schoolId || file.scan_status !== 'clean') {
+      throw new DomainError('VALIDATION_FAILED', { reason: 'IMAGE_NOT_CLEAN' })
+    }
+  }
   for (let position = 0; position < draft.items.length; position += 1) {
     const item = draft.items[position]
     if (!item) continue
@@ -193,9 +212,27 @@ async function insertItems(db: Db | Trx, moduleVersionId: string, draft: ModuleD
         completion_rule: item.completion,
         rubric_version_id: item.type === 'assignment' ? rubricVersionId : null,
         requirement_ids: asUuidArray(item.type === 'assignment' ? item.requirementIds : []),
+        submission_config: item.type === 'assignment' && item.submission ? asJson(item.submission) : null,
       })
       .returning('id')
       .executeTakeFirstOrThrow()
+    const seenFiles = new Set<string>()
+    const itemImages = [] as { fileId: string; alt: string }[]
+    collectImages(item, itemImages)
+    for (const image of itemImages) {
+      if (seenFiles.has(image.fileId)) continue
+      seenFiles.add(image.fileId)
+      await db
+        .insertInto('content_files')
+        .values({
+          school_id: schoolId,
+          module_version_id: moduleVersionId,
+          module_item_id: inserted.id,
+          file_id: image.fileId,
+          alt: image.alt,
+        })
+        .execute()
+    }
     if (item.type !== 'quiz') continue
     const assessment = await db
       .insertInto('assessment_versions')

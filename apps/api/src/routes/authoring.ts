@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { z } from 'zod'
 import type { Kysely } from 'kysely'
 import type { Database } from '@hcn/db'
+import { writeRateLimit } from '../plugins/rate-limit.ts'
 import {
   authoringCatalog,
   createModule,
@@ -46,7 +47,7 @@ export function registerAuthoringRoutes(app: FastifyInstance, db: Kysely<Databas
     return listMyModules(db, meta(request), query.courseId)
   })
 
-  app.post('/api/v1/modules', async (request, reply) => {
+  app.post('/api/v1/modules', { config: { rateLimit: writeRateLimit } }, async (request, reply) => {
     const body = z.strictObject({
       courseId: uuid,
       title: z.string().min(1).max(200),
@@ -67,12 +68,12 @@ export function registerAuthoringRoutes(app: FastifyInstance, db: Kysely<Databas
     return envelope
   })
 
-  app.put('/api/v1/modules/:moduleId/draft', async (request) => {
+  app.put('/api/v1/modules/:moduleId/draft', { config: { rateLimit: writeRateLimit } }, async (request) => {
     const params = z.strictObject({ moduleId: uuid }).parse(request.params)
     return saveModuleDraft(db, meta(request), params.moduleId, header(request, 'if-match'), request.body)
   })
 
-  app.post('/api/v1/modules/:moduleId/draft/validate', async (request) => {
+  app.post('/api/v1/modules/:moduleId/draft/validate', { config: { rateLimit: writeRateLimit } }, async (request) => {
     const params = z.strictObject({ moduleId: uuid }).parse(request.params)
     return validateModuleDraft(db, meta(request), params.moduleId)
   })
@@ -82,7 +83,7 @@ export function registerAuthoringRoutes(app: FastifyInstance, db: Kysely<Databas
     return previewModuleDraftAsLearner(db, meta(request), params.moduleId)
   })
 
-  app.post('/api/v1/modules/:moduleId/versions', async (request, reply) => {
+  app.post('/api/v1/modules/:moduleId/versions', { config: { rateLimit: writeRateLimit } }, async (request, reply) => {
     const params = z.strictObject({ moduleId: uuid }).parse(request.params)
     const body = z.strictObject({
       expectedRevision: z.number().int().min(1),

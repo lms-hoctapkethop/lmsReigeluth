@@ -28,7 +28,17 @@ function Block({ block }: { block: unknown }) {
   }
   if (row.type === 'code') return <pre><code>{String(row.text ?? '')}</code></pre>
   if (row.type === 'math') return <p><MathTex tex={String(row.tex ?? '')} /></p>
-  if (row.type === 'image') return <p>{String(row.alt ?? '')}</p>
+  if (row.type === 'image') {
+    const fileId = typeof row.fileId === 'string' ? row.fileId : ''
+    const alt = String(row.alt ?? '')
+    if (!fileId) return <p>{alt}</p>
+    return (
+      <figure>
+        <img src={`/api/v1/files/${fileId}?disposition=inline`} alt={alt} />
+        <figcaption>{alt}</figcaption>
+      </figure>
+    )
+  }
   if (row.type === 'table') {
     const rows = Array.isArray(row.rows) ? row.rows : []
     return (

@@ -6,6 +6,7 @@ export type OfferingDto = {
   id: string
   code: string
   title: string
+  courseId: string
   subjectCode: string
   grade: number
   term: number
@@ -74,6 +75,7 @@ export async function createOffering(
     id,
     code: input.code,
     title: input.title.trim(),
+    courseId: input.courseId,
     subjectCode: course?.subject_code ?? '',
     grade: course?.grade ?? 0,
     term: input.term,

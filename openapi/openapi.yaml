@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Học cùng nhau API
-  version: 3.3.0
+  version: 3.4.0
   description: |
     Hợp đồng API lõi của LMS Học cùng nhau. Mọi endpoint dưới /api/v1 yêu cầu cookie phiên `hcn_sid`.
     Request không an toàn (POST/PUT/PATCH/DELETE) yêu cầu header `X-CSRF-Token` và `Origin` hợp lệ.
@@ -37,6 +37,7 @@ paths:
     get:
       tags: [ops]
       security: []
+      x-milestone: M8
       operationId: healthReady
       responses:
         '200': { description: Kết nối DB sẵn sàng }
@@ -350,7 +351,7 @@ paths:
         - { name: classId, in: query, schema: { $ref: '#/components/schemas/Uuid' } }
         - { name: cursor, in: query, schema: { type: string } }
       responses:
-        '200': { description: Danh sách người dùng, phân trang con trỏ }
+        '200': { description: 'Danh sách người dùng, phân trang con trỏ' }
   /api/v1/admin/users/{userId}/lock:
     post:
       tags: [admin]
@@ -402,6 +403,7 @@ paths:
   /api/v1/curriculum/kcs:
     get:
       tags: [curriculum]
+      x-milestone: M3
       operationId: listKcs
       parameters:
         - { name: requirementId, in: query, schema: { $ref: '#/components/schemas/Uuid' } }
@@ -540,7 +542,7 @@ paths:
         - { name: cursor, in: query, schema: { type: string } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
       responses:
-        '200': { description: Hàng đợi duyệt, hàng extraction=check đứng trước }
+        '200': { description: 'Hàng đợi duyệt, hàng extraction=check đứng trước' }
   /api/v1/curriculum/kcs/{kcId}/versions:
     post:
       tags: [curriculum]
@@ -568,7 +570,7 @@ paths:
       parameters:
         - { name: kcVersionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
       responses:
-        '200': { description: Diff version, cạnh và liên kết sẽ được chép }
+        '200': { description: 'Diff version, cạnh và liên kết sẽ được chép' }
   /api/v1/curriculum/requirement-kc-links/{linkId}/review:
     post:
       tags: [curriculum]
@@ -646,7 +648,7 @@ paths:
       parameters:
         - { name: courseId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
       responses:
-        '200': { description: YCCĐ, KC đã duyệt và lỗi hiểu sai để soạn bài }
+        '200': { description: 'YCCĐ, KC đã duyệt và lỗi hiểu sai để soạn bài' }
   /api/v1/modules:
     get:
       tags: [authoring]
@@ -710,6 +712,26 @@ paths:
           description: Bản chiếu học sinh, không đáp án, không ghi tiến độ
           content: { application/json: { schema: { $ref: '#/components/schemas/LearnerRelease' } } }
   /api/v1/modules/{moduleId}/versions:
+    get:
+      tags: [authoring]
+      operationId: listModuleVersions
+      parameters: [ { $ref: '#/components/parameters/ModuleId' } ]
+      responses:
+        '200':
+          description: Các phiên bản đã phát hành
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, versionNo, title, publishedAt, digest]
+                  properties:
+                    id: { $ref: '#/components/schemas/Uuid' }
+                    versionNo: { type: integer }
+                    title: { type: string }
+                    publishedAt: { type: string, format: date-time }
+                    digest: { type: string }
     post:
       tags: [authoring]
       operationId: publishModuleVersion
@@ -874,11 +896,21 @@ paths:
         '201': { description: Tệp ở trạng thái pending quét, content: { application/json: { schema: { $ref: '#/components/schemas/FileMeta' } } } }
         '413': { $ref: '#/components/responses/Error' }
         '415': { $ref: '#/components/responses/Error' }
+  /api/v1/files/{fileId}/meta:
+    get:
+      tags: [learning]
+      operationId: getFileMeta
+      parameters: [ { name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
+      responses:
+        '200': { description: Trạng thái tệp, content: { application/json: { schema: { $ref: '#/components/schemas/FileMeta' } } } }
+        '404': { $ref: '#/components/responses/Error' }
   /api/v1/files/{fileId}:
     get:
       tags: [learning]
       operationId: downloadFile
-      parameters: [ { name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
+      parameters:
+        - { name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { name: disposition, in: query, required: false, schema: { type: string, enum: [attachment, inline] }, description: inline chỉ áp dụng cho ảnh học liệu; mặc định attachment }
       responses:
         '200': { description: Stream tệp (Content-Disposition attachment), content: { application/octet-stream: { schema: { type: string, format: binary } } } }
         '404': { $ref: '#/components/responses/Error' }
@@ -887,6 +919,7 @@ paths:
   /api/v1/module-releases/{releaseId}/items/{itemId}/attempts:
     post:
       tags: [quiz]
+      x-milestone: M6
       operationId: startAttempt
       parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/ItemId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       responses:
@@ -895,6 +928,7 @@ paths:
   /api/v1/attempts/{attemptId}:
     get:
       tags: [quiz]
+      x-milestone: M6
       operationId: getAttempt
       parameters: [ { $ref: '#/components/parameters/AttemptId' } ]
       responses:
@@ -902,6 +936,7 @@ paths:
   /api/v1/attempts/{attemptId}/questions/{questionId}/answers:
     post:
       tags: [quiz]
+      x-milestone: M6
       operationId: answerQuestion
       description: |
         practice: chấm ngay, trả phản hồi theo lỗi hiểu sai. diagnostic/exit_ticket: lưu, không trả đúng sai tới khi submit
@@ -916,6 +951,7 @@ paths:
   /api/v1/attempts/{attemptId}/questions/{questionId}/hints:
     post:
       tags: [quiz]
+      x-milestone: M6
       operationId: requestHint
       parameters: [ { $ref: '#/components/parameters/AttemptId' }, { $ref: '#/components/parameters/QuestionId' }, { $ref: '#/components/parameters/Csrf' } ]
       responses:
@@ -926,6 +962,7 @@ paths:
   /api/v1/attempts/{attemptId}/submit:
     post:
       tags: [quiz]
+      x-milestone: M6
       operationId: submitAttempt
       parameters: [ { $ref: '#/components/parameters/AttemptId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       responses:
@@ -934,6 +971,7 @@ paths:
   /api/v1/offerings/{offeringId}/review-queue:
     get:
       tags: [review]
+      x-milestone: M7
       operationId: getReviewQueue
       parameters:
         - { $ref: '#/components/parameters/OfferingId' }
@@ -953,6 +991,7 @@ paths:
   /api/v1/submission-versions/{submissionVersionId}/reviews:
     post:
       tags: [review]
+      x-milestone: M7
       operationId: openReview
       description: Tạo hoặc trả bản nháp review đang mở cho đúng phiên bản bài nộp.
       parameters:
@@ -963,6 +1002,7 @@ paths:
   /api/v1/reviews/{reviewId}:
     put:
       tags: [review]
+      x-milestone: M7
       operationId: saveReviewDraft
       parameters: [ { $ref: '#/components/parameters/ReviewId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' } ]
       requestBody:
@@ -974,6 +1014,7 @@ paths:
   /api/v1/reviews/{reviewId}/publish:
     post:
       tags: [review]
+      x-milestone: M7
       operationId: publishReview
       parameters: [ { $ref: '#/components/parameters/ReviewId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       requestBody:
@@ -1003,6 +1044,7 @@ paths:
   /api/v1/attainment-decisions/{decisionId}/supersede:
     post:
       tags: [review]
+      x-milestone: M7
       operationId: supersedeDecision
       parameters:
         - { name: decisionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
@@ -1026,6 +1068,7 @@ paths:
   /api/v1/learners/{learnerId}/records:
     get:
       tags: [records]
+      x-milestone: M7
       operationId: getLearnerRecords
       parameters: [ { $ref: '#/components/parameters/LearnerId' }, { name: offeringId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
       responses:
@@ -1034,6 +1077,7 @@ paths:
   /api/v1/learners/{learnerId}/needs:
     get:
       tags: [records]
+      x-milestone: M7
       operationId: getLearnerNeeds
       description: GV phân công thấy value; HS chỉ thấy nhãn chữ; PH không có quyền (B08).
       parameters: [ { $ref: '#/components/parameters/LearnerId' }, { name: offeringId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
@@ -1043,6 +1087,7 @@ paths:
   /api/v1/offerings/{offeringId}/heatmap:
     get:
       tags: [records]
+      x-milestone: M7
       operationId: getHeatmap
       parameters: [ { $ref: '#/components/parameters/OfferingId' } ]
       responses:
@@ -1065,6 +1110,7 @@ paths:
   /api/v1/family-supports:
     post:
       tags: [family]
+      x-milestone: M7
       operationId: commitFamilySupport
       parameters: [ { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       requestBody:
@@ -1083,6 +1129,7 @@ paths:
   /api/v1/family-supports/{supportId}/cancel:
     post:
       tags: [family]
+      x-milestone: M7
       operationId: cancelFamilySupport
       parameters:
         - { name: supportId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
@@ -1093,6 +1140,7 @@ paths:
   /api/v1/notifications:
     get:
       tags: [notifications]
+      x-milestone: M8
       operationId: listNotifications
       parameters:
         - { name: unread, in: query, schema: { type: boolean } }
@@ -1101,6 +1149,7 @@ paths:
   /api/v1/notifications/{notificationId}/read:
     post:
       tags: [notifications]
+      x-milestone: M8
       operationId: markNotificationRead
       parameters:
         - { name: notificationId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
@@ -1145,7 +1194,7 @@ components:
               type: string
               enum: [BAD_REQUEST, UNAUTHENTICATED, FORBIDDEN, CSRF_FAILED, NOT_FOUND, REVISION_CONFLICT, IDEMPOTENCY_KEY_REUSED, REQUEST_IN_PROGRESS,
                      SUBMISSION_VERSION_CHANGED, ALREADY_PUBLISHED, ATTEMPT_LIMIT_REACHED, RELEASE_CLOSED, FILE_TOO_LARGE, FILE_TYPE_NOT_ALLOWED,
-                     VALIDATION_FAILED, COVERAGE_BLOCKED, FEATURE_NOT_ENABLED, KC_EDGE_CYCLE, FILE_NOT_SCANNED, RATE_LIMITED, INTERNAL, ASSIGNMENT_OVERLAP]
+                     VALIDATION_FAILED, COVERAGE_BLOCKED, FEATURE_NOT_ENABLED, KC_EDGE_CYCLE, FILE_NOT_SCANNED, FILE_REJECTED, RATE_LIMITED, INTERNAL, ASSIGNMENT_OVERLAP]
             message: { type: string }
             request_id: { type: string }
             details: { type: object, additionalProperties: true }
@@ -1181,6 +1230,7 @@ components:
         grade: { type: integer }
         term: { type: integer }
         myRole: { type: string, enum: [teacher, student, admin] }
+        courseId: { $ref: '#/components/schemas/Uuid' }
     GuardianLink:
       type: object
       properties:
@@ -1293,9 +1343,6 @@ components:
               kcVersionId: { $ref: '#/components/schemas/Uuid' }
               replacementVersionId: { $ref: '#/components/schemas/Uuid' }
               replacementVersionNo: { type: integer }
-    LearnerRelease:
-      type: object
-      description: DTO học sinh từ toLearnerRelease. Không có answerKey, rationale, optionMisconceptions, kcRequired.
     ModuleVersionSummary:
       type: object
       properties:
@@ -1321,6 +1368,8 @@ components:
         dueAt: { type: [string, 'null'], format: date-time }
         acceptUntil: { type: [string, 'null'], format: date-time }
         scheduleRevision: { type: integer }
+        latePolicy: { type: string, enum: [reject, accept_marked] }
+        moduleId: { $ref: '#/components/schemas/Uuid' }
     LearnerToday:
       type: object
       properties:
@@ -1331,6 +1380,7 @@ components:
             properties:
               releaseId: { $ref: '#/components/schemas/Uuid' }
               itemId: { $ref: '#/components/schemas/Uuid' }
+              offeringId: { $ref: '#/components/schemas/Uuid' }
               offeringTitle: { type: string }
               title: { type: string }
               itemType: { type: string, enum: [page, assignment, quiz, link] }
