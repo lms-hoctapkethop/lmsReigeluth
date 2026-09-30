@@ -3,10 +3,7 @@
   "enabled": true,
   "displayName": "Học cùng nhau",
   "internationalizationEnabled": true,
-  "supportedLocales": [
-    "vi",
-    "en"
-  ],
+  "supportedLocales": ["vi", "en"],
   "defaultLocale": "vi",
   "registrationAllowed": false,
   "resetPasswordAllowed": false,
@@ -48,22 +45,13 @@
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "frontchannelLogout": true,
-      "redirectUris": [
-        "http://localhost:5173/auth/callback",
-        "http://localhost:3000/auth/callback"
-      ],
-      "webOrigins": [
-        "http://localhost:5173"
-      ],
+      "redirectUris": ["http://localhost:5173/auth/callback", "http://localhost:3000/auth/callback"],
+      "webOrigins": ["http://localhost:5173"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:5173/"
       },
-      "defaultClientScopes": [
-        "openid",
-        "profile",
-        "email"
-      ]
+      "defaultClientScopes": ["openid", "profile", "email"]
     },
     {
       "clientId": "hcn-provisioner",
@@ -83,24 +71,17 @@
       "username": "service-account-hcn-provisioner",
       "enabled": true,
       "serviceAccountClientId": "hcn-provisioner",
-      "clientRoles": {
-        "realm-management": [
-          "manage-users",
-          "view-users"
-        ]
-      }
+      "clientRoles": { "realm-management": ["manage-users", "view-users"] }
     },
     {
+      "id": "10000000-0000-4000-8000-000000000014",
       "username": "admin.a",
-      "firstName": "Quản trị A",
+      "firstName": "Quản trị",
+      "lastName": "An",
+      "email": "admin.a@example.test",
+      "emailVerified": true,
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
       "id": "10000000-0000-4000-8000-000000000012",
@@ -110,104 +91,115 @@
       "email": "gv.lan@example.test",
       "emailVerified": true,
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
+      "id": "10000000-0000-4000-8000-000000000017",
       "username": "gv.hung",
-      "firstName": "GV Hùng",
+      "firstName": "GV",
+      "lastName": "Hung",
+      "email": "gv.hung@example.test",
+      "emailVerified": true,
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
+    },
+    {
+      "id": "10000000-0000-4000-8000-00000000001d",
+      "username": "gv.tin11",
+      "firstName": "GV",
+      "lastName": "Tin11",
+      "email": "gv.tin11@example.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
       "id": "10000000-0000-4000-8000-000000000011",
       "username": "hs.minh",
-      "firstName": "HS Minh",
+      "firstName": "HS",
+      "lastName": "Minh",
+      "email": "hs.minh@example.test",
+      "emailVerified": true,
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
+      "id": "10000000-0000-4000-8000-000000000018",
       "username": "hs.an",
-      "firstName": "HS An",
+      "firstName": "HS",
+      "lastName": "An",
+      "email": "hs.an@example.test",
+      "emailVerified": true,
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
+    },
+    {
+      "id": "10000000-0000-4000-8000-00000000001e",
+      "username": "hs.binh",
+      "firstName": "HS",
+      "lastName": "Binh",
+      "email": "hs.binh@example.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
       "id": "10000000-0000-4000-8000-000000000013",
       "username": "ph.minh",
-      "firstName": "PH của Minh",
+      "firstName": "PH",
+      "lastName": "Minh",
+      "email": "ph.minh@example.test",
+      "emailVerified": true,
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
+      "id": "10000000-0000-4000-8000-000000000019",
       "username": "ph.an",
-      "firstName": "PH của An",
+      "firstName": "PH",
+      "lastName": "An",
+      "email": "ph.an@example.test",
+      "emailVerified": true,
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
+      "id": "10000000-0000-4000-8000-00000000001c",
+      "username": "gv.lan.ph",
+      "firstName": "GV",
+      "lastName": "Lan Phu huynh",
+      "email": "gv.lan.ph@example.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
+    },
+    {
+      "id": "10000000-0000-4000-8000-00000000001f",
+      "username": "reviewer.tin",
+      "firstName": "Thẩm định",
+      "lastName": "Tin",
+      "email": "reviewer.tin@example.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
+    },
+    {
+      "id": "10000000-0000-4000-8000-00000000001a",
       "username": "gv.b",
-      "firstName": "GV trường B",
+      "firstName": "GV",
+      "lastName": "Binh",
+      "email": "gv.b@example.test",
+      "emailVerified": true,
       "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
+      "id": "10000000-0000-4000-8000-00000000001b",
       "username": "hs.b",
-      "firstName": "HS trường B",
-      "enabled": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "Dev-12345",
-          "temporary": false
-        }
-      ]
-    },
-    {
-      "id": "10000000-0000-4000-8000-000000000014",
-      "username": "admin.truong",
-      "firstName": "Quản trị trường",
+      "firstName": "HS",
+      "lastName": "B",
+      "email": "hs.b@example.test",
+      "emailVerified": true,
       "enabled": true,
       "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
@@ -215,6 +207,9 @@
       "id": "10000000-0000-4000-8000-000000000015",
       "username": "user.chua.cap",
       "firstName": "Chưa cấp quyền",
+      "lastName": "Chua",
+      "email": "user.chua.cap@example.test",
+      "emailVerified": true,
       "enabled": true,
       "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
@@ -222,6 +217,9 @@
       "id": "10000000-0000-4000-8000-000000000016",
       "username": "user.khoa",
       "firstName": "Tài khoản bị khóa",
+      "lastName": "Khoa",
+      "email": "user.khoa@example.test",
+      "emailVerified": true,
       "enabled": true,
       "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     }

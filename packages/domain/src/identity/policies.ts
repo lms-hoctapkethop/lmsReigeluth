@@ -56,8 +56,7 @@ export function can(actor: Actor, action: Action, facts: Facts): Decision {
     case 'org.manage':
     case 'guardian_link.verify':
     case 'guardian_link.revoke':
-      // TODO(M2)
-      return { allow: false, reason: 'CAPABILITY_MISSING' }
+      return actor.roles.includes('admin') ? { allow: true } : { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'curriculum.read':
     case 'curriculum.propose':
     case 'curriculum.review':

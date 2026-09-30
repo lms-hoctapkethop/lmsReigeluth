@@ -32,6 +32,11 @@ export function registerErrorHandler(app: FastifyInstance): void {
         error: { code: 'BAD_REQUEST', message: 'Yêu cầu không đọc được.', request_id: requestId },
       })
     }
+    if (statusCode === 413) {
+      return reply.status(413).send({
+        error: { code: 'FILE_TOO_LARGE', message: 'Tệp quá lớn.', request_id: requestId },
+      })
+    }
     if (statusCode === 429) {
       return reply.status(429).send({
         error: { code: 'RATE_LIMITED', message: 'Bạn thao tác quá nhanh. Hãy thử lại sau.', request_id: requestId },

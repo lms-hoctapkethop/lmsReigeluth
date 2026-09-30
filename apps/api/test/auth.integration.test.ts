@@ -181,8 +181,18 @@ describe.skipIf(!ready)('xác thực M1', () => {
     expect(row.rows[0]?.revoked_at).toBeTruthy()
   })
 
-  it('SEC-10 đổi sang vai trò hoặc trường không có → 403; đổi hợp lệ teacher sang guardian → 200', async () => {
-    const { sid } = await login(personas.gvLan.subject)
+  it('SEC-10 đổi sang vai trò hoặc trường không có → 403; gv.lan.ph đổi teacher sang guardian → 200', async () => {
+    const deniedGuardian = await login(personas.gvLan.subject)
+    const deniedMe = await app.inject({ method: 'GET', url: '/api/v1/me', headers: { cookie: `hcn_sid=${deniedGuardian.sid}` } })
+    const deniedCsrf = deniedMe.json().csrfToken as string
+    const teacherOnly = await app.inject({
+      method: 'POST',
+      url: '/api/v1/me/context',
+      headers: { cookie: `hcn_sid=${deniedGuardian.sid}`, origin: appOrigin, 'x-csrf-token': deniedCsrf },
+      payload: { schoolId: schools.an.id, role: 'guardian' },
+    })
+    expect(teacherOnly.statusCode).toBe(403)
+    const { sid } = await login(personas.gvLanPh.subject)
     const me = await app.inject({ method: 'GET', url: '/api/v1/me', headers: { cookie: `hcn_sid=${sid}` } })
     const csrf = me.json().csrfToken as string
     const headers = { cookie: `hcn_sid=${sid}`, origin: appOrigin, 'x-csrf-token': csrf }

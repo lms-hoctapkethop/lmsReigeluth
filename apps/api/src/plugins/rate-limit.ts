@@ -16,6 +16,13 @@ export const writeRateLimit = {
   keyGenerator: (request: FastifyRequest) => request.auth?.userId ?? request.ip,
 }
 
+export const importRateLimit = {
+  max: 5,
+  timeWindow: '1 hour',
+  groupId: 'import-users',
+  keyGenerator: (request: FastifyRequest) => request.auth?.schoolId ?? request.ip,
+}
+
 export async function registerRateLimit(app: FastifyInstance): Promise<void> {
   await app.register(rateLimit, {
     global: false,

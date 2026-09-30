@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, redirect, RouterProvider, useLoaderData } from 'react-router'
+import { createBrowserRouter, Link, Outlet, redirect, RouterProvider, useLoaderData, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
+import { Accounts, AdminHome, FamilyHome, Guardians, LearnHome, OfferingAdmin, TeachHome } from './admin.tsx'
 import { fetchMe, logout, switchContext } from './api.ts'
 import { roleLabel } from './labels.ts'
+import adminStyles from './admin.module.css'
 import styles from './shell.module.css'
 import './ui/tokens.css'
 
@@ -44,10 +46,6 @@ function Shell() {
   const client = useQueryClient()
   const meQuery = useQuery({ queryKey: ['me'], queryFn: fetchMe, initialData: initial })
   const me = meQuery.data ?? initial
-  const activeLabel = roleLabel[me.activeContext.role] ?? me.activeContext.role
-  const schoolName = me.contexts.find(
-    (item) => item.schoolId === me.activeContext.schoolId && item.role === me.activeContext.role,
-  )?.schoolName
   return (
     <div className={styles.frame}>
       <aside className={styles.sidebar}>
@@ -76,6 +74,18 @@ function Shell() {
             </select>
           </label>
         ) : null}
+        <nav className={adminStyles.nav} aria-label="Mục chính">
+          {me.activeContext.role === 'admin' ? (
+            <>
+              <Link to="/quan-tri">Quản trị</Link>
+              <Link to="/quan-tri/tai-khoan">Tài khoản</Link>
+              <Link to="/quan-tri/phu-huynh">Phụ huynh</Link>
+            </>
+          ) : null}
+          {me.activeContext.role === 'teacher' ? <Link to="/day">Lớp đang dạy</Link> : null}
+          {me.activeContext.role === 'student' ? <Link to="/hoc">Lớp của em</Link> : null}
+          {me.activeContext.role === 'guardian' ? <Link to="/gia-dinh">Con của tôi</Link> : null}
+        </nav>
         <button
           className={styles.button}
           type="button"
@@ -89,16 +99,47 @@ function Shell() {
         </button>
       </aside>
       <main className={styles.main}>
-        <h1>Ngữ cảnh hiện tại: {activeLabel}{schoolName ? ` tại ${schoolName}` : ''}</h1>
-        <p>Chọn việc cần làm sẽ có ở các mốc sau. Phiên này chỉ nằm trên máy chủ.</p>
+        <Outlet />
       </main>
     </div>
   )
 }
 
+function Home() {
+  const me = useRouteLoaderData('shell') as Me
+  const activeLabel = roleLabel[me.activeContext.role] ?? me.activeContext.role
+  const schoolName = me.contexts.find(
+    (item) => item.schoolId === me.activeContext.schoolId && item.role === me.activeContext.role,
+  )?.schoolName
+  return <h1>Ngữ cảnh hiện tại: {activeLabel}{schoolName ? ` tại ${schoolName}` : ''}</h1>
+}
+
+function AdminPage({ page }: { page: 'home' | 'offering' | 'accounts' | 'guardians' }) {
+  const me = useRouteLoaderData('shell') as Me
+  if (page === 'home') return <AdminHome me={me} />
+  if (page === 'offering') return <OfferingAdmin me={me} />
+  if (page === 'accounts') return <Accounts me={me} />
+  return <Guardians me={me} />
+}
+
 const router = createBrowserRouter([
   { path: '/login-required', element: <LoginRequired /> },
-  { path: '/', loader: rootLoader, element: <Shell /> },
+  {
+    id: 'shell',
+    path: '/',
+    loader: rootLoader,
+    element: <Shell />,
+    children: [
+      { index: true, element: <Home /> },
+      { path: 'quan-tri', element: <AdminPage page="home" /> },
+      { path: 'quan-tri/lop/:offeringId', element: <AdminPage page="offering" /> },
+      { path: 'quan-tri/tai-khoan', element: <AdminPage page="accounts" /> },
+      { path: 'quan-tri/phu-huynh', element: <AdminPage page="guardians" /> },
+      { path: 'day', element: <TeachHome /> },
+      { path: 'hoc', element: <LearnHome /> },
+      { path: 'gia-dinh', element: <FamilyHome /> },
+    ],
+  },
 ])
 
 const root = document.getElementById('root')

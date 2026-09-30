@@ -6,10 +6,13 @@
   "exports": {
     ".": "./src/postgres.ts",
     "./identity": "./src/identity.ts",
-    "./idp": "./src/idp.ts"
+    "./personas": "./src/personas.ts",
+    "./idp": "./src/idp.ts",
+    "./idp-admin": "./src/fake-idp-admin.ts"
   },
   "dependencies": {
     "@hcn/db": "workspace:*",
+    "@hcn/domain": "workspace:*",
     "kysely": "^0.28.5"
   },
   "scripts": {
