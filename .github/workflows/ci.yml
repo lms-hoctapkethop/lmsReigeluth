@@ -56,13 +56,15 @@ jobs:
           dbmate --migrations-dir db/migrations --no-dump-schema up
           for i in $(ls db/migrations | wc -l | xargs seq); do dbmate --migrations-dir db/migrations --no-dump-schema down; done
           dbmate --migrations-dir db/migrations --no-dump-schema up
-      - name: Schema invariants (DB01–DB21)
+      - name: Schema invariants (DB01–DB37)
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/schema_invariants.sql 2>&1 | tee invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/curriculum_review_invariants.sql 2>&1 | tee -a invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/learning_invariants.sql 2>&1 | tee -a invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/quiz_invariants.sql 2>&1 | tee -a invariants.log
-          test "$(grep -c 'PASS' invariants.log)" -ge 78
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/file_guards_invariants.sql 2>&1 | tee -a invariants.log
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/review_guards_invariants.sql 2>&1 | tee -a invariants.log
+          test "$(grep -c 'PASS' invariants.log)" -ge 101
 
   unit-integration:
     runs-on: ubuntu-24.04

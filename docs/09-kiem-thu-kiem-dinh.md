@@ -28,8 +28,8 @@ Theo các đặc tính của ISO/IEC 25010, ánh xạ sang kiểm tra cụ thể
 | Tầng | Công cụ | Chạy ở | Nội dung | Mục tiêu |
 |---|---|---|---|---|
 | L0 Tĩnh | `tsc --noEmit`, ESLint (typescript-eslint strict, import/no-restricted-paths), Prettier, gitleaks, `pnpm audit` | Mọi PR | Kiểu, quy tắc phụ thuộc domain ← db, bí mật lọt, lỗ hổng | 0 lỗi |
-| L1 Unit | Vitest | Mọi PR | Hàm thuần (docs/06, 37 vector), policies, chuẩn hóa, parse mã 791 | Domain pure + policies: ≥ 90% dòng, ≥ 85% nhánh |
-| L2 Cơ sở dữ liệu | psql + `db/tests/schema_invariants.sql`; migration up → down → up; seed chạy hai lần | Mọi PR có đổi `db/` + mỗi ngày | DB01–DB16 và các ca thêm | 100% PASS |
+| L1 Unit | Vitest | Mọi PR | Hàm thuần (docs/06, 39 vector), policies, chuẩn hóa, parse mã 791 | Domain pure + policies: ≥ 90% dòng, ≥ 85% nhánh |
+| L2 Cơ sở dữ liệu | psql + các tệp `db/tests/*_invariants.sql`; migration up → down → up; seed chạy hai lần | Mọi PR có đổi `db/` + mỗi ngày | DB01–DB37 (101 dòng PASS) và các ca thêm | 100% PASS |
 | L3 Integration | Vitest + `@testcontainers/postgresql` (postgres:18), Fastify `inject()` | Mọi PR | Use case qua HTTP thật tới DB thật: quyền, idempotency, đồng thời, outbox, DTO | Mọi lệnh ghi ở docs/05 có ≥ 1 ca thành công, ≥ 1 ca từ chối quyền, các ca lỗi liệt kê |
 | L4 Hợp đồng | Schemathesis (từ `openapi.yaml`), snapshot DTO, `oasdiff` | PR đổi API + hằng đêm | Phản hồi đúng schema; không 500 với input fuzz; không thay đổi phá vỡ ngoài ý muốn | 0 lỗi 5xx; 0 vi phạm schema |
 | L5 E2E | Playwright (Chromium, Firefox, WebKit, Pixel 7, iPhone 14) + `@axe-core/playwright` | PR vào `main` (Chromium), hằng đêm (tất cả) | Hành trình J01–J12 | 100% PASS; 0 lỗi axe serious/critical |
@@ -95,7 +95,7 @@ Danh sách đầy đủ, mức kiểm thử và mốc ở `tests/acceptance/trac
 | A01…18 | Bộ 2.1 tệp 07 | 18 |
 | B01…14 | Bổ sung 2.2 tệp 08 | 14 |
 | C01…10 | Bổ sung 2.2 tệp 09 | 10 |
-| DB01…16 | db/tests/schema_invariants.sql | 16 |
+| DB01…37 | db/tests/*_invariants.sql (6 tệp) | 37 |
 | SEC-01…22 | Mục 6 | 22 |
 | PERF-01…05 | Mục 7 | 5 |
 | A11Y-01…08 | Mục 8 | 8 |

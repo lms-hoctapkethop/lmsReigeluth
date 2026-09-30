@@ -108,6 +108,22 @@ Không có gói đặc tả 3.5, không có mục README "Thay đổi 3.5", và 
 - Ô quiz không ghi `localStorage` hay `sessionStorage`. Tải lại gọi `startAttempt` với khóa mới và đọc `questionStates`. Ô số không điền lại nội dung đã gõ vì DTO không trả `raw`.
 - Màn ≤ 640 px hiện một câu (`data-active`). Desktop hiện cả danh sách. Không đồng hồ đếm giờ, không bảng xếp hạng.
 
+## Thay đổi 3.6
+
+Đặc tả cho M7, viết trên `main` 79d1c56. Gói 3.5 trước đó chưa vào repo nên 3.6 gồm cả phần của 3.5.
+
+- Migration 0007 `20261005000100_file_guards.sql`:
+  - tệp gắn bài nộp phải của chính HS, cùng trường, `clean`;
+  - `content_files` chỉ nhận ảnh sạch và bất biến; thu hồi quyền UPDATE, DELETE của `hcn_app`.
+- Migration 0008 `20261006000100_review_guards.sql`:
+  - kết quả tiêu chí của review đã công bố bất biến;
+  - quyết định mức đạt chỉ dựa trên review của chính HS, đúng offering;
+  - một quyết định gốc cho mỗi (HS, offering, YCCĐ), chuỗi thay thế không đổi đối tượng;
+  - đồng hành gia đình chỉ `committed → cancelled`;
+  - `hcn_app` chỉ đổi `notifications.read_at`.
+- Tệp bất biến `file_guards_invariants.sql` (DB30–DB32) và `review_guards_invariants.sql` (DB33–DB37). CI yêu cầu ≥ 101 PASS. Cả hai migration và hai tệp test có trong `db/SPEC_SHA256SUMS`.
+- `docs/05` đồng bộ với code: mục 4, 5.0, 5.5, 6.0, 7.0 (quyết định đã chốt ở 3.2–3.4), 8.0 (ghi đúng hành vi quiz M6), 9.0 (M7: hàng chờ, nháp review, công bố và khóa, thay quyết định, hồ sơ, cổng PH, đồng hành, thông báo, worker an toàn khi sập). `docs/02`, `03`, `06`, `09` cập nhật theo.
+
 ## Chạy
 
 ```bash

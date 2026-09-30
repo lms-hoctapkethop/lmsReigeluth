@@ -1,6 +1,6 @@
 # 06 · Chấm điểm, quan sát, hồ sơ và R0
 
-Mọi hàm ở đây là **hàm thuần** (không I/O). Bản cài đặt tham chiếu chạy được và 37 vector kiểm thử nằm ở `tests/reference/pure.reference.mjs` (`node tests/reference/pure.reference.mjs` → `ALL 37 PASS`). Cursor port sang TypeScript trong `packages/domain` và **giữ nguyên các vector** trong Vitest; không sửa vector để test xanh.
+Mọi hàm ở đây là **hàm thuần** (không I/O). Bản cài đặt tham chiếu chạy được và 39 vector kiểm thử (37 từ 3.0, 2 vector V05 tiên quyết thêm ở 3.3) nằm ở `tests/reference/pure.reference.mjs` (`node tests/reference/pure.reference.mjs` → `ALL 39 PASS`). Cursor port sang TypeScript trong `packages/domain` và **giữ nguyên các vector** trong Vitest; không sửa vector để test xanh.
 
 | Hàm | Đặt ở | Vector |
 |---|---|---|
@@ -80,7 +80,7 @@ Trên đồ thị cạnh `prerequisite` đã duyệt: với mỗi KC `needs_supp
 | V02 | caution | YCCĐ Bloom ≥ 5 chỉ được quan sát bằng câu hỏi, không có tiêu chí rubric |
 | V03 | caution | Câu practice không có gợi ý |
 | V04 | info | Câu chọn đáp án có phương án sai chưa gắn lỗi hiểu sai |
-| V05 | block | KC observable chưa được duyệt hoặc không thuộc KC của các YCCĐ trong phạm vi |
+| V05 | block | KC observable chưa được duyệt (kể cả đã superseded) hoặc không thuộc KC của các YCCĐ trong phạm vi; riêng quiz `diagnostic` được quan sát thêm tiên quyết trực tiếp của KC trong phạm vi (`computeCoverage(draft, reqKcs, approvedKcs, prereqKcs)`) |
 | V06 | caution | KC tiên quyết ngoài lớp chưa có học liệu ôn trong thư viện (M10) |
 | V07 | block | Câu do AI soạn chưa có người duyệt |
 | V08 | caution | Tiêu chí rubric không gắn KC |
