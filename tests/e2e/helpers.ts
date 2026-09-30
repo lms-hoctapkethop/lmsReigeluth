@@ -144,7 +144,10 @@ export async function publishReleasedQuiz(
   expect(draft.ok(), await draft.text()).toBe(true)
   const published = await request.post(`/api/v1/modules/${moduleId}/versions`, {
     headers: { ...headers, 'idempotency-key': crypto.randomUUID() },
-    data: { expectedRevision: 2, acknowledgements: [] },
+    data: {
+      expectedRevision: 2,
+      acknowledgements: [{ code: 'V02', target: link?.requirementId, reason: 'Quiz chưa có sản phẩm.' }],
+    },
   })
   expect(published.ok(), await published.text()).toBe(true)
   const versionId = ((await published.json()) as { id: string }).id

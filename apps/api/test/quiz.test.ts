@@ -201,7 +201,10 @@ describe.skipIf(!ready)('quiz M6', () => {
       method: 'POST',
       url: `/api/v1/modules/${moduleId}/versions`,
       headers: headers(teacher, { 'idempotency-key': randomUUID() }),
-      payload: { expectedRevision: 2, acknowledgements: [] },
+      payload: {
+        expectedRevision: 2,
+        acknowledgements: [{ code: 'V02', target: requirement, reason: 'Quiz chưa có sản phẩm.' }],
+      },
     })
     expect(published.statusCode, published.body).toBe(201)
     const versionId = published.json().id as string

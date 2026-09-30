@@ -100,7 +100,8 @@ Không có gói đặc tả 3.5, không có mục README "Thay đổi 3.5", và 
 - Điểm lượt là tổng `gradeResponse` của lần trả lời cuối mỗi câu, làm tròn 3 chữ số. `max_score` là số câu. `submitted_at` và `activity_progress.completed_at` lấy `Meta.clock`, khác bài tập M5 vốn dùng `now()` của Postgres. Hoàn thành khi nộp, bất kể điểm. Không ghi audit cho quiz.
 - Outbox `QuestionAnswered` có `responseIds` là chuỗi id cách nhau bằng dấu phẩy vì payload outbox là `Record<string, string>`. Practice phát lúc trả lời. Mục đích khác phát lúc nộp. Không có consumer M7/M8.
 - `answerQuestion` và `requestHint` mỗi loại 60 lần/phút/người, nhóm rate-limit riêng, không cộng vào trần 120 của lệnh ghi.
-- `UPSTREAM_IDP_ERROR` (502) khi `importUsers` gặp Keycloak `unavailable`. Timeout từng dòng vẫn là `IDP_TIMEOUT` trong kết quả lô, không đổi ca import cũ.
+- `UPSTREAM_IDP_ERROR` (502) khi `importUsers` gặp Keycloak `unavailable`. Timeout từng dòng vẫn là `IDP_TIMEOUT` trong kết quả lô, không đổi ca import cũ. Ca 502 dùng app riêng vì app dùng chung đã hết 5 lần import mỗi giờ.
+- Quiz chỉ có câu trắc nghiệm trên YCCĐ Bloom từ 5 trở lên bị cảnh báo V02 (chưa có sản phẩm). Phát hành phải kèm acknowledgement `{ code: 'V02', target: requirementId, reason }`.
 - Đồng hồ giả chỉ khi `NODE_ENV=test` hoặc `HCN_TEST_CLOCK=1`. Production có `HCN_NOW` hoặc `HCN_CLOCK_FILE` thì không khởi động. Tệp đồng hồ đọc tối đa một lần mỗi giây. Playwright đặt `HCN_TEST_CLOCK=1` để J04 vẫn dùng tệp.
 - SEC-08 quét JSON sau khi bỏ `label`, `stem`, `openedHints`, `text` (học sinh phải thấy nhãn phương án). Vị trí phương án đúng giữ thứ tự tác giả. Phản hồi quiz có `Cache-Control: private, no-store`. Bản build bật source map `hidden`; script quét HTML, bundle và `.map`.
 - Seed không có `M-TIN10-01`. J05 dùng `M-TIN10-CAULENH` ("Quên phép gán và viết dấu bằng."). `optionMisconceptions` nhận id, không nhận mã.
