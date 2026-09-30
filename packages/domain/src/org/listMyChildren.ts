@@ -1,6 +1,7 @@
 import { sql } from 'kysely'
-import { DomainError } from '../errors.ts'
-import { sameSchool, type Db, type Meta } from './support.ts'
+import type { Db, Meta } from './support.ts'
+
+export { getChildOverview } from '../review/guardian.ts'
 
 export async function listMyChildren(db: Db, meta: Meta): Promise<{ learnerId: string; name: string; className: string }[]> {
   if (!meta.actor.roles.includes('guardian')) return []
@@ -26,25 +27,4 @@ export async function listMyChildren(db: Db, meta: Meta): Promise<{ learnerId: s
     result.push({ learnerId: row.learnerId, name: row.name, className: seat?.code ?? '' })
   }
   return result
-}
-
-export async function getChildOverview(db: Db, meta: Meta, learnerId: string): Promise<{ learnerId: string; offerings: { offeringId: string; title: string }[] }> {
-  const link = await db
-    .selectFrom('guardian_links')
-    .select(['id', 'school_id', 'status'])
-    .where('guardian_id', '=', meta.actor.userId)
-    .where('learner_id', '=', learnerId)
-    .where('status', '=', 'verified')
-    .executeTakeFirst()
-  sameSchool(link?.school_id, meta.actor.schoolId)
-  if (!link) throw new DomainError('NOT_FOUND')
-  const offerings = await db
-    .selectFrom('offering_enrollments')
-    .innerJoin('offerings', 'offerings.id', 'offering_enrollments.offering_id')
-    .select(['offerings.id as offeringId', 'offerings.title as title'])
-    .where('offering_enrollments.learner_id', '=', learnerId)
-    .where('offering_enrollments.status', '=', 'active')
-    .where('offerings.school_id', '=', meta.actor.schoolId)
-    .execute()
-  return { learnerId, offerings }
 }

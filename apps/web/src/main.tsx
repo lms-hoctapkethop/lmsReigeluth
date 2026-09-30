@@ -3,7 +3,13 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Link, Outlet, redirect, RouterProvider, useLoaderData, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
-import { Accounts, AdminHome, FamilyHome, Guardians, OfferingAdmin, TeachHome } from './admin.tsx'
+import { Accounts, AdminHome, Guardians, OfferingAdmin, TeachHome } from './admin.tsx'
+import { Inbox, NotificationBell } from './review/inbox.tsx'
+import { GuardianChild, GuardianHome } from './review/portal.tsx'
+import { LearnerRecord } from './review/records.tsx'
+import { ReviewDesk } from './review/desk.tsx'
+import { ReviewKeysHelp } from './review/help.tsx'
+import { ReviewQueue } from './review/queue.tsx'
 import { CurriculumHome } from './curriculum.tsx'
 import { readJson } from './admin-api.ts'
 import { fetchMe, logout, switchContext } from './api.ts'
@@ -103,7 +109,8 @@ function Shell() {
           {me.activeContext.role === 'teacher' ? <Link to="/day">Lớp đang dạy</Link> : null}
           {me.activeContext.role === 'teacher' ? <Link to="/day/soan">Soạn bài</Link> : null}
           {me.activeContext.role === 'student' ? <Link to="/hoc">Lớp của em</Link> : null}
-          {me.activeContext.role === 'guardian' ? <Link to="/gia-dinh">Con của tôi</Link> : null}
+          {me.activeContext.role === 'guardian' ? <Link to="/phu-huynh">Con của tôi</Link> : null}
+          <NotificationBell />
         </nav>
         <button
           className={styles.button}
@@ -167,11 +174,19 @@ const router = createBrowserRouter([
       { path: 'day/soan', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioList /></Suspense> },
       { path: 'day/soan/:moduleId', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioEditor /></Suspense> },
       { path: 'day/soan/:moduleId/xem-truoc', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioPreview /></Suspense> },
+      { path: 'day/cham/phim', element: <ReviewKeysHelp /> },
+      { path: 'day/cham/bai/:submissionVersionId', element: <ReviewDesk /> },
+      { path: 'day/cham/:offeringId', element: <ReviewQueue /> },
       { path: 'hoc', element: <Suspense fallback={<p>Đang tải việc cần làm</p>}><LearnToday /></Suspense> },
       { path: 'hoc/lop/:id', element: <Suspense fallback={<p>Đang tải lớp</p>}><LearnClass /></Suspense> },
       { path: 'hoc/bai/:releaseId', element: <Suspense fallback={<p>Đang tải bài</p>}><LearnRelease /></Suspense> },
       { path: 'hoc/bai/:releaseId/muc/:itemId', element: <Suspense fallback={<p>Đang tải nhiệm vụ</p>}><LearnTask /></Suspense> },
-      { path: 'gia-dinh', element: <FamilyHome /> },
+      { path: 'hoc/ho-so/:offeringId', element: <LearnerRecord /> },
+      { path: 'gia-dinh', element: <GuardianHome /> },
+      { path: 'gia-dinh/con/:learnerId', element: <GuardianChild /> },
+      { path: 'phu-huynh', element: <GuardianHome /> },
+      { path: 'phu-huynh/con/:learnerId', element: <GuardianChild /> },
+      { path: 'thong-bao', element: <Inbox /> },
     ],
   },
 ])

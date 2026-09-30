@@ -85,10 +85,92 @@ export async function publishReleasedAssignment(
 }
 
 type Catalog = {
-  requirements: { id: string; reviewStatus: string }[]
+  requirements: { id: string; code791Stem: string; reviewStatus: string }[]
   kcs: { id: string; code: string }[]
   misconceptions: { id: string; code: string; description: string }[]
   links: { requirementId: string; kcVersionId: string }[]
+}
+
+export async function publishReleasedRubric(
+  request: APIRequestContext,
+  title: string,
+): Promise<{ releaseId: string; itemId: string; requirementCode: string }> {
+  const token = await csrf(request)
+  const headers = { 'x-csrf-token': token, 'content-type': 'application/json', origin: 'http://localhost:5173' }
+  const catalogResponse = await request.get(`/api/v1/authoring/catalog?courseId=${tin10CourseId}`)
+  expect(catalogResponse.ok(), await catalogResponse.text()).toBe(true)
+  const catalog = (await catalogResponse.json()) as Catalog
+  const requirement = catalog.requirements.find((row) => row.code791Stem === '140110.0601a')
+  const link = catalog.links.find((row) => row.requirementId === requirement?.id)
+  expect(requirement && link).toBeTruthy()
+  const created = await request.post('/api/v1/modules', {
+    headers,
+    data: { courseId: tin10CourseId, title, requirementIds: [requirement?.id] },
+  })
+  expect(created.ok(), await created.text()).toBe(true)
+  const moduleId = ((await created.json()) as { moduleId: string }).moduleId
+  const draft = await request.put(`/api/v1/modules/${moduleId}/draft`, {
+    headers: { ...headers, 'if-match': 'W/"1"' },
+    data: {
+      schema: 'module-draft/1',
+      title,
+      requirementIds: [requirement?.id],
+      items: [{
+        clientKey: 'a',
+        type: 'assignment',
+        title,
+        indent: 0,
+        completion: 'submit',
+        body: { format: 'hcn-rich/1', blocks: [{ type: 'paragraph', children: [{ text: 'Làm bài' }] }] },
+        requirementIds: [requirement?.id],
+        rubric: {
+          title: 'Rubric',
+          criteria: [{ title: 'Rõ ý', kcVersionId: link?.kcVersionId, levels: { meets: 'Rõ', developing: 'Tạm', notYet: 'Chưa' } }],
+        },
+        submission: { types: ['text'] },
+      }],
+    },
+  })
+  expect(draft.ok(), await draft.text()).toBe(true)
+  const published = await request.post(`/api/v1/modules/${moduleId}/versions`, {
+    headers: { ...headers, 'idempotency-key': crypto.randomUUID() },
+    data: { expectedRevision: 2, acknowledgements: [] },
+  })
+  expect(published.ok(), await published.text()).toBe(true)
+  const versionId = ((await published.json()) as { id: string }).id
+  const released = await request.post(`/api/v1/offerings/${tin10a1OfferingId}/path-releases`, {
+    headers: { ...headers, 'idempotency-key': crypto.randomUUID() },
+    data: { title, modules: [{ moduleVersionId: versionId, availableFrom: '2020-01-01T00:00:00.000Z', dueAt: '2099-01-01T00:00:00.000Z' }] },
+  })
+  expect(released.ok(), await released.text()).toBe(true)
+  const releaseId = ((await released.json()) as { moduleReleaseIds: string[] }).moduleReleaseIds[0] ?? ''
+  const detail = await request.get(`/api/v1/module-releases/${releaseId}`)
+  expect(detail.ok(), await detail.text()).toBe(true)
+  const items = ((await detail.json()) as { items: { id: string; itemType: string }[] }).items
+  return { releaseId, itemId: items.find((item) => item.itemType === 'assignment')?.id ?? '', requirementCode: '140110.0601a' }
+}
+
+export async function submitAssignmentText(
+  request: APIRequestContext,
+  releaseId: string,
+  itemId: string,
+  text: string,
+  draftRevision: number,
+): Promise<number> {
+  const token = await csrf(request)
+  const headers = { 'x-csrf-token': token, 'content-type': 'application/json', origin: 'http://localhost:5173' }
+  const saved = await request.put(`/api/v1/module-releases/${releaseId}/items/${itemId}/submission/draft`, {
+    headers: { ...headers, 'if-match': `W/"${String(draftRevision)}"` },
+    data: { body: { type: 'text', text } },
+  })
+  expect(saved.ok(), await saved.text()).toBe(true)
+  const next = ((await saved.json()) as { draftRevision: number }).draftRevision
+  const submitted = await request.post(`/api/v1/module-releases/${releaseId}/items/${itemId}/submissions`, {
+    headers: { ...headers, 'idempotency-key': crypto.randomUUID() },
+    data: { draftRevision: next },
+  })
+  expect(submitted.ok(), await submitted.text()).toBe(true)
+  return next
 }
 
 export async function publishReleasedQuiz(

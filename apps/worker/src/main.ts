@@ -2,8 +2,9 @@ import { pathToFileURL } from 'node:url'
 import { createDb } from '@hcn/db'
 import { startWorker } from './loop.ts'
 
-export const workerMilestone = 'M5'
-export { processOutbox, cleanupExpired, startWorker } from './loop.ts'
+export const workerMilestone = 'M7'
+export { processOutbox, cleanupExpired, startWorker, commitConsumer, acknowledgeOutbox } from './loop.ts'
+export { runDueSoon } from './due-soon.ts'
 export { instreamScan } from './scan.ts'
 
 const entry = process.argv[1]

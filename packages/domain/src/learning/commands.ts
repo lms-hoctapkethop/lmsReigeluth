@@ -645,8 +645,8 @@ export async function getSubmission(db: Db, meta: Meta, submissionId: string): P
       versionNo: version.version_no,
       submittedAt: version.submitted_at.toISOString(),
       isLate: version.is_late,
-      body: version.body,
-      fileIds: fileRows.filter((file) => file.submission_version_id === version.id).map((file) => file.file_id),
+      body: role === 'guardian' ? null : version.body,
+      fileIds: role === 'guardian' ? [] : fileRows.filter((file) => file.submission_version_id === version.id).map((file) => file.file_id),
     })),
     publishedReviews: [],
   }

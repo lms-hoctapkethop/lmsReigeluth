@@ -124,6 +124,24 @@ Không có gói đặc tả 3.5, không có mục README "Thay đổi 3.5", và 
 - Tệp bất biến `file_guards_invariants.sql` (DB30–DB32) và `review_guards_invariants.sql` (DB33–DB37). CI yêu cầu ≥ 101 PASS. Cả hai migration và hai tệp test có trong `db/SPEC_SHA256SUMS`.
 - `docs/05` đồng bộ với code: mục 4, 5.0, 5.5, 6.0, 7.0 (quyết định đã chốt ở 3.2–3.4), 8.0 (ghi đúng hành vi quiz M6), 9.0 (M7: hàng chờ, nháp review, công bố và khóa, thay quyết định, hồ sơ, cổng PH, đồng hành, thông báo, worker an toàn khi sập). `docs/02`, `03`, `06`, `09` cập nhật theo.
 
+## Thay đổi M7
+
+Đặc tả 3.6 đã ở `main`. Phần dưới là chỗ mã M7 phải chọn vì tài liệu im lặng hoặc hai chỗ nói khác nhau:
+
+- Không thêm migration. Bảng review, quyết định, đồng hành, thông báo đã có từ 0003 và 0008. Chỉ bổ sung kiểu Kysely. Không sửa tệp trong `db/SPEC_SHA256SUMS`.
+- `docs/07` ghi cổng phụ huynh là `/gia-dinh`. Màn hình dùng `/phu-huynh`; `/gia-dinh` mở cùng màn. Menu trỏ `/phu-huynh`.
+- OpenAPI bắt `decisions[].reason` tối thiểu 3 ký tự mọi lần công bố. `docs/05` 9.0 chỉ bắt lý do khi đã có quyết định hiện hành. Mã theo OpenAPI.
+- `docs/05` 9.3 viết `expectedRevision` khớp thì 409. Mã hiểu là lệch revision thì 409 `REVISION_CONFLICT`.
+- Hàng chờ thêm query `late` và `itemId` vì mục 9.0 yêu cầu lọc theo mục và muộn, còn OpenAPI lúc đầu chỉ có `status`, `cursor`, `limit`.
+- Công bố đọc quyết định hiện hành trước khi khóa. Nếu trong lúc chờ khóa quyết định đó đổi, request trả 409 `REVISION_CONFLICT` reason `DECISION_CHANGED` và không nối chuỗi. Công bố tuần tự, khi hiện hành không đổi, vẫn ghi `supersedes_id`.
+- `getLearnerNeeds` và heatmap giữ `x-milestone: M7`, chưa có route.
+- `GET` bài nộp của phụ huynh trả `body: null` và `fileIds: []`.
+- Thông báo `ReleaseCreated` trỏ `/hoc/lop/:offeringId`. `ReviewPublished` và `DecisionSuperseded` trỏ `/hoc/ho-so/:offeringId` cho học sinh và `/phu-huynh/con/:learnerId` cho phụ huynh đã xác minh. Payload chỉ `{title, href}`.
+- `due_soon` là một thông báo cho mỗi (đợt, mục, học sinh), `source_event` là UUID v5 namespace `8c1e5b2a-4d77-5f10-9a33-6e0c1b7d4a21`. Học sinh đã có `current_version_no > 0` không nhận.
+- Consumer `insight.*` chưa làm. Sự kiện không có consumer vẫn được đánh dấu `done`, như M5.
+- Worker ghi `processed_events` rồi mới đánh dấu outbox `done`, hai commit tách nhau để ca sập giữa chừng không nhân đôi thông báo. Hàng outbox vẫn bị khóa `FOR UPDATE` đến khi cập nhật trạng thái, nên hai worker không xử lý trùng.
+- `reviewer_id` là người lưu nháp gần nhất. Audit `review.publish` ghi người công bố, không ghi nội dung nhận xét.
+
 ## Chạy
 
 ```bash
