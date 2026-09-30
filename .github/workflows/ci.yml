@@ -4,7 +4,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring, chore/m4-close, m5-learning, m6-quiz]
+    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring, chore/m4-close, m5-learning, m6-quiz, m7-review]
 
 concurrency:
   group: ci-${{ github.ref }}
