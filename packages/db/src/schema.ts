@@ -206,6 +206,8 @@ export interface CurriculumReviewLogTable {
   entity_id: string
   action: string
   actor_id: string
+  from_status: string | null
+  to_status: string
   old_text: string | null
   new_text: string | null
   note: string | null

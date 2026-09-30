@@ -34,7 +34,15 @@ export async function proposeKcVersion(
       })
       .returning(['id'])
       .executeTakeFirstOrThrow()
-    await writeReviewLog(trx, { entityType: 'kc_version', entityId: version.id, action: 'proposed', actorId: meta.actor.userId })
+    await writeReviewLog(trx, {
+      entityType: 'kc_version',
+      entityId: version.id,
+      action: 'proposed',
+      actorId: meta.actor.userId,
+      fromStatus: null,
+      toStatus: 'proposed',
+      note: null,
+    })
     await reviewAudit(trx, meta, 'curriculum.kc.propose_version', 'kc_version', version.id, 'proposed')
     return { id: version.id, kcId: input.kcId, versionNo, status: 'proposed' }
   })

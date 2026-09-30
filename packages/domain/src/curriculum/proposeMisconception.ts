@@ -22,7 +22,15 @@ export async function proposeMisconception(
         })
         .returning(['id', 'code'])
         .executeTakeFirstOrThrow()
-      await writeReviewLog(trx, { entityType: 'misconception', entityId: row.id, action: 'proposed', actorId: meta.actor.userId })
+      await writeReviewLog(trx, {
+        entityType: 'misconception',
+        entityId: row.id,
+        action: 'proposed',
+        actorId: meta.actor.userId,
+        fromStatus: null,
+        toStatus: 'proposed',
+        note: null,
+      })
       await reviewAudit(trx, meta, 'curriculum.misconception.propose', 'misconception', row.id, 'proposed')
       return { id: row.id, code: row.code, status: 'proposed' }
     })

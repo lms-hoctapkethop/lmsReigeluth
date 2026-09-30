@@ -39,7 +39,15 @@ export async function reviewKcEdge(
     } else {
       await trx.updateTable('kc_edges').set({ status: 'rejected', reviewed_by: meta.actor.userId }).where('id', '=', edge.id).execute()
     }
-    await writeReviewLog(trx, { entityType: 'kc_edge', entityId: edge.id, action: input.decision, actorId: meta.actor.userId })
+    await writeReviewLog(trx, {
+      entityType: 'kc_edge',
+      entityId: edge.id,
+      action: input.decision,
+      actorId: meta.actor.userId,
+      fromStatus: edge.status,
+      toStatus: input.decision,
+      note: null,
+    })
     await reviewAudit(trx, meta, 'curriculum.edge.review', 'kc_edge', edge.id, input.decision)
     return { id: edge.id, status: input.decision }
   })

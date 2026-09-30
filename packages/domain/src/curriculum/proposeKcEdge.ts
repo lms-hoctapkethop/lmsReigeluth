@@ -25,7 +25,15 @@ export async function proposeKcEdge(
         })
         .returning(['id'])
         .executeTakeFirstOrThrow()
-      await writeReviewLog(trx, { entityType: 'kc_edge', entityId: row.id, action: 'proposed', actorId: meta.actor.userId })
+      await writeReviewLog(trx, {
+        entityType: 'kc_edge',
+        entityId: row.id,
+        action: 'proposed',
+        actorId: meta.actor.userId,
+        fromStatus: null,
+        toStatus: 'proposed',
+        note: null,
+      })
       await reviewAudit(trx, meta, 'curriculum.edge.propose', 'kc_edge', row.id, 'proposed')
       return { id: row.id, status: 'proposed' }
     })

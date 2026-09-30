@@ -54,7 +54,15 @@ export async function proposeKc(
           })
           .execute()
       }
-      await writeReviewLog(trx, { entityType: 'kc_version', entityId: version.id, action: 'proposed', actorId: meta.actor.userId })
+      await writeReviewLog(trx, {
+        entityType: 'kc_version',
+        entityId: version.id,
+        action: 'proposed',
+        actorId: meta.actor.userId,
+        fromStatus: null,
+        toStatus: 'proposed',
+        note: null,
+      })
       await reviewAudit(trx, meta, 'curriculum.kc.propose', 'kc_version', version.id, 'proposed')
       return { id: version.id, kcId: kc.id, code: kc.code, status: 'proposed', versionNo: 1 }
     })

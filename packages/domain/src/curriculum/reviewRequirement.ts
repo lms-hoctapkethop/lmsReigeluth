@@ -61,6 +61,8 @@ export async function reviewRequirement(
       entityId: requirementId,
       action: input.decision,
       actorId: meta.actor.userId,
+      fromStatus: row.review_status,
+      toStatus: input.decision,
       oldText: input.correctedText ? row.text : null,
       newText: input.correctedText ?? null,
       note: input.note ?? null,

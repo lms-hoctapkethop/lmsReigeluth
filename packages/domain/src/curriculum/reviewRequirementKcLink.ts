@@ -25,7 +25,15 @@ export async function reviewRequirementKcLink(
       .set({ status: input.decision, reviewed_by: meta.actor.userId })
       .where('id', '=', link.id)
       .execute()
-    await writeReviewLog(trx, { entityType: 'requirement_kc_link', entityId: link.id, action: input.decision, actorId: meta.actor.userId })
+    await writeReviewLog(trx, {
+      entityType: 'requirement_kc_link',
+      entityId: link.id,
+      action: input.decision,
+      actorId: meta.actor.userId,
+      fromStatus: link.status,
+      toStatus: input.decision,
+      note: null,
+    })
     await reviewAudit(trx, meta, 'curriculum.link.review', 'requirement_kc_link', link.id, input.decision)
     return { id: link.id, status: input.decision }
   })

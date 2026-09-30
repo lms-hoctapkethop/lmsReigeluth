@@ -1,3 +1,4 @@
+-- Điều chỉnh tên cột theo migration 0005 của repo; nội dung ca giữ nguyên đặc tả 3.3
 -- Học cùng nhau 3.1 · bất biến M3 (DB17–DB20). Chạy sau schema_invariants.sql trên cùng DB.
 -- Tự dựng dữ liệu nền (giống DB04), chạy trong một transaction và ROLLBACK ở cuối; in 'PASS <mã>' cho từng ca.
 \set ON_ERROR_STOP 1
@@ -37,12 +38,12 @@ INSERT INTO kc_edges (from_kc_version_id, to_kc_version_id, edge_type, status, s
   ('71000000-0000-0000-0000-000000000002', '71000000-0000-0000-0000-000000000003', 'prerequisite', 'approved', 'expert');
 
 -- DB17 Nhật ký duyệt append-only; old_text/new_text đi cặp và chỉ cho YCCĐ
-INSERT INTO curriculum_review_log (id, object_type, object_id, from_status, to_status, note, reviewed_by)
-VALUES ('90000000-0000-0000-0000-000000000001', 'kc_version', '71000000-0000-0000-0000-000000000001', 'proposed', 'approved', 'ok',
+INSERT INTO curriculum_review_log (id, entity_type, entity_id, action, from_status, to_status, note, actor_id)
+VALUES ('90000000-0000-0000-0000-000000000001', 'kc_version', '71000000-0000-0000-0000-000000000001', 'approved', 'proposed', 'approved', 'ok',
         '10000000-0000-0000-0000-000000000001');
 SELECT pg_temp.expect_error($$UPDATE curriculum_review_log SET note = 'x' WHERE id = '90000000-0000-0000-0000-000000000001'$$, 'append-only', 'DB17 review log immutable');
-SELECT pg_temp.expect_error($$INSERT INTO curriculum_review_log (object_type, object_id, to_status, old_text, new_text, reviewed_by)
-  VALUES ('kc_edge', gen_random_uuid(), 'approved', 'a', 'b', '10000000-0000-0000-0000-000000000001')$$, '23514', 'DB17b text correction only for requirement');
+SELECT pg_temp.expect_error($$INSERT INTO curriculum_review_log (entity_type, entity_id, action, to_status, old_text, new_text, actor_id)
+  VALUES ('kc_edge', gen_random_uuid(), 'approved', 'approved', 'a', 'b', '10000000-0000-0000-0000-000000000001')$$, '23514', 'DB17b text correction only for requirement');
 
 -- DB18 Thay version: v2 của KC-TIN10-IF được duyệt, v1 superseded; cạnh cũ không còn trong đồ thị hiệu lực
 INSERT INTO kc_versions (id, kc_id, version_no, name, observable_criteria, status, source, reviewed_by) VALUES
