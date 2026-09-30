@@ -61,7 +61,8 @@ function Shell() {
               onChange={(event) => {
                 const [schoolId, role] = event.target.value.split(':')
                 if (!schoolId || !role) return
-                void switchContext({ schoolId, role }, me.csrfToken).then(async () => {
+                void switchContext({ schoolId, role }, me.csrfToken).then(async (next) => {
+                  client.setQueryData(['me'], next)
                   await client.invalidateQueries()
                 })
               }}
@@ -106,7 +107,9 @@ function Shell() {
 }
 
 function Home() {
-  const me = useRouteLoaderData('shell') as Me
+  const initial = useRouteLoaderData('shell') as Me
+  const meQuery = useQuery({ queryKey: ['me'], queryFn: fetchMe, initialData: initial })
+  const me = meQuery.data ?? initial
   const activeLabel = roleLabel[me.activeContext.role] ?? me.activeContext.role
   const schoolName = me.contexts.find(
     (item) => item.schoolId === me.activeContext.schoolId && item.role === me.activeContext.role,
