@@ -370,6 +370,14 @@ Quy tắc chấm, chuẩn hóa số, trọng số ở docs/06.
 
 ## 11 Worker
 
+### 11.0 Chốt ở 3.7 (M8)
+
+- Worker kết nối bằng `WORKER_DATABASE_URL` của login role thuộc nhóm `hcn_worker`; API không bao giờ ghi `observations`, `needs_estimates`, `misconception_signals` (0009 thu hồi quyền của `hcn_app`, DB39).
+- `insight.updateMisconceptionSignals`: với mỗi hàng `question_responses` có `misconception_id`, đếm số **câu khác nhau** (`question_item_id`) của cùng (HS, offering, lỗi hiểu sai): 1 → `seen_once`, ≥ 2 → `signal` (C03); `evidence_response_ids` là các hàng đó. Trạng thái `resolved` chỉ do GV đặt (M10); M8 không tự chuyển.
+- Tắt AI (`FEATURE_AI=false`, mặc định ở pilot): không có đường mã nào gọi LLM; luồng học, chấm, R0 chạy bình thường (A18, B10). R0 là quy tắc xác định, không phải AI sinh.
+- `getLearnerNeeds`: GV có phân công thấy `status`, `value`, `nObservations`, `computedAt`; HS thấy của mình chỉ nhãn chữ (không `value`); PH và người khác → 404 (B08). Ước lượng không bao giờ tạo hay đổi `attainment_decisions` (B03).
+
+
 | Consumer | Hành vi | Idempotency |
 |---|---|---|
 | `notify` | Tạo `notifications` cho người nhận; payload chỉ tiêu đề và đường dẫn; không nội dung nhận xét | UNIQUE (recipient_id, source_event) |

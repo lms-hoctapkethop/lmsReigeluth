@@ -176,3 +176,9 @@ DB34,db/tests,Quyết định đúng HS và offering của review,L2,db/tests/re
 DB35,db/tests,Một quyết định gốc; chuỗi không đổi đối tượng,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
 DB36,db/tests,Đồng hành gia đình chỉ committed → cancelled,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
 DB37,db/tests,Thông báo chỉ đổi read_at,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
+DB38,db/tests,points 0..1 khớp correct,L2,db/tests/insight_guards_invariants.sql,M8,todo,
+DB39,db/tests,Chỉ worker ghi quan sát và ước lượng,L2,db/tests/insight_guards_invariants.sql,M8,todo,
+DB40,db/tests,needs_estimates chỉ thêm,L2,db/tests/insight_guards_invariants.sql,M8,todo,
+DB41,db/tests,needs_current_kc gộp version,L2,db/tests/insight_guards_invariants.sql,M8,todo,
+BACKFILL-01,docs/06 mục 3.0,Backfill quan sát từ dữ liệu M6–M7 chạy lại không nhân đôi,L3,,M8,todo,
+PARTIAL-01,docs/06 mục 3.0,multi_choice partial ghi points lẻ và quan sát đúng điểm,L3,,M8,todo,

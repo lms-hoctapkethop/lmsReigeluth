@@ -52,7 +52,7 @@ erDiagram
 
 ## 2 Bất biến được DB cưỡng chế
 
-Ca kiểm thử chạy trong CI: `schema_invariants.sql` (DB01–DB16), `curriculum_review_invariants.sql` (DB17–DB21, 0005), `learning_invariants.sql` (DB22–DB26, 0006), `quiz_invariants.sql` (DB27–DB29, M6), `file_guards_invariants.sql` (DB30–DB32, 0007), `review_guards_invariants.sql` (DB33–DB37, 0008). Tổng 101 dòng PASS.
+Ca kiểm thử chạy trong CI: `schema_invariants.sql` (DB01–DB16), `curriculum_review_invariants.sql` (DB17–DB21, 0005), `learning_invariants.sql` (DB22–DB26, 0006), `quiz_invariants.sql` (DB27–DB29, M6), `file_guards_invariants.sql` (DB30–DB32, 0007), `review_guards_invariants.sql` (DB33–DB37, 0008), `insight_guards_invariants.sql` (DB38–DB41, 0009). Tổng 111 dòng PASS.
 
 | Bất biến | Cơ chế | Ca |
 |---|---|---|
@@ -81,6 +81,10 @@ Ca kiểm thử chạy trong CI: `schema_invariants.sql` (DB01–DB16), `curricu
 | Quyết định chỉ dựa trên review của chính HS, đúng offering; một gốc cho mỗi (HS, offering, YCCĐ); chuỗi thay thế không đổi đối tượng | trigger + UNIQUE partial (0008) | DB34, DB35 |
 | Đồng hành gia đình chỉ `committed → cancelled`, nội dung bất biến | trigger (0008) | DB36 |
 | `hcn_app` chỉ đổi `notifications.read_at`, không xóa | GRANT cột (0008) | DB37 |
+| `question_responses.points` 0..1, khớp `correct` | CHECK (0009) | DB38 |
+| Chỉ worker ghi `observations`, `needs_estimates`, `misconception_signals`; API chỉ đọc | GRANT (0009) | DB39 |
+| `needs_estimates` chỉ thêm | trigger (0009) | DB40 |
+| Ước lượng hiện hành theo KC, gộp mọi version | view `needs_current_kc` (0009) | DB41 |
 
 Bất biến **không** thể cưỡng chế bằng DB, phải có test use case: phân quyền theo quan hệ (INV-02, INV-03), DTO không chứa khóa (INV-06), idempotency theo body (INV-07), revision (INV-09).
 
