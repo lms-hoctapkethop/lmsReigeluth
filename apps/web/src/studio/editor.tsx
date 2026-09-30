@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
-import { readJson } from '../admin-api.ts'
+import { postJson, readJson } from '../admin-api.ts'
 import styles from './studio.module.css'
 
 type Rich = { format: 'hcn-rich/1'; blocks: [{ type: 'paragraph'; children: [{ text: string }] }] }
@@ -138,7 +138,7 @@ export default function StudioEditor() {
 
   useEffect(() => {
     if (!loaded.data) return
-    void readJson<Report>(`/api/v1/modules/${moduleId}/draft/validate`).then(setReport).catch(() => setReport(null))
+    void postJson<Report>(`/api/v1/modules/${moduleId}/draft/validate`, me.csrfToken, {}).then(setReport).catch(() => setReport(null))
   }, [loaded.data, moduleId])
 
   function scheduleFlush(delay: number) {
@@ -179,7 +179,7 @@ export default function StudioEditor() {
     setRevision(body.revision)
     if (saveGeneration.current === generation) dirty.current = false
     setStatus(saveGeneration.current === generation ? 'Đã lưu' : 'Sẽ lưu sau 2 giây.')
-    const next = await readJson<Report>(`/api/v1/modules/${moduleId}/draft/validate`).catch(() => null)
+    const next = await postJson<Report>(`/api/v1/modules/${moduleId}/draft/validate`, me.csrfToken, {}).catch(() => null)
     if (next) setReport(next)
     if (dirty.current && !conflictRef.current) scheduleFlush(2000)
   }
