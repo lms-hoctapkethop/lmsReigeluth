@@ -1,0 +1,115 @@
+{
+  "requirements": [
+    {
+      "code791": "020107.0102a3",
+      "extraction": "check",
+      "flags": [],
+      "text": "Sử dụng được các tính chất của phân số.",
+      "source_doc": "QD791_PL_Toan",
+      "source_locator": "Bảng 1, dòng 12",
+      "review_status": "unverified"
+    },
+    {
+      "code791": "140110.0900z4",
+      "extraction": "check",
+      "flags": [],
+      "text": "Yêu cầu cần đối chiếu nguồn.",
+      "source_doc": "QD791_PL22_TinHoc",
+      "source_locator": "Trang 4",
+      "review_status": "unverified"
+    },
+    {
+      "code791": "140110.0100a4",
+      "extraction": "clean",
+      "flags": [],
+      "text": "Yêu cầu sạch chưa duyệt.",
+      "source_doc": "QD791_PL22_TinHoc",
+      "source_locator": "Trang 1",
+      "review_status": "unverified"
+    },
+    {
+      "code791": "140110.0101a4",
+      "extraction": "clean",
+      "flags": [],
+      "text": "Viết được chương trình rẽ nhánh đơn giản.",
+      "source_doc": "QD791_PL22_TinHoc",
+      "source_locator": "Trang 2",
+      "review_status": "approved"
+    },
+    {
+      "code791": "140110.0200b4",
+      "extraction": "clean",
+      "flags": [],
+      "text": "Đối chiếu xong, chờ duyệt.",
+      "source_doc": "QD791_PL22_TinHoc",
+      "source_locator": "Trang 3",
+      "review_status": "source_checked"
+    }
+  ],
+  "kcs": [
+    {
+      "code": "KC-TIN10-DIEUKIEN",
+      "subject": "1401",
+      "grade": 10,
+      "name": "Điều kiện",
+      "observable": "Viết được biểu thức điều kiện đúng/sai.",
+      "status": "approved",
+      "source": "import"
+    },
+    {
+      "code": "KC-TIN10-RENHANH",
+      "subject": "1401",
+      "grade": 10,
+      "name": "Rẽ nhánh",
+      "observable": "Chọn đúng nhánh if và else.",
+      "status": "approved",
+      "source": "import"
+    },
+    {
+      "code": "KC-TIN10-LAP",
+      "subject": "1401",
+      "grade": 10,
+      "name": "Lặp",
+      "observable": "Viết được vòng lặp đếm.",
+      "status": "approved",
+      "source": "import"
+    },
+    {
+      "code": "KC-TOAN10-SO",
+      "subject": "0201",
+      "grade": 10,
+      "name": "Tập hợp số",
+      "observable": "Phân loại được số nguyên và số hữu tỉ.",
+      "status": "proposed",
+      "source": "teacher",
+      "createdBy": "reviewer.toan"
+    },
+    {
+      "code": "KC-TIN10-DEXUAT",
+      "subject": "1401",
+      "grade": 10,
+      "name": "Đề xuất rẽ nhánh",
+      "observable": "Nêu được khi nào dùng if.",
+      "status": "proposed",
+      "source": "teacher",
+      "createdBy": "gv.de.xuat"
+    }
+  ],
+  "links": [
+    { "requirement": "140110.0101a", "kc": "KC-TIN10-RENHANH", "status": "approved" }
+  ],
+  "edges": [
+    { "from": "KC-TIN10-DIEUKIEN", "to": "KC-TIN10-RENHANH", "type": "prerequisite", "status": "approved" },
+    { "from": "KC-TIN10-RENHANH", "to": "KC-TIN10-LAP", "type": "prerequisite", "status": "approved" },
+    { "from": "KC-TIN10-RENHANH", "to": "KC-TIN10-DIEUKIEN", "type": "prerequisite", "status": "proposed" },
+    { "from": "KC-TIN10-DIEUKIEN", "to": "KC-TOAN10-SO", "type": "prerequisite", "status": "proposed" }
+  ],
+  "misconceptions": [
+    {
+      "code": "M-TIN10-RENHANH",
+      "kc": "KC-TIN10-RENHANH",
+      "description": "Nhầm else luôn chạy cùng if.",
+      "status": "approved"
+    }
+  ]
+}

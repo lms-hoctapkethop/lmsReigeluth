@@ -64,6 +64,7 @@ async function followToCallback(start: string): Promise<URL> {
 
 describe.skipIf(!ready)('xác thực M1', () => {
   let postgres: Postgres18
+  let adminDb: Kysely<Database>
   let db: Kysely<Database>
   let idp: FakeIdp
   let app: FastifyInstance
@@ -90,7 +91,8 @@ describe.skipIf(!ready)('xác thực M1', () => {
   beforeAll(async () => {
     postgres = await startPostgres18()
     const cloned = await postgres.cloneDatabase('auth')
-    db = createDb(cloned.url)
+    adminDb = createDb(cloned.url)
+    db = createDb(cloned.appUrl)
     idp = await startFakeIdp({
       clientId: 'hcn-web',
       clientSecret,
@@ -106,13 +108,14 @@ describe.skipIf(!ready)('xác thực M1', () => {
 
   beforeEach(async () => {
     logs = []
-    await sql`TRUNCATE sessions, audit_log`.execute(db)
-    await seedIdentity(db, { issuer: idp.issuer })
+    await sql`TRUNCATE sessions, audit_log`.execute(adminDb)
+    await seedIdentity(adminDb, { issuer: idp.issuer })
   })
 
   afterAll(async () => {
     await app?.close()
     await db?.destroy()
+    await adminDb?.destroy()
     await idp?.stop()
     await postgres?.stop()
   })

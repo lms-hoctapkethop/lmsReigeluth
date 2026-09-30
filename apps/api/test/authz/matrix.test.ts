@@ -36,11 +36,8 @@ if (process.env.CI === 'true' && !ready) throw new Error('Job CI cần Docker v�
 const appOrigin = 'http://127.0.0.1:4319'
 const roles = ['admin', 'teacher', 'student', 'guardian'] as const
 const schoolsKeys = ['an', 'binh'] as const
-const implemented = ['org.manage', 'guardian_link.verify', 'guardian_link.revoke'] as const
+const implemented = ['org.manage', 'guardian_link.verify', 'guardian_link.revoke', 'curriculum.read', 'curriculum.propose', 'curriculum.review'] as const
 const later: [Action, string][] = [
-  ['curriculum.read', 'M3'],
-  ['curriculum.propose', 'M3'],
-  ['curriculum.review', 'M3'],
   ['module.create', 'M4'],
   ['module.edit', 'M4'],
   ['module.publish', 'M4'],
@@ -66,7 +63,15 @@ describe('ma trận quyền M2', () => {
       for (const role of roles) {
         it(`${action} ${role} trường ${school}`, () => {
           const decision = can({ userId: personas.adminA.subject, schoolId: schools[school].id, roles: [role] }, action, {})
-          expect(decision.allow).toBe(role === 'admin')
+          const allow =
+            action === 'curriculum.read'
+              ? true
+              : action === 'curriculum.propose'
+                ? role === 'teacher'
+                : action === 'curriculum.review'
+                  ? role === 'admin' || role === 'teacher'
+                  : role === 'admin'
+          expect(decision.allow).toBe(allow)
         })
       }
     }
@@ -78,6 +83,7 @@ describe('ma trận quyền M2', () => {
 
 describe.skipIf(!ready)('HTTP tổ chức hai trường', () => {
   let postgres: Postgres18
+  let adminDb: Kysely<Database>
   let db: Kysely<Database>
   let app: FastifyInstance
   const issuer = 'http://idp.test/realms/hcn'
@@ -97,7 +103,8 @@ describe.skipIf(!ready)('HTTP tổ chức hai trường', () => {
   beforeAll(async () => {
     postgres = await startPostgres18()
     const cloned = await postgres.cloneDatabase('org')
-    db = createDb(cloned.url)
+    adminDb = createDb(cloned.url)
+    db = createDb(cloned.appUrl)
     const idp = new FakeIdpAdmin()
     for (const persona of Object.values(personas)) {
       if (persona.username === personas.userChuaCap.username) continue
@@ -112,13 +119,14 @@ describe.skipIf(!ready)('HTTP tổ chức hai trường', () => {
         class_memberships, admin_classes, academic_years, guardian_links, curriculum_reviewers,
         school_memberships, outbox_events, idempotency_keys, sessions, audit_log
       RESTART IDENTITY CASCADE
-    `.execute(db)
-    await seedIdentity(db, { issuer })
+    `.execute(adminDb)
+    await seedIdentity(adminDb, { issuer })
   })
 
   afterAll(async () => {
     await app?.close()
     await db?.destroy()
+    await adminDb?.destroy()
     await postgres?.stop()
   })
 

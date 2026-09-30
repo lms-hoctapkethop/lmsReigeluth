@@ -46,6 +46,7 @@ function multipart(body: string): { payload: string; contentType: string } {
 
 describe.skipIf(!ready)('importUsers', () => {
   let postgres: Postgres18
+  let adminDb: Kysely<Database>
   let db: Kysely<Database>
   let app: FastifyInstance
   let idp: FakeIdpAdmin
@@ -56,7 +57,8 @@ describe.skipIf(!ready)('importUsers', () => {
   beforeAll(async () => {
     postgres = await startPostgres18()
     const cloned = await postgres.cloneDatabase('import')
-    db = createDb(cloned.url)
+    adminDb = createDb(cloned.url)
+    db = createDb(cloned.appUrl)
     idp = new FakeIdpAdmin()
     const config: AppConfig = {
       appOrigin,
@@ -82,18 +84,24 @@ describe.skipIf(!ready)('importUsers', () => {
       idp.users.set(persona.subject, { id: persona.subject, username: persona.username, enabled: true, password: 'khong-dung' })
     }
     await sql`
+      TRUNCATE curriculum_review_log, requirement_kc_links, kc_edges, misconceptions, kc_versions,
+        knowledge_components, curriculum_requirements
+      RESTART IDENTITY CASCADE
+    `.execute(adminDb)
+    await sql`
       TRUNCATE offering_enrollments, teacher_assignments, offering_class_links, offerings, courses,
         class_memberships, admin_classes, academic_years, guardian_links, curriculum_reviewers,
         school_memberships, outbox_events, idempotency_keys, sessions, audit_log
       RESTART IDENTITY CASCADE
-    `.execute(db)
-    await sql`DELETE FROM users`.execute(db)
-    await seedIdentity(db, { issuer })
+    `.execute(adminDb)
+    await sql`DELETE FROM users`.execute(adminDb)
+    await seedIdentity(adminDb, { issuer })
   })
 
   afterAll(async () => {
     await app?.close()
     await db?.destroy()
+    await adminDb?.destroy()
     await postgres?.stop()
   })
 

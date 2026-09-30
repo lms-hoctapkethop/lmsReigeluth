@@ -40,7 +40,18 @@ describe.skipIf(!ready)('testkit postgres:18', () => {
     await right.connect()
     try {
       const migrated = await left.query('SELECT count(*)::int AS n FROM schema_migrations')
-      expect(migrated.rows[0]?.n).toBe(4)
+      expect(migrated.rows[0]?.n).toBe(5)
+      const app = new pg.Client({ connectionString: leftDb.appUrl })
+      await app.connect()
+      try {
+        const who = await app.query<{ rolsuper: boolean; member: boolean }>(
+          `SELECT rolsuper, pg_has_role(current_user, 'hcn_app', 'member') AS member FROM pg_roles WHERE rolname = current_user`,
+        )
+        expect(who.rows[0]?.rolsuper).toBe(false)
+        expect(who.rows[0]?.member).toBe(true)
+      } finally {
+        await app.end()
+      }
       const schools = await left.query("SELECT to_regclass('public.schools')::text AS name")
       expect(schools.rows[0]?.name).toBe('schools')
       await left.query('CREATE TABLE testkit_probe (id int)')

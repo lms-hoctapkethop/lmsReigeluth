@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Học cùng nhau API
-  version: 3.0.0
+  version: 3.2.0
   description: |
     Hợp đồng API lõi của LMS Học cùng nhau. Mọi endpoint dưới /api/v1 yêu cầu cookie phiên `hcn_sid`.
     Request không an toàn (POST/PUT/PATCH/DELETE) yêu cầu header `X-CSRF-Token` và `Origin` hợp lệ.
@@ -440,10 +440,27 @@ paths:
         - { $ref: '#/components/parameters/Csrf' }
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [approved, rejected] }, note: { type: string } } } } }
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approved, rejected] }
+                note: { type: string }
+                dropEdgeIds: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+                dropLinkIds: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
       responses:
         '200': { description: Đã duyệt }
   /api/v1/curriculum/kc-edges:
+    get:
+      tags: [curriculum]
+      operationId: listKcEdges
+      parameters:
+        - { name: scope, in: query, schema: { type: string, enum: [effective, proposed], default: effective } }
+        - { name: kcVersionId, in: query, schema: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '200': { description: Cạnh KC, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/KcEdge' } } } } }
     post:
       tags: [curriculum]
       operationId: proposeKcEdge
@@ -475,6 +492,133 @@ paths:
       responses:
         '200': { description: Đã duyệt }
         '422': { description: 'KC_EDGE_CYCLE: duyệt cạnh này tạo chu trình', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/v1/curriculum/access:
+    get:
+      tags: [curriculum]
+      operationId: curriculumAccess
+      responses:
+        '200':
+          description: Menu chuyên môn
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [propose, review]
+                properties:
+                  propose: { type: boolean }
+                  review: { type: boolean }
+  /api/v1/curriculum/requirements/{requirementId}/review:
+    post:
+      tags: [curriculum]
+      operationId: reviewRequirement
+      parameters:
+        - { name: requirementId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IfMatch' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [source_checked, approved, rejected] }
+                note: { type: string }
+                correctedText: { type: string }
+      responses:
+        '200': { description: Đã duyệt YCCĐ }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/v1/curriculum/review-queue:
+    get:
+      tags: [curriculum]
+      operationId: getCurriculumReviewQueue
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [requirement, kc, edge, misconception, link] } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100 } }
+      responses:
+        '200': { description: Hàng đợi duyệt, hàng extraction=check đứng trước }
+  /api/v1/curriculum/kcs/{kcId}/versions:
+    post:
+      tags: [curriculum]
+      operationId: proposeKcVersion
+      parameters:
+        - { name: kcId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, observableCriteria]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                observableCriteria: { type: string }
+      responses:
+        '201': { description: Version mới ở trạng thái proposed }
+  /api/v1/curriculum/kc-versions/{kcVersionId}:
+    get:
+      tags: [curriculum]
+      operationId: getKcVersionDetail
+      parameters:
+        - { name: kcVersionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '200': { description: Diff version, cạnh và liên kết sẽ được chép }
+  /api/v1/curriculum/requirement-kc-links/{linkId}/review:
+    post:
+      tags: [curriculum]
+      operationId: reviewRequirementKcLink
+      parameters:
+        - { name: linkId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [approved, rejected] } } } } }
+      responses:
+        '200': { description: Đã duyệt liên kết }
+  /api/v1/curriculum/misconceptions:
+    get:
+      tags: [curriculum]
+      operationId: listMisconceptions
+      parameters:
+        - { name: kcId, in: query, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { name: status, in: query, schema: { type: string, enum: [proposed, approved, rejected] } }
+      responses:
+        '200': { description: Lỗi hiểu sai }
+    post:
+      tags: [curriculum]
+      operationId: proposeMisconception
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, kcId, description]
+              properties:
+                code: { type: string }
+                kcId: { $ref: '#/components/schemas/Uuid' }
+                description: { type: string }
+      responses:
+        '201': { description: Đã đề xuất lỗi hiểu sai }
+  /api/v1/curriculum/misconceptions/{misconceptionId}/review:
+    post:
+      tags: [curriculum]
+      operationId: reviewMisconception
+      parameters:
+        - { name: misconceptionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [approved, rejected] } } } } }
+      responses:
+        '200': { description: Đã duyệt lỗi hiểu sai }
 
   /api/v1/modules:
     post:
@@ -1016,6 +1160,23 @@ components:
         text: { type: string }
         orientation: { type: [string, 'null'], enum: [common, ICT, CS, null] }
         reviewStatus: { type: string, enum: [unverified, source_checked, approved, rejected] }
+        extraction: { type: string, enum: [clean, check] }
+        sourceDoc: { type: string }
+        sourceLocator: { type: [string, 'null'] }
+        revision: { type: string, description: 'Micro giây của updated_at, dùng cho If-Match' }
+    KcEdge:
+      type: object
+      required: [id, fromKcVersionId, toKcVersionId, fromCode, toCode, fromName, toName, edgeType, status]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        fromKcVersionId: { $ref: '#/components/schemas/Uuid' }
+        toKcVersionId: { $ref: '#/components/schemas/Uuid' }
+        fromCode: { type: string }
+        toCode: { type: string }
+        fromName: { type: string }
+        toName: { type: string }
+        edgeType: { type: string, enum: [prerequisite, develops_into, part_of] }
+        status: { type: string, enum: [proposed, approved, rejected] }
     KcVersion:
       type: object
       properties:

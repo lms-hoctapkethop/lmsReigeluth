@@ -7,9 +7,13 @@ export type SeedCurriculumResult = { added: number; updated: number; skipped: nu
 
 const subjectNames: Record<string, string> = { '1401': 'Tin học', '0201': 'Toán' }
 
-type Row = { code791: string; extraction: string; text: string; source_doc: string }
+type Row = { code791: string; extraction?: string; flags?: string; text: string; source_doc: string }
 
 export async function seedCurriculum(db: Db, filePath: string): Promise<SeedCurriculumResult> {
+  const normalized = filePath.replaceAll('\\', '/')
+  if (process.env.NODE_ENV === 'production' && normalized.includes('db/seeds/test/')) {
+    throw new DomainError('VALIDATION_FAILED', { reason: 'TEST_SEED' })
+  }
   const raw = readFileSync(filePath, 'utf8')
   const rows = filePath.endsWith('.json') ? readJson(raw) : readCsv(raw)
   const parsed = rows.map(parseRow)
@@ -29,7 +33,10 @@ export async function seedCurriculum(db: Db, filePath: string): Promise<SeedCurr
       .onConflict((conflict) => conflict.column('code').doUpdateSet({ name: subjectNames[code] ?? `Môn ${code}`, grades: merged }))
       .execute()
   }
-  const existing = await db.selectFrom('curriculum_requirements').select(['code791_stem', 'text', 'review_status', 'bloom_level']).execute()
+  const existing = await db
+    .selectFrom('curriculum_requirements')
+    .select(['code791_stem', 'text', 'review_status', 'bloom_level', 'extraction', 'extraction_flags'])
+    .execute()
   const byStem = new Map(existing.map((row) => [row.code791_stem, row]))
   let added = 0
   let updated = 0
@@ -55,6 +62,8 @@ export async function seedCurriculum(db: Db, filePath: string): Promise<SeedCurr
           orientation: null,
           source_doc: row.sourceDoc,
           source_locator: null,
+          extraction: row.extraction,
+          extraction_flags: row.flags,
           review_status: 'unverified',
           reviewed_by: null,
           reviewed_at: null,
@@ -63,13 +72,14 @@ export async function seedCurriculum(db: Db, filePath: string): Promise<SeedCurr
       added += 1
       continue
     }
-    if (current.text === row.text && current.bloom_level === row.bloom) {
+    const sameFlags = JSON.stringify(current.extraction_flags) === JSON.stringify(row.flags)
+    if (current.text === row.text && current.bloom_level === row.bloom && current.extraction === row.extraction && sameFlags) {
       skipped += 1
       continue
     }
     await db
       .updateTable('curriculum_requirements')
-      .set({ text: row.text, bloom_level: row.bloom, source_doc: row.sourceDoc })
+      .set({ text: row.text, bloom_level: row.bloom, source_doc: row.sourceDoc, extraction: row.extraction, extraction_flags: row.flags })
       .where('code791_stem', '=', row.stem)
       .where('review_status', '<>', 'approved')
       .execute()
@@ -87,7 +97,18 @@ function readJson(raw: string): Row[] {
   return Array.isArray(parsed) ? parsed : parsed.requirements
 }
 
-function parseRow(row: Row): { stem: string; bloom: number | null; subject: string; grade: number; unit1: string; unit2: string; text: string; sourceDoc: string } {
+function parseRow(row: Row): {
+  stem: string
+  bloom: number | null
+  subject: string
+  grade: number
+  unit1: string
+  unit2: string
+  text: string
+  sourceDoc: string
+  extraction: 'clean' | 'check'
+  flags: string[]
+} {
   const match = /^([0-9]{4})([0-9]{2})\.([0-9]{2})([0-9]{2})([a-z])([1-6])?$/.exec((row.code791 ?? '').trim())
   if (!match) throw new DomainError('VALIDATION_FAILED', { reason: 'BAD_CODE791' })
   const subject = match[1] ?? ''
@@ -96,6 +117,11 @@ function parseRow(row: Row): { stem: string; bloom: number | null; subject: stri
   const unit2 = match[4] ?? ''
   const letter = match[5] ?? ''
   const bloom = match[6] ? Number(match[6]) : null
+  const extraction = row.extraction === 'check' ? 'check' : 'clean'
+  const flags = (row.flags ?? '')
+    .split(/[|,]/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
   return {
     stem: `${subject}${gradeText}.${unit1}${unit2}${letter}`,
     bloom,
@@ -105,6 +131,8 @@ function parseRow(row: Row): { stem: string; bloom: number | null; subject: stri
     unit2,
     text: row.text ?? '',
     sourceDoc: row.source_doc ?? '',
+    extraction,
+    flags,
   }
 }
 

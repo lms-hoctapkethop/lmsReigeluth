@@ -1,6 +1,6 @@
 # Học cùng nhau
 
-Repo được làm mới theo bộ đặc tả triển khai 3.0 (30/09/2026). Mốc hiện tại là **M2**: tổ chức nhà trường, nhập tài khoản, và nạp yêu cầu cần đạt.
+Repo được làm mới theo bộ đặc tả triển khai 3.0 (30/09/2026). Mốc hiện tại là **M3**: chương trình, thành phần kiến thức, và lỗi hiểu sai.
 
 ## Thay đổi 3.1
 
@@ -23,6 +23,21 @@ Mục này không có sẵn trong cây nguồn trước M2. Các khóa dưới �
 - OpenAPI được thêm các đường admin mà giao diện `/quan-tri` gọi. `ASSIGNMENT_OVERLAP` được thêm vào enum lỗi.
 - `testcontainers` là devDependency trực tiếp của `@hcn/api` vì đã có trong lockfile qua `@testcontainers/postgresql`. Không thêm thư viện khác.
 - CI chạy khi đẩy nhánh `m2-org`, cùng lý do với `m1-auth`: review PR không kích hoạt GitHub Actions.
+
+## Thay đổi 3.2
+
+Mục này không có sẵn trên `main` khi bắt đầu M3. Các lựa chọn dưới đây là chỗ đặc tả im lặng:
+
+- Nhánh `m3-curriculum` tách từ `m2-org` vì `main` mới có M1, chưa có tổ chức M2 và chưa có tệp spec 3.2.
+- Migration mới `20261003000100_curriculum_review.sql` thêm `extraction`, `extraction_flags`, `created_by`, `curriculum_review_log` và view `effective_kc_edges`. Không sửa migration cũ. `db/tests/schema_invariants.sql` vẫn in 26 PASS; DB17–DB21 không có trong tệp đã đóng băng nên không được thêm.
+- `If-Match` của YCCĐ là số micro giây của `updated_at`, hoặc dạng `W/"<số>"`.
+- Học sinh và phụ huynh thấy mọi YCCĐ `approved` hoặc `source_checked` theo môn và khối. YCCĐ không gắn offering nên chưa lọc theo ghi danh.
+- `can(curriculum.review)` cho phép admin và teacher bước vào use case. Dòng `curriculum_reviewers` mới quyết định 403 theo môn.
+- Cạnh proposed chỉ đi qua `proposedEdgesForReview`. Publish, R0 và bản đồ nhiệt phải gọi `effectivePrerequisites`.
+- CLI `grant-reviewer` / `revoke-reviewer` không có API. Vì không có phiên, actor của audit là chính user được cấp hoặc thu hồi.
+- Test kết nối bằng `hcn_test_app` (thuộc `hcn_app`). Migration và seed vẫn dùng superuser. `TRUNCATE` không được GRANT thêm; chỗ dọn dữ liệu kiểm thử vẫn dùng kết nối superuser.
+- Phím tắt j/k tắt bằng hộp kiểm trên trang, không ghi localStorage. Hộp thoại duyệt không bẫy focus; kết quả nằm ở vùng `aria-live`.
+- Ca M3-SELF dùng `reviewer.tin` vừa là người đề xuất vừa là người duyệt. `gv.de.xuat` không có dòng `curriculum_reviewers`, nên tự duyệt của giáo viên đó dừng ở 403 trước khi tới `SELF_REVIEW`.
 
 ## Chạy
 

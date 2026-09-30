@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { sql, type Kysely } from 'kysely'
 import type { Database, Role, UserStatus } from '@hcn/db'
 
@@ -33,6 +35,8 @@ export const personas = {
   gvTin11: { username: 'gv.tin11', subject: uid('10000000', 0x1d), displayName: 'GV Tin 11', status: 'active' },
   hsBinh: { username: 'hs.binh', subject: uid('10000000', 0x1e), displayName: 'Bình', status: 'active' },
   reviewerTin: { username: 'reviewer.tin', subject: uid('10000000', 0x1f), displayName: 'Thẩm định Tin', status: 'active' },
+  reviewerToan: { username: 'reviewer.toan', subject: uid('10000000', 0x20), displayName: 'Thẩm định Toán', status: 'active' },
+  gvDeXuat: { username: 'gv.de.xuat', subject: uid('10000000', 0x21), displayName: 'GV Đề xuất', status: 'active' },
 } as const satisfies Record<string, Persona>
 
 export const academicYears = {
@@ -120,6 +124,8 @@ const memberships: Membership[] = [
   { id: uid('30000000', 0x1e), user: 'gvTin11', school: 'an', role: 'teacher' },
   { id: uid('30000000', 0x1f), user: 'hsBinh', school: 'an', role: 'student' },
   { id: uid('30000000', 0x20), user: 'reviewerTin', school: 'an', role: 'teacher' },
+  { id: uid('30000000', 0x21), user: 'gvDeXuat', school: 'an', role: 'teacher' },
+  { id: uid('30000000', 0x22), user: 'reviewerToan', school: 'an', role: 'teacher' },
 ]
 
 const classRange = sql<string>`daterange('2026-09-01'::date, '2027-06-01'::date, '[)')`
@@ -322,11 +328,184 @@ export async function seedIdentity(db: Kysely<Database>, options: { issuer: stri
 
   await db
     .insertInto('curriculum_reviewers')
-    .values({
-      user_id: personas.reviewerTin.subject,
-      subject_code: '1401',
-      granted_by: personas.adminA.subject,
-    })
+    .values([
+      { user_id: personas.reviewerTin.subject, subject_code: '1401', granted_by: personas.adminA.subject },
+      { user_id: personas.reviewerToan.subject, subject_code: '0201', granted_by: personas.adminA.subject },
+    ])
     .onConflict((conflict) => conflict.columns(['user_id', 'subject_code']).doNothing())
     .execute()
+
+  await seedCurriculumFixture(db)
+}
+
+async function seedCurriculumFixture(db: Kysely<Database>): Promise<void> {
+  const file = fileURLToPath(new URL('../../../db/seeds/test/curriculum_fixture.json', import.meta.url))
+  const fixture = JSON.parse(readFileSync(file, 'utf8')) as Fixture
+  const userId = (username: string): string => {
+    const persona = Object.values(personas).find((item) => item.username === username)
+    if (!persona) throw new Error(`Không có persona ${username}`)
+    return persona.subject
+  }
+  for (const row of fixture.requirements) {
+    const parsed = parseStem(row.code791)
+    await db
+      .insertInto('curriculum_requirements')
+      .values({
+        code791_stem: parsed.stem,
+        bloom_level: parsed.bloom,
+        subject_code: parsed.subject,
+        grade: parsed.grade,
+        unit1: parsed.unit1,
+        unit2: parsed.unit2,
+        text: row.text,
+        topic_label: null,
+        orientation: null,
+        source_doc: row.source_doc,
+        source_locator: row.source_locator ?? null,
+        extraction: row.extraction,
+        extraction_flags: row.flags ?? [],
+        review_status: row.review_status,
+        reviewed_by: row.review_status === 'approved' || row.review_status === 'source_checked' ? personas.reviewerTin.subject : null,
+        reviewed_at: row.review_status === 'unverified' ? null : new Date('2026-09-03T00:00:00Z'),
+      })
+      .onConflict((conflict) => conflict.column('code791_stem').doNothing())
+      .execute()
+  }
+  const requirementId = new Map<string, string>()
+  const requirements = await db.selectFrom('curriculum_requirements').select(['id', 'code791_stem']).execute()
+  for (const row of requirements) requirementId.set(row.code791_stem, row.id)
+  for (const row of fixture.kcs) {
+    await db
+      .insertInto('knowledge_components')
+      .values({ code: row.code, subject_code: row.subject, grade: row.grade })
+      .onConflict((conflict) => conflict.column('code').doNothing())
+      .execute()
+  }
+  const kcId = new Map<string, string>()
+  const kcs = await db.selectFrom('knowledge_components').select(['id', 'code']).execute()
+  for (const row of kcs) kcId.set(row.code, row.id)
+  const versionId = new Map<string, string>()
+  for (const row of fixture.kcs) {
+    const id = kcId.get(row.code)
+    if (!id) continue
+    const existing = await db
+      .selectFrom('kc_versions')
+      .select(['id'])
+      .where('kc_id', '=', id)
+      .where('version_no', '=', 1)
+      .executeTakeFirst()
+    if (existing) {
+      versionId.set(row.code, existing.id)
+      continue
+    }
+    const created = await db
+      .insertInto('kc_versions')
+      .values({
+        kc_id: id,
+        version_no: 1,
+        name: row.name,
+        description: null,
+        observable_criteria: row.observable,
+        status: row.status,
+        source: row.source,
+        ai_proposal_id: null,
+        created_by: row.createdBy ? userId(row.createdBy) : null,
+        reviewed_by: row.status === 'approved' ? personas.reviewerTin.subject : null,
+        reviewed_at: row.status === 'approved' ? new Date('2026-09-03T00:00:00Z') : null,
+      })
+      .returning(['id'])
+      .executeTakeFirstOrThrow()
+    versionId.set(row.code, created.id)
+  }
+  for (const row of fixture.links) {
+    const requirement = requirementId.get(row.requirement)
+    const version = versionId.get(row.kc)
+    if (!requirement || !version) continue
+    await db
+      .insertInto('requirement_kc_links')
+      .values({
+        requirement_id: requirement,
+        kc_version_id: version,
+        coverage: 'partial',
+        status: row.status,
+        source: 'import',
+        reviewed_by: row.status === 'approved' ? personas.reviewerTin.subject : null,
+        created_by: null,
+      })
+      .onConflict((conflict) => conflict.columns(['requirement_id', 'kc_version_id']).doNothing())
+      .execute()
+  }
+  for (const row of fixture.edges) {
+    const from = versionId.get(row.from)
+    const to = versionId.get(row.to)
+    if (!from || !to) continue
+    await db
+      .insertInto('kc_edges')
+      .values({
+        from_kc_version_id: from,
+        to_kc_version_id: to,
+        edge_type: row.type,
+        status: row.status,
+        source: 'import',
+        rationale: null,
+        reviewed_by: row.status === 'approved' ? personas.reviewerTin.subject : null,
+        created_by: row.createdBy ? userId(row.createdBy) : null,
+      })
+      .onConflict((conflict) => conflict.columns(['from_kc_version_id', 'to_kc_version_id', 'edge_type']).doNothing())
+      .execute()
+  }
+  for (const row of fixture.misconceptions) {
+    const kc = kcId.get(row.kc)
+    if (!kc) continue
+    await db
+      .insertInto('misconceptions')
+      .values({
+        code: row.code,
+        kc_id: kc,
+        description: row.description,
+        status: row.status,
+        reviewed_by: row.status === 'approved' ? personas.reviewerTin.subject : null,
+        created_by: null,
+      })
+      .onConflict((conflict) => conflict.column('code').doNothing())
+      .execute()
+  }
+}
+
+type Fixture = {
+  requirements: {
+    code791: string
+    extraction: 'clean' | 'check'
+    flags?: string[]
+    text: string
+    source_doc: string
+    source_locator?: string
+    review_status: 'unverified' | 'source_checked' | 'approved' | 'rejected'
+  }[]
+  kcs: {
+    code: string
+    subject: string
+    grade: number
+    name: string
+    observable: string
+    status: 'proposed' | 'approved'
+    source: 'import' | 'teacher'
+    createdBy?: string
+  }[]
+  links: { requirement: string; kc: string; status: 'proposed' | 'approved' }[]
+  edges: { from: string; to: string; type: 'prerequisite' | 'develops_into' | 'part_of'; status: 'proposed' | 'approved'; createdBy?: string }[]
+  misconceptions: { code: string; kc: string; description: string; status: 'proposed' | 'approved' }[]
+}
+
+function parseStem(code791: string): { stem: string; bloom: number | null; subject: string; grade: number; unit1: string; unit2: string } {
+  const match = /^([0-9]{4})([0-9]{2})\.([0-9]{2})([0-9]{2})([a-z])([1-6])?$/.exec(code791.trim())
+  if (!match?.[1] || !match[2] || !match[3] || !match[4] || !match[5]) throw new Error(`Mã 791 không hợp lệ: ${code791}`)
+  return {
+    subject: match[1],
+    grade: Number(match[2]),
+    unit1: match[3],
+    unit2: match[4],
+    stem: `${match[1]}${match[2]}.${match[3]}${match[4]}${match[5]}`,
+    bloom: match[6] ? Number(match[6]) : null,
+  }
 }

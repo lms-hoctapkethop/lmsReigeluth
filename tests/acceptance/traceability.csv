@@ -60,7 +60,7 @@ A18,2.1 tệp 07,Mất AI không mất luồng học,L3/L5,,M8,todo,
 B01,2.2 tệp 08,Chỉ KC observable đổi ước lượng,L1/L3/L5,,M8,todo,
 B02,2.2 tệp 08,Worker xử lý lại không nhân đôi quan sát,L1/L3/L5,,M8,todo,
 B03,2.2 tệp 08,Ước lượng tốt không tạo quyết định,L1/L3/L5,,M8,todo,
-B04,2.2 tệp 08,Cạnh đề xuất không dùng cho chẩn đoán,L1/L3/L5,,M8,todo,
+B04,2.2 tệp 08,Cạnh đề xuất không dùng cho chẩn đoán,L1/L3/L5,packages/domain/src/curriculum/b04-imports.test.ts,M3,pass,apps/api/test/curriculum.test.ts
 B05,2.2 tệp 08,'Em chưa học phần này' ghi thiếu dữ liệu,L1/L3/L5,,M6,todo,
 B06,2.2 tệp 08,Hổng gốc sâu hơn 3 bước dừng và gợi ý GV,L1/L3/L5,,M8,todo,
 B07,2.2 tệp 08,Nhiệm vụ thay thế cần duyệt,L1/L3/L5,,M10,todo,
@@ -84,7 +84,7 @@ C10,2.2 tệp 09,Sửa rubric sau nộp giữ version cũ,L1/L3/L5,,M4,todo,
 DB01,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
 DB02,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
 DB03,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
-DB04,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
+DB04,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,pass,apps/api/test/curriculum.test.ts DB04-API
 DB05,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
 DB06,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
 DB07,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
@@ -97,6 +97,11 @@ DB13,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,tod
 DB14,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
 DB15,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
 DB16,db/tests,Xem schema_invariants.sql,L2,db/tests/schema_invariants.sql,M0,todo,
+DB17,docs/05 mục 4,Nhật ký duyệt cùng transaction với audit,L2/L3,apps/api/test/curriculum.test.ts,M3,pass,apps/api/test/curriculum.test.ts M3-REQ
+DB18,docs/05 mục 4,Version KC chép cạnh và liên kết,L3,apps/api/test/curriculum.test.ts,M3,pass,apps/api/test/curriculum.test.ts M3-VERSION
+DB19,docs/05 mục 4,Chép cạnh gây vòng thì rollback,L3,apps/api/test/curriculum.test.ts,M3,pass,apps/api/test/curriculum.test.ts M3-VERSION-CYCLE
+DB20,docs/05 mục 4,Cấm tự duyệt,L3,apps/api/test/curriculum.test.ts,M3,pass,apps/api/test/curriculum.test.ts M3-SELF
+DB21,docs/05 mục 4,Đồ thị hiệu lực không gồm cạnh proposed,L2/L3,packages/db/src/repositories/kcGraph.ts,M3,pass,apps/api/test/curriculum.test.ts B04
 SEC-01,docs/09 mục 6,IDOR,L3/L4/L6,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
 SEC-02,docs/09 mục 6,CSRF,L3/L4/L6,,M1,todo,
 SEC-03,docs/09 mục 6,Cờ cookie,L3/L4/L6,,M1,todo,
