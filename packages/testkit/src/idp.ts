@@ -10,10 +10,10 @@ export type FakeIdp = {
   stop: () => Promise<void>
 }
 
-function listen(server: Server): Promise<void> {
+function listen(server: Server, port = 0): Promise<void> {
   return new Promise((resolve, reject) => {
     server.once('error', reject)
-    server.listen(0, '127.0.0.1', () => resolve())
+    server.listen(port, '127.0.0.1', () => resolve())
   })
 }
 
@@ -89,7 +89,7 @@ export async function startFakeIdp(options: { clientId: string; clientSecret: st
       res.end(error instanceof Error ? error.message : 'idp')
     })
   })
-  await listen(server)
+  await listen(server, port)
 
   return {
     issuer,
