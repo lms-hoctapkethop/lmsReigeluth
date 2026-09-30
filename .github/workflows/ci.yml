@@ -4,7 +4,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, m1-auth]
 
 concurrency:
   group: ci-${{ github.ref }}
