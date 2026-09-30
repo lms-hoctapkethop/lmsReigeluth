@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { readdirSync } from 'node:fs'
 import pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { startPostgres18, type Postgres18 } from './postgres.ts'
@@ -40,7 +41,8 @@ describe.skipIf(!ready)('testkit postgres:18', () => {
     await right.connect()
     try {
       const migrated = await left.query('SELECT count(*)::int AS n FROM schema_migrations')
-      expect(migrated.rows[0]?.n).toBe(6)
+      const migrationFiles = readdirSync(new URL('../../../db/migrations/', import.meta.url)).filter((name) => name.endsWith('.sql'))
+      expect(migrated.rows[0]?.n).toBe(migrationFiles.length)
       const app = new pg.Client({ connectionString: leftDb.appUrl })
       await app.connect()
       try {
