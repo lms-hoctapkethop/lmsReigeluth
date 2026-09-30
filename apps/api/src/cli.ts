@@ -1,3 +1,4 @@
+import { userInfo } from 'node:os'
 import { createDb } from '@hcn/db'
 import { bootstrapSchool, grantReviewer, revokeReviewer, seedCurriculum, systemClock } from '@hcn/domain'
 import { KeycloakAdmin } from './adapters/keycloak-admin.ts'
@@ -47,8 +48,9 @@ try {
   } else if (command === 'grant-reviewer' || command === 'revoke-reviewer') {
     const username = flag('username')
     const subject = flag('subject')
-    if (!username || !subject || !config.keycloakProvisionerSecret) {
-      console.error('Cấu hình không hợp lệ: --username, --subject, KEYCLOAK_PROVISIONER_SECRET')
+    const grantedByName = flag('granted-by')
+    if (!username || !subject || !grantedByName || !config.keycloakProvisionerSecret) {
+      console.error('Cấu hình không hợp lệ: --username, --subject, --granted-by, KEYCLOAK_PROVISIONER_SECRET')
       process.exit(1)
     }
     const idp = new KeycloakAdmin({
@@ -56,20 +58,17 @@ try {
       clientId: config.keycloakProvisionerClientId ?? 'hcn-provisioner',
       clientSecret: config.keycloakProvisionerSecret,
     })
-    const found = await idp.findByUsername(username)
-    if (!found) {
-      console.error('Không tìm thấy người dùng trên IdP')
-      process.exit(1)
+    const userId = await userIdByUsername(idp, username)
+    const grantedBy = await userIdByUsername(idp, grantedByName)
+    const meta = {
+      actor: { userId: grantedBy, schoolId: '00000000-0000-4000-8000-000000000000', roles: ['admin' as const] },
+      requestId: 'cli-reviewer',
+      clock: systemClock,
     }
-    const user = await db.selectFrom('users').select(['id']).where('oidc_subject', '=', found.id).executeTakeFirst()
-    if (!user) {
-      console.error('Người dùng chưa có trong cơ sở dữ liệu')
-      process.exit(1)
-    }
-    const meta = { actor: { userId: user.id, schoolId: '00000000-0000-4000-8000-000000000000', roles: ['admin' as const] }, requestId: 'cli-reviewer', clock: systemClock }
+    const osUser = userInfo().username
     const result = command === 'grant-reviewer'
-      ? await grantReviewer(db, meta, { userId: user.id, subjectCode: subject })
-      : await revokeReviewer(db, meta, { userId: user.id, subjectCode: subject })
+      ? await grantReviewer(db, meta, { userId, subjectCode: subject, grantedBy, osUser })
+      : await revokeReviewer(db, meta, { userId, subjectCode: subject, osUser })
     console.log(JSON.stringify(result))
   } else {
     console.error('Lệnh: bootstrap-school | seed-curriculum | grant-reviewer | revoke-reviewer')
@@ -77,4 +76,18 @@ try {
   }
 } finally {
   await db.destroy()
+}
+
+async function userIdByUsername(idp: KeycloakAdmin, username: string): Promise<string> {
+  const found = await idp.findByUsername(username)
+  if (!found) {
+    console.error('Không tìm thấy người dùng trên IdP')
+    process.exit(1)
+  }
+  const user = await db.selectFrom('users').select(['id']).where('oidc_subject', '=', found.id).executeTakeFirst()
+  if (!user) {
+    console.error('Người dùng chưa có trong cơ sở dữ liệu')
+    process.exit(1)
+  }
+  return user.id
 }

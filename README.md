@@ -29,12 +29,12 @@ Mục này không có sẵn trong cây nguồn trước M2. Các khóa dưới �
 Mục này không có sẵn trên `main` khi bắt đầu M3. Các lựa chọn dưới đây là chỗ đặc tả im lặng:
 
 - Nhánh `m3-curriculum` tách từ `m2-org` vì `main` mới có M1, chưa có tổ chức M2 và chưa có tệp spec 3.2.
-- Migration mới `20261003000100_curriculum_review.sql` thêm `extraction`, `extraction_flags`, `created_by`, `curriculum_review_log` và view `effective_kc_edges`. Không sửa migration cũ. `db/tests/schema_invariants.sql` vẫn in 26 PASS; DB17–DB21 không có trong tệp đã đóng băng nên không được thêm.
+- Migration mới `20261003000100_curriculum_review.sql` thêm `extraction`, `extraction_flags`, `created_by`, `curriculum_review_log` và view `effective_kc_edges`. Không sửa migration cũ. `db/tests/schema_invariants.sql` vẫn in 26 PASS. DB17–DB21 nằm ở tệp mới `db/tests/curriculum_review_invariants.sql`, chép nguyên văn từ đặc tả 3.3.
 - `If-Match` của YCCĐ là số micro giây của `updated_at`, hoặc dạng `W/"<số>"`.
-- Học sinh và phụ huynh thấy mọi YCCĐ `approved` hoặc `source_checked` theo môn và khối. YCCĐ không gắn offering nên chưa lọc theo ghi danh.
+- Học sinh chỉ thấy YCCĐ `approved` hoặc `source_checked` khi `(subject_code, grade)` thuộc khóa của offering mình đang ghi danh `active`. Phụ huynh thấy theo con có liên kết `verified`.
 - `can(curriculum.review)` cho phép admin và teacher bước vào use case. Dòng `curriculum_reviewers` mới quyết định 403 theo môn.
 - Cạnh proposed chỉ đi qua `proposedEdgesForReview`. Publish, R0 và bản đồ nhiệt phải gọi `effectivePrerequisites`.
-- CLI `grant-reviewer` / `revoke-reviewer` không có API. Vì không có phiên, actor của audit là chính user được cấp hoặc thu hồi.
+- CLI `grant-reviewer` / `revoke-reviewer` không có API. Audit ghi `actor_id` null, `details` là `{via: "cli", os_user}`, đối tượng là user được cấp hoặc thu hồi. `--granted-by <username>` bắt buộc và điền `curriculum_reviewers.granted_by`.
 - Test kết nối bằng `hcn_test_app` (thuộc `hcn_app`). Migration và seed vẫn dùng superuser. `TRUNCATE` không được GRANT thêm; chỗ dọn dữ liệu kiểm thử vẫn dùng kết nối superuser.
 - Phím tắt j/k tắt bằng hộp kiểm trên trang, không ghi localStorage. Hộp thoại duyệt không bẫy focus; kết quả nằm ở vùng `aria-live`.
 - Ca M3-SELF dùng `reviewer.tin` vừa là người đề xuất vừa là người duyệt. `gv.de.xuat` không có dòng `curriculum_reviewers`, nên tự duyệt của giáo viên đó dừng ở 403 trước khi tới `SELF_REVIEW`.
@@ -57,7 +57,7 @@ Mục này không có sẵn trên `main` khi bắt đầu M4. `main` mới có M
 - `listMyModules` chỉ trả module trong khóa mà giáo viên là chủ hoặc collaborator editor, và có phân công `author`. `module.create/edit/publish` từ chối admin, học sinh, phụ huynh.
 - `toLearnerRelease` là hàm duy nhất chiếu DTO học sinh. Xem trước gọi hàm này và không ghi tiến độ.
 - Ngân sách gzip 250 KB áp cho tệp mà `index.html` tải ngay (lộ `/hoc`). Studio, KaTeX và kéo thả được tách chunk, không tính vào ngân sách đó.
-- `db/tests/schema_invariants.sql` vẫn in 26 PASS. Ngưỡng CI không được nâng lên 36 vì không được sửa tệp kiểm thử đã đóng băng.
+- `db/tests/schema_invariants.sql` không sửa. `db/tests/curriculum_review_invariants.sql` là tệp mới, chép nguyên văn từ đặc tả 3.3. Ngưỡng CI là 36 PASS trên `invariants.log`. Migration trong repo khác bản đặc tả 3.3 nên DB17 dừng ở cột `object_type`; không sửa migration và không sửa tệp kiểm thử.
 - Phím tắt dàn mục là Alt+Mũi tên, kèm nút Lên/Xuống. Không ghi localStorage.
 
 ## Chạy
