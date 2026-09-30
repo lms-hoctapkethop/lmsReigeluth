@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { apiJson } from './http.ts'
 import styles from './learn.module.css'
 
+type Offering = { id: string; title: string }
 type TodayItem = {
   releaseId: string
   itemId: string
@@ -30,6 +31,10 @@ export function LearnToday() {
     queryKey: ['learner-today'],
     queryFn: () => apiJson<{ items: TodayItem[]; newFeedback: number }>('/api/v1/me/today'),
   })
+  const classes = useQuery({
+    queryKey: ['my-offerings'],
+    queryFn: () => apiJson<Offering[]>('/api/v1/offerings'),
+  })
   return (
     <section className={styles.stack}>
       <h1>Việc cần làm</h1>
@@ -37,6 +42,14 @@ export function LearnToday() {
       {today.isError ? <p role="alert">Không tải được việc cần làm.</p> : null}
       {today.data && today.data.items.length === 0 ? <p>Hôm nay chưa có việc đến hạn.</p> : null}
       {today.data && today.data.newFeedback > 0 ? <p>Có {today.data.newFeedback} nhận xét mới.</p> : null}
+      <h2>Lớp của em</h2>
+      {classes.isLoading ? <p>Đang tải lớp.</p> : null}
+      {classes.data && classes.data.length === 0 ? <p>Chưa có lớp học phần nào được ghi danh.</p> : null}
+      <ul>
+        {classes.data?.map((item) => (
+          <li key={item.id}><Link to={`/hoc/lop/${item.id}`}>{item.title}</Link></li>
+        ))}
+      </ul>
       <ul>
         {today.data?.items.map((item) => (
           <li key={`${item.releaseId}:${item.itemId}`}>

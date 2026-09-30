@@ -32,7 +32,12 @@ function Block({ block }: { block: unknown }) {
     const fileId = typeof row.fileId === 'string' ? row.fileId : ''
     const alt = String(row.alt ?? '')
     if (!fileId) return <p>{alt}</p>
-    return <img src={`/api/v1/files/${fileId}?disposition=inline`} alt={alt} />
+    return (
+      <figure>
+        <img src={`/api/v1/files/${fileId}?disposition=inline`} alt={alt} />
+        <figcaption>{alt}</figcaption>
+      </figure>
+    )
   }
   if (row.type === 'table') {
     const rows = Array.isArray(row.rows) ? row.rows : []

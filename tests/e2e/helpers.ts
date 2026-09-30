@@ -38,7 +38,7 @@ export async function publishReleasedAssignment(
   availableFrom: string,
 ): Promise<{ releaseId: string; itemId: string }> {
   const token = await csrf(request)
-  const headers = { 'x-csrf-token': token, 'content-type': 'application/json' }
+  const headers = { 'x-csrf-token': token, 'content-type': 'application/json', origin: 'http://localhost:5173' }
   const created = await request.post('/api/v1/modules', { headers, data: { courseId: tin10CourseId, title, requirementIds: [] } })
   expect(created.ok(), await created.text()).toBe(true)
   const moduleId = ((await created.json()) as { moduleId: string }).moduleId
