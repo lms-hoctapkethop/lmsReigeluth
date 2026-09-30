@@ -49,4 +49,21 @@ export default tseslint.config(
       'no-restricted-syntax': 'off',
     },
   },
+  {
+    files: ['packages/domain/**/*.ts'],
+    ignores: ['packages/domain/src/quiz/answer.ts', 'packages/domain/src/quiz/submit.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "ImportDeclaration[source.value='./keys.ts'], ImportDeclaration[source.value='./keys.js'], ImportDeclaration[source.value='../quiz/keys.ts'], ImportDeclaration[source.value='./quiz/keys.ts']",
+          message: 'Chỉ answerQuestion và submitAttempt được đọc question_keys.',
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value='./quiz/keys.ts'], ExportAllDeclaration[source.value='./quiz/keys.ts']",
+          message: 'Không xuất readQuestionKey ra khỏi use case chấm.',
+        },
+      ],
+    },
+  },
 )

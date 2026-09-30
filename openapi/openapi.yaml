@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Học cùng nhau API
-  version: 3.4.0
+  version: 3.5.0
   description: |
     Hợp đồng API lõi của LMS Học cùng nhau. Mọi endpoint dưới /api/v1 yêu cầu cookie phiên `hcn_sid`.
     Request không an toàn (POST/PUT/PATCH/DELETE) yêu cầu header `X-CSRF-Token` và `Origin` hợp lệ.
@@ -919,7 +919,6 @@ paths:
   /api/v1/module-releases/{releaseId}/items/{itemId}/attempts:
     post:
       tags: [quiz]
-      x-milestone: M6
       operationId: startAttempt
       parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/ItemId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       responses:
@@ -928,7 +927,6 @@ paths:
   /api/v1/attempts/{attemptId}:
     get:
       tags: [quiz]
-      x-milestone: M6
       operationId: getAttempt
       parameters: [ { $ref: '#/components/parameters/AttemptId' } ]
       responses:
@@ -936,7 +934,6 @@ paths:
   /api/v1/attempts/{attemptId}/questions/{questionId}/answers:
     post:
       tags: [quiz]
-      x-milestone: M6
       operationId: answerQuestion
       description: |
         practice: chấm ngay, trả phản hồi theo lỗi hiểu sai. diagnostic/exit_ticket: lưu, không trả đúng sai tới khi submit
@@ -951,7 +948,6 @@ paths:
   /api/v1/attempts/{attemptId}/questions/{questionId}/hints:
     post:
       tags: [quiz]
-      x-milestone: M6
       operationId: requestHint
       parameters: [ { $ref: '#/components/parameters/AttemptId' }, { $ref: '#/components/parameters/QuestionId' }, { $ref: '#/components/parameters/Csrf' } ]
       responses:
@@ -962,7 +958,6 @@ paths:
   /api/v1/attempts/{attemptId}/submit:
     post:
       tags: [quiz]
-      x-milestone: M6
       operationId: submitAttempt
       parameters: [ { $ref: '#/components/parameters/AttemptId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       responses:
@@ -1194,7 +1189,7 @@ components:
               type: string
               enum: [BAD_REQUEST, UNAUTHENTICATED, FORBIDDEN, CSRF_FAILED, NOT_FOUND, REVISION_CONFLICT, IDEMPOTENCY_KEY_REUSED, REQUEST_IN_PROGRESS,
                      SUBMISSION_VERSION_CHANGED, ALREADY_PUBLISHED, ATTEMPT_LIMIT_REACHED, RELEASE_CLOSED, FILE_TOO_LARGE, FILE_TYPE_NOT_ALLOWED,
-                     VALIDATION_FAILED, COVERAGE_BLOCKED, FEATURE_NOT_ENABLED, KC_EDGE_CYCLE, FILE_NOT_SCANNED, FILE_REJECTED, RATE_LIMITED, INTERNAL, ASSIGNMENT_OVERLAP]
+                     VALIDATION_FAILED, COVERAGE_BLOCKED, FEATURE_NOT_ENABLED, KC_EDGE_CYCLE, FILE_NOT_SCANNED, FILE_REJECTED, RATE_LIMITED, INTERNAL, ASSIGNMENT_OVERLAP, ALREADY_ANSWERED, UPSTREAM_IDP_ERROR]
             message: { type: string }
             request_id: { type: string }
             details: { type: object, additionalProperties: true }
@@ -1495,6 +1490,20 @@ components:
         answered: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
         score: { type: [number, 'null'] }
         maxScore: { type: [number, 'null'] }
+        questionStates:
+          type: array
+          items:
+            type: object
+            required: [questionId, answered, hintsUsed, revealed]
+            properties:
+              questionId: { $ref: '#/components/schemas/Uuid' }
+              answered: { type: boolean }
+              tryNo: { type: [integer, 'null'] }
+              hintsUsed: { type: integer }
+              revealed: { type: boolean }
+              correct: { type: [boolean, 'null'] }
+              feedback: { type: [string, 'null'] }
+              openedHints: { type: array, items: { type: string } }
     AnswerInput:
       type: object
       required: [response]
@@ -1505,6 +1514,7 @@ components:
             - { type: object, required: [option], additionalProperties: false, properties: { option: { type: string } } }
             - { type: object, required: [options], additionalProperties: false, properties: { options: { type: array, items: { type: string } } } }
             - { type: object, required: [raw], additionalProperties: false, properties: { raw: { type: string, maxLength: 200 } } }
+            - { type: object, required: [notLearned], additionalProperties: false, properties: { notLearned: { const: true } } }
     AnswerResult:
       type: object
       required: [tryNo, revealed]

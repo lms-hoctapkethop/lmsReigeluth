@@ -197,7 +197,7 @@ export async function getReleaseForLearner(db: Db, meta: Meta, releaseId: string
                 stem: question.stem,
                 options: question.options,
                 bloomTarget: question.bloom_target,
-                hints: question.hints,
+                hintsAvailable: Array.isArray(question.hints) ? question.hints.length : 0,
               })),
           }
         : undefined,

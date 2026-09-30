@@ -10,6 +10,7 @@ export const errorCodes = [
   'REQUEST_IN_PROGRESS',
   'SUBMISSION_VERSION_CHANGED',
   'ALREADY_PUBLISHED',
+  'ALREADY_ANSWERED',
   'ATTEMPT_LIMIT_REACHED',
   'RELEASE_CLOSED',
   'FILE_TOO_LARGE',
@@ -21,6 +22,7 @@ export const errorCodes = [
   'FILE_NOT_SCANNED',
   'FILE_REJECTED',
   'RATE_LIMITED',
+  'UPSTREAM_IDP_ERROR',
   'INTERNAL',
 ] as const
 
@@ -38,6 +40,7 @@ const statusByCode: Record<ErrorCode, number> = {
   REQUEST_IN_PROGRESS: 409,
   SUBMISSION_VERSION_CHANGED: 409,
   ALREADY_PUBLISHED: 409,
+  ALREADY_ANSWERED: 409,
   ATTEMPT_LIMIT_REACHED: 409,
   RELEASE_CLOSED: 410,
   FILE_TOO_LARGE: 413,
@@ -49,6 +52,7 @@ const statusByCode: Record<ErrorCode, number> = {
   FILE_NOT_SCANNED: 423,
   FILE_REJECTED: 422,
   RATE_LIMITED: 429,
+  UPSTREAM_IDP_ERROR: 502,
   INTERNAL: 500,
 }
 
@@ -64,6 +68,7 @@ const messageByCode: Record<ErrorCode, string> = {
   REQUEST_IN_PROGRESS: 'Yêu cầu đang được xử lý.',
   SUBMISSION_VERSION_CHANGED: 'Bài nộp đã có phiên bản mới.',
   ALREADY_PUBLISHED: 'Nội dung đã được phát hành.',
+  ALREADY_ANSWERED: 'Không làm thêm được bước này.',
   ATTEMPT_LIMIT_REACHED: 'Đã hết lượt làm.',
   RELEASE_CLOSED: 'Bài đã đóng.',
   FILE_TOO_LARGE: 'Tệp quá lớn.',
@@ -75,6 +80,7 @@ const messageByCode: Record<ErrorCode, string> = {
   FILE_NOT_SCANNED: 'Tệp chưa được quét xong.',
   FILE_REJECTED: 'Tệp không được chấp nhận.',
   RATE_LIMITED: 'Bạn thao tác quá nhanh. Hãy thử lại sau.',
+  UPSTREAM_IDP_ERROR: 'Máy định danh không phản hồi.',
   INTERNAL: 'Đã có lỗi. Hãy thử lại.',
 }
 

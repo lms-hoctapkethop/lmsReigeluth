@@ -4,6 +4,7 @@ import { Link, useParams, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
 import { RichView } from '../studio/rich-view.tsx'
 import { apiJson } from './http.ts'
+import { QuizPanel } from './quiz.tsx'
 import styles from './learn.module.css'
 
 type Item = {
@@ -58,6 +59,8 @@ export function LearnRelease() {
           {item.body ? <RichView doc={item.body} /> : null}
           {item.url ? <p><a href={item.url}>Mở liên kết</a></p> : null}
           {item.itemType === 'assignment' ? <p><Link to={`/hoc/bai/${releaseId}/muc/${item.id}`}>Làm nhiệm vụ</Link></p> : null}
+          {item.itemType === 'quiz' && me.activeContext.role === 'student' ? <QuizPanel releaseId={releaseId} itemId={item.id} csrf={me.csrfToken} /> : null}
+          {item.itemType === 'quiz' && item.progress.status === 'completed' ? <p>Đã hoàn thành</p> : null}
           {item.completionRule === 'view' && item.progress.status === 'completed' ? <p>Đã xem</p> : null}
           {item.completionRule === 'self_mark' && item.progress.status !== 'completed' ? (
             <button type="button" onClick={() => void selfMark(item.id)}>Tự đánh dấu</button>

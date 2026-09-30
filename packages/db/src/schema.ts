@@ -531,6 +531,55 @@ export interface SubmissionVersionFilesTable {
   file_id: string
 }
 
+export interface QuizAttemptsTable {
+  id: Generated<string>
+  school_id: string
+  learner_id: string
+  module_release_id: string
+  assessment_version_id: string
+  attempt_no: number
+  status: 'in_progress' | 'submitted'
+  option_order: unknown | null
+  started_at: Generated<Date>
+  submitted_at: Date | null
+  score: ColumnType<string | null, string | number | null, string | number | null>
+  max_score: ColumnType<string | null, string | number | null, string | number | null>
+}
+
+export interface QuestionResponsesTable {
+  id: Generated<string>
+  school_id: string
+  attempt_id: string
+  question_item_id: string
+  try_no: number
+  response: unknown
+  correct: boolean | null
+  hints_used: number
+  misconception_id: string | null
+  answered_at: Generated<Date>
+}
+
+export interface AttemptHintUsageTable {
+  attempt_id: string
+  question_item_id: string
+  hints_used: number
+  updated_at: Generated<Date>
+}
+
+export interface AttainmentDecisionsTable {
+  id: Generated<string>
+  school_id: string
+  learner_id: string
+  offering_id: string
+  requirement_id: string
+  decision: 'achieved' | 'not_yet'
+  review_id: string
+  decided_by: string
+  reason: string | null
+  supersedes_id: string | null
+  decided_at: Generated<Date>
+}
+
 export interface ReviewsTable {
   id: string
   school_id: string
@@ -590,6 +639,10 @@ export interface Database {
   files: FilesTable
   content_files: ContentFilesTable
   activity_progress: ActivityProgressTable
+  quiz_attempts: QuizAttemptsTable
+  question_responses: QuestionResponsesTable
+  attempt_hint_usage: AttemptHintUsageTable
+  attainment_decisions: AttainmentDecisionsTable
   submissions: SubmissionsTable
   submission_versions: SubmissionVersionsTable
   submission_version_files: SubmissionVersionFilesTable

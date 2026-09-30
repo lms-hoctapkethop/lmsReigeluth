@@ -180,6 +180,44 @@ describe.skipIf(!ready)('importUsers', () => {
     expect([...idp.users.keys()].some((id) => id.startsWith('not-a-uuid-'))).toBe(true)
   })
 
+  it('UPSTREAM_IDP_ERROR khi Keycloak không phản hồi', async () => {
+    const localIdp = new FakeIdpAdmin()
+    localIdp.failAtCall = { call: 1, kind: 'unavailable' }
+    const isolated = await buildApp({
+      config: {
+        appOrigin,
+        databaseUrl: 'postgres://unused',
+        oidcIssuer: issuer,
+        oidcClientId: 'hcn-web',
+        oidcClientSecret: 'test-secret-hcn-web',
+        cookieSecret: 'test-cookie-secret-with-32-characters',
+        sessionTtlHours: 12,
+        sessionMaxDays: 7,
+        trustProxy: [],
+        port: 4319,
+      },
+      db,
+      idpAdmin: localIdp,
+    })
+    const auth = await admin()
+    const form = multipart(csv(['Mới,hs.idp-down,student,,,']))
+    const response = await isolated.inject({
+      method: 'POST',
+      url: '/api/v1/admin/users/import',
+      headers: {
+        cookie: auth.cookie,
+        origin: appOrigin,
+        'x-csrf-token': auth.csrf,
+        'idempotency-key': 'import-idp-down',
+        'content-type': form.contentType,
+      },
+      payload: form.payload,
+    })
+    expect(response.statusCode).toBe(502)
+    expect(response.json().error.code).toBe('UPSTREAM_IDP_ERROR')
+    await isolated.close()
+  })
+
   it('importUsers quá 5 lần một giờ thì 429', async () => {
     const limited = await buildApp({
       config: {
