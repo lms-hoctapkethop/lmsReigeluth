@@ -85,7 +85,7 @@ describe.skipIf(!ready)('importUsers', () => {
       TRUNCATE offering_enrollments, teacher_assignments, offering_class_links, offerings, courses,
         class_memberships, admin_classes, academic_years, guardian_links, curriculum_reviewers,
         school_memberships, outbox_events, idempotency_keys, sessions, audit_log
-      RESTART IDENTITY
+      RESTART IDENTITY CASCADE
     `.execute(db)
     await sql`DELETE FROM users`.execute(db)
     await seedIdentity(db, { issuer })
