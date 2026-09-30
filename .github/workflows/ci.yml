@@ -4,7 +4,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring]
+    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring, chore/m4-close]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -51,10 +51,11 @@ jobs:
           dbmate --migrations-dir db/migrations --no-dump-schema up
           for i in $(ls db/migrations | wc -l | xargs seq); do dbmate --migrations-dir db/migrations --no-dump-schema down; done
           dbmate --migrations-dir db/migrations --no-dump-schema up
-      - name: Schema invariants (DB01–DB16)
+      - name: Schema invariants (DB01–DB21)
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/schema_invariants.sql 2>&1 | tee invariants.log
-          test "$(grep -c 'PASS' invariants.log)" -ge 26
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/curriculum_review_invariants.sql 2>&1 | tee -a invariants.log
+          test "$(grep -c 'PASS' invariants.log)" -ge 36
 
   unit-integration:
     runs-on: ubuntu-24.04

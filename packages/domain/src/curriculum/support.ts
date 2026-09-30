@@ -43,6 +43,8 @@ export async function writeReviewLog(
     entityId: string
     action: string
     actorId: string
+    fromStatus: string | null
+    toStatus: string
     oldText?: string | null
     newText?: string | null
     note?: string | null
@@ -55,6 +57,8 @@ export async function writeReviewLog(
       entity_id: entry.entityId,
       action: entry.action,
       actor_id: entry.actorId,
+      from_status: entry.fromStatus,
+      to_status: entry.toStatus,
       old_text: entry.oldText ?? null,
       new_text: entry.newText ?? null,
       note: entry.note ?? null,

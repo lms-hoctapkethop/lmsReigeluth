@@ -348,6 +348,36 @@ describe.skipIf(!ready)('chương trình M3', () => {
     )
   })
 
+  it('M3-VISIBILITY-SCOPE HS và PH chỉ thấy môn-khối của ghi danh active', async () => {
+    const visibleTin10 = [
+      '140110.0101a',
+      '140110.0200b',
+      '140110.0601a',
+      '140110.0602a',
+      '140110.0603b',
+    ]
+    async function stems(userId: string, role: string, subject: string, grade: number): Promise<string[]> {
+      const actor = await session(userId, role)
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/curriculum/requirements?subject=${subject}&grade=${grade}`,
+        headers: { cookie: actor.cookie },
+      })
+      expect(response.statusCode).toBe(200)
+      return (response.json() as { code791Stem: string; reviewStatus: string }[])
+        .map((item) => item.code791Stem)
+        .sort()
+    }
+
+    expect(await stems(personas.hsMinh.subject, 'student', '0201', 7)).toEqual([])
+    expect(await stems(personas.hsBinh.subject, 'student', '0201', 7)).toEqual(['020107.0101a'])
+    expect(await stems(personas.phMinh.subject, 'guardian', '1401', 10)).toEqual(visibleTin10)
+    expect(await stems(personas.phMinh.subject, 'guardian', '0201', 7)).toEqual([])
+    expect(await stems(personas.phAn.subject, 'guardian', '0201', 7)).toEqual([])
+    expect(await stems(personas.phAn.subject, 'guardian', '1401', 10)).toEqual(visibleTin10)
+    expect(await stems(personas.gvHung.subject, 'teacher', '0201', 7)).toEqual(['020107.0101a', '020107.0102a'])
+  })
+
   it('B04 effectivePrerequisites không trả cạnh proposed', async () => {
     const renhanh = await kcVersion('KC-TIN10-RENHANH')
     const edges = await effectivePrerequisites(db, renhanh.versionId)

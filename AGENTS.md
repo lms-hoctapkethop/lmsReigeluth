@@ -78,6 +78,8 @@ Quy tắc phụ thuộc: `routes` → `domain` → `db`. `domain` không import 
 
 ## 7 Điều cấm
 
+- Không sửa `db/migrations/*` đã merge.
+- "Không sửa db/tests/*" nghĩa là không sửa tệp đã có. Được thêm tệp mới do đặc tả cung cấp, chép nguyên văn.
 - Không dùng `any`, `@ts-ignore` (dùng `@ts-expect-error` kèm lý do nếu bắt buộc).
 - Không SQL nối chuỗi với dữ liệu người dùng. Dùng Kysely hoặc tham số.
 - Không `SELECT *` trong repository trả ra ngoài.

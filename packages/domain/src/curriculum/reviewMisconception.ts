@@ -20,7 +20,15 @@ export async function reviewMisconception(
       .set({ status: input.decision, reviewed_by: meta.actor.userId })
       .where('id', '=', row.id)
       .execute()
-    await writeReviewLog(trx, { entityType: 'misconception', entityId: row.id, action: input.decision, actorId: meta.actor.userId })
+    await writeReviewLog(trx, {
+      entityType: 'misconception',
+      entityId: row.id,
+      action: input.decision,
+      actorId: meta.actor.userId,
+      fromStatus: row.status,
+      toStatus: input.decision,
+      note: null,
+    })
     await reviewAudit(trx, meta, 'curriculum.misconception.review', 'misconception', row.id, input.decision)
     return { id: row.id, status: input.decision }
   })

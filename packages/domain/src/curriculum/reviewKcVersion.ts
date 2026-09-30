@@ -94,6 +94,8 @@ export async function reviewKcVersion(
       entityId: version.id,
       action: input.decision,
       actorId: meta.actor.userId,
+      fromStatus: version.status,
+      toStatus: input.decision,
       note: input.note ?? null,
     })
     await reviewAudit(trx, meta, 'curriculum.kc.review', 'kc_version', version.id, input.decision)

@@ -39,6 +39,36 @@ export async function listRequirements(
     .where('grade', '=', input.grade)
   if (role === 'student' || role === 'guardian') {
     query = query.where('review_status', 'in', ['approved', 'source_checked'])
+    if (role === 'student') {
+      query = query.where(
+        sql<boolean>`exists (
+          select 1
+          from offering_enrollments en
+          join offerings o on o.id = en.offering_id
+          join courses c on c.id = o.course_id
+          where en.learner_id = ${meta.actor.userId}
+            and en.status = 'active'
+            and c.subject_code = ${input.subject}
+            and c.grade = ${input.grade}
+        )`,
+      )
+    } else {
+      query = query.where(
+        sql<boolean>`exists (
+          select 1
+          from guardian_links gl
+          join offering_enrollments en on en.learner_id = gl.learner_id
+          join offerings o on o.id = en.offering_id
+          join courses c on c.id = o.course_id
+          where gl.guardian_id = ${meta.actor.userId}
+            and gl.school_id = ${meta.actor.schoolId}
+            and gl.status = 'verified'
+            and en.status = 'active'
+            and c.subject_code = ${input.subject}
+            and c.grade = ${input.grade}
+        )`,
+      )
+    }
   }
   if (input.q) query = query.where('text', 'ilike', `%${input.q}%`)
   const rows = await query.orderBy('code791_stem').execute()
