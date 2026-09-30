@@ -1,0 +1,11 @@
+title = "Học cùng nhau"
+
+[extend]
+useDefault = true
+
+# UUID này là ví dụ Idempotency-Key trong đặc tả, không phải khóa thật.
+[[allowlists]]
+description = "Ví dụ Idempotency-Key trong docs/04-api.md"
+paths = ['''(^|/)docs/04-api\.md$''']
+regexTarget = "secret"
+regexes = ['''^0d7a8f5e-2b0e-4c1b-9a37-2f7a8b1c9d10$''']

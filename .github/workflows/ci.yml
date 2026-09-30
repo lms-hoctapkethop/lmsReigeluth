@@ -23,8 +23,13 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm audit --prod --audit-level high
-      - uses: gitleaks/gitleaks-action@v2
-        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+      # gitleaks-action@v2 đòi giấy phép khi repo thuộc tổ chức và dừng trước khi quét.
+      # SEC-20 dùng CLI mã nguồn mở, cùng luật, có gitleaks.toml cho ví dụ trong đặc tả.
+      - name: gitleaks (SEC-20)
+        run: |
+          curl -fsSL -o /tmp/gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+          gitleaks detect --source . --verbose --redact --config gitleaks.toml
 
   database:
     runs-on: ubuntu-24.04
@@ -56,6 +61,8 @@ jobs:
     needs: [static]
     steps:
       - uses: actions/checkout@v4
+      - name: Install dbmate
+        run: curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64 && chmod +x /usr/local/bin/dbmate
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
@@ -63,7 +70,9 @@ jobs:
       - name: Reference vectors (must stay 37/37)
         run: node tests/reference/pure.reference.mjs
       - name: Unit + integration (Testcontainers postgres:18)
-        run: pnpm test -- --reporter=junit --outputFile=reports/vitest.xml --coverage
+        run: |
+          mkdir -p reports
+          pnpm test -- --reporter=junit --outputFile=reports/vitest.xml --coverage
       - name: OpenAPI in sync with contracts
         run: pnpm openapi:check
       - name: Breaking API changes
@@ -92,7 +101,10 @@ jobs:
   e2e:
     runs-on: ubuntu-24.04
     needs: [unit-integration, build, database]
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'e2e')
+    # J01–J12 chưa có ở M0. Job chạy lại khi có file e2e, hoặc khi PR gắn nhãn e2e.
+    if: >-
+      (github.event_name == 'push' && hashFiles('e2e/**/*.spec.ts') != '') ||
+      contains(github.event.pull_request.labels.*.name, 'e2e')
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
