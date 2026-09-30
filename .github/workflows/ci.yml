@@ -101,10 +101,9 @@ jobs:
   e2e:
     runs-on: ubuntu-24.04
     needs: [unit-integration, build, database]
-    # J01–J12 chưa có ở M0. Job chạy lại khi có file e2e, hoặc khi PR gắn nhãn e2e.
-    if: >-
-      (github.event_name == 'push' && hashFiles('e2e/**/*.spec.ts') != '') ||
-      contains(github.event.pull_request.labels.*.name, 'e2e')
+    # J01–J12 chưa có ở M0. hashFiles không dùng được ở if của job.
+    # Khi có hành trình, thêm lại: github.event_name == 'push' ||
+    if: contains(github.event.pull_request.labels.*.name, 'e2e')
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
