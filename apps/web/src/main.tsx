@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, Link, Outlet, redirect, RouterProvider, useLoaderData, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
 import { Accounts, AdminHome, FamilyHome, Guardians, LearnHome, OfferingAdmin, TeachHome } from './admin.tsx'
+import { CurriculumHome } from './curriculum.tsx'
+import { readJson } from './admin-api.ts'
 import { fetchMe, logout, switchContext } from './api.ts'
 import { roleLabel } from './labels.ts'
 import adminStyles from './admin.module.css'
@@ -46,6 +48,11 @@ function Shell() {
   const client = useQueryClient()
   const meQuery = useQuery({ queryKey: ['me'], queryFn: fetchMe, initialData: initial })
   const me = meQuery.data ?? initial
+  const access = useQuery({
+    queryKey: ['curriculum-access', me.userId, me.activeContext.role],
+    queryFn: () => readJson<{ propose: boolean; review: boolean }>('/api/v1/curriculum/access'),
+  })
+  const showCurriculum = Boolean(access.data?.propose || access.data?.review)
   return (
     <div className={styles.frame}>
       <aside className={styles.sidebar}>
@@ -83,6 +90,7 @@ function Shell() {
               <Link to="/quan-tri/phu-huynh">Phụ huynh</Link>
             </>
           ) : null}
+          {showCurriculum ? <Link to="/chuyen-mon">Chuyên môn</Link> : null}
           {me.activeContext.role === 'teacher' ? <Link to="/day">Lớp đang dạy</Link> : null}
           {me.activeContext.role === 'student' ? <Link to="/hoc">Lớp của em</Link> : null}
           {me.activeContext.role === 'guardian' ? <Link to="/gia-dinh">Con của tôi</Link> : null}
@@ -117,6 +125,11 @@ function Home() {
   return <h1>Ngữ cảnh hiện tại: {activeLabel}{schoolName ? ` tại ${schoolName}` : ''}</h1>
 }
 
+function CurriculumPage() {
+  const me = useRouteLoaderData('shell') as Me
+  return <CurriculumHome me={me} />
+}
+
 function AdminPage({ page }: { page: 'home' | 'offering' | 'accounts' | 'guardians' }) {
   const me = useRouteLoaderData('shell') as Me
   if (page === 'home') return <AdminHome me={me} />
@@ -138,6 +151,7 @@ const router = createBrowserRouter([
       { path: 'quan-tri/lop/:offeringId', element: <AdminPage page="offering" /> },
       { path: 'quan-tri/tai-khoan', element: <AdminPage page="accounts" /> },
       { path: 'quan-tri/phu-huynh', element: <AdminPage page="guardians" /> },
+      { path: 'chuyen-mon', element: <CurriculumPage /> },
       { path: 'day', element: <TeachHome /> },
       { path: 'hoc', element: <LearnHome /> },
       { path: 'gia-dinh', element: <FamilyHome /> },

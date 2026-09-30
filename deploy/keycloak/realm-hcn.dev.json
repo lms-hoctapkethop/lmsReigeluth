@@ -214,6 +214,26 @@
       "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     },
     {
+      "id": "10000000-0000-4000-8000-000000000020",
+      "username": "reviewer.toan",
+      "firstName": "Thẩm định",
+      "lastName": "Toán",
+      "email": "reviewer.toan@example.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000021",
+      "username": "gv.de.xuat",
+      "firstName": "GV",
+      "lastName": "Đề xuất",
+      "email": "gv.de.xuat@example.test",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
+    },
+    {
       "id": "10000000-0000-4000-8000-000000000016",
       "username": "user.khoa",
       "firstName": "Tài khoản bị khóa",

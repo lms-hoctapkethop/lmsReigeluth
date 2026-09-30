@@ -134,8 +134,95 @@ export interface CurriculumRequirementsTable {
   review_status: ReviewStatus
   reviewed_by: string | null
   reviewed_at: Date | null
+  extraction: string
+  extraction_flags: string[]
   created_at: Generated<Date>
   updated_at: Generated<Date>
+}
+
+export interface KnowledgeComponentsTable {
+  id: Generated<string>
+  code: string
+  subject_code: string
+  grade: number
+  created_at: Generated<Date>
+}
+
+export interface KcVersionsTable {
+  id: Generated<string>
+  kc_id: string
+  version_no: number
+  name: string
+  description: string | null
+  observable_criteria: string
+  status: 'proposed' | 'approved' | 'rejected' | 'superseded'
+  source: 'teacher' | 'expert' | 'ai_proposal' | 'import'
+  ai_proposal_id: string | null
+  created_by: string | null
+  reviewed_by: string | null
+  reviewed_at: Date | null
+  created_at: Generated<Date>
+}
+
+export interface RequirementKcLinksTable {
+  id: Generated<string>
+  requirement_id: string
+  kc_version_id: string
+  coverage: string
+  status: 'proposed' | 'approved' | 'rejected'
+  source: 'teacher' | 'expert' | 'ai_proposal' | 'import'
+  reviewed_by: string | null
+  created_by: string | null
+  created_at: Generated<Date>
+}
+
+export interface KcEdgesTable {
+  id: Generated<string>
+  from_kc_version_id: string
+  to_kc_version_id: string
+  edge_type: 'prerequisite' | 'develops_into' | 'part_of'
+  status: 'proposed' | 'approved' | 'rejected'
+  source: 'teacher' | 'expert' | 'ai_proposal' | 'import'
+  rationale: string | null
+  reviewed_by: string | null
+  created_by: string | null
+  created_at: Generated<Date>
+}
+
+export interface MisconceptionsTable {
+  id: Generated<string>
+  code: string
+  kc_id: string
+  description: string
+  status: 'proposed' | 'approved' | 'rejected'
+  reviewed_by: string | null
+  created_by: string | null
+  created_at: Generated<Date>
+}
+
+export interface CurriculumReviewLogTable {
+  id: Generated<string>
+  entity_type: 'requirement' | 'kc_version' | 'kc_edge' | 'requirement_kc_link' | 'misconception'
+  entity_id: string
+  action: string
+  actor_id: string
+  old_text: string | null
+  new_text: string | null
+  note: string | null
+  created_at: Generated<Date>
+}
+
+export interface EffectiveKcEdgesTable {
+  id: string
+  from_kc_version_id: string
+  to_kc_version_id: string
+  edge_type: 'prerequisite' | 'develops_into' | 'part_of'
+  status: 'approved'
+  source: 'teacher' | 'expert' | 'ai_proposal' | 'import'
+  rationale: string | null
+  reviewed_by: string | null
+  created_by: string | null
+  created_at: Date
 }
 
 export interface CurriculumReviewersTable {
@@ -234,6 +321,13 @@ export interface Database {
   guardian_links: GuardianLinksTable
   subjects: SubjectsTable
   curriculum_requirements: CurriculumRequirementsTable
+  knowledge_components: KnowledgeComponentsTable
+  kc_versions: KcVersionsTable
+  requirement_kc_links: RequirementKcLinksTable
+  kc_edges: KcEdgesTable
+  misconceptions: MisconceptionsTable
+  curriculum_review_log: CurriculumReviewLogTable
+  effective_kc_edges: EffectiveKcEdgesTable
   curriculum_reviewers: CurriculumReviewersTable
   courses: CoursesTable
   offerings: OfferingsTable

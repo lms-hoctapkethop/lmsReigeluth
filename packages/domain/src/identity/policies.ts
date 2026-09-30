@@ -58,10 +58,15 @@ export function can(actor: Actor, action: Action, facts: Facts): Decision {
     case 'guardian_link.revoke':
       return actor.roles.includes('admin') ? { allow: true } : { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'curriculum.read':
+      return actor.roles.some((role) => role === 'admin' || role === 'teacher' || role === 'student' || role === 'guardian')
+        ? { allow: true }
+        : { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'curriculum.propose':
+      return actor.roles.includes('teacher') ? { allow: true } : { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'curriculum.review':
-      // TODO(M3)
-      return { allow: false, reason: 'CAPABILITY_MISSING' }
+      return actor.roles.some((role) => role === 'admin' || role === 'teacher')
+        ? { allow: true }
+        : { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'module.create':
     case 'module.edit':
     case 'module.publish':
