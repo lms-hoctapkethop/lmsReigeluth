@@ -68,7 +68,11 @@ paths:
       operationId: authLogout
       parameters: [ { $ref: '#/components/parameters/Csrf' } ]
       responses:
-        '204': { description: Đã đăng xuất }
+        '200':
+          description: Đã đăng xuất, web tự chuyển tới endSessionUrl
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogoutResponse' }
 
   /api/v1/me:
     get:
@@ -812,6 +816,11 @@ components:
       properties:
         schoolId: { $ref: '#/components/schemas/Uuid' }
         role: { $ref: '#/components/schemas/Role' }
+    LogoutResponse:
+      type: object
+      required: [endSessionUrl]
+      properties:
+        endSessionUrl: { type: string, format: uri }
     Me:
       type: object
       required: [userId, displayName, contexts, activeContext, csrfToken]

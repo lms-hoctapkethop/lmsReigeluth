@@ -93,6 +93,7 @@
       ]
     },
     {
+      "id": "10000000-0000-4000-8000-000000000012",
       "username": "gv.lan",
       "firstName": "GV Lan",
       "enabled": true,
@@ -117,6 +118,7 @@
       ]
     },
     {
+      "id": "10000000-0000-4000-8000-000000000011",
       "username": "hs.minh",
       "firstName": "HS Minh",
       "enabled": true,
@@ -141,6 +143,7 @@
       ]
     },
     {
+      "id": "10000000-0000-4000-8000-000000000013",
       "username": "ph.minh",
       "firstName": "PH của Minh",
       "enabled": true,
@@ -187,6 +190,27 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000014",
+      "username": "admin.truong",
+      "firstName": "Quản trị trường",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000015",
+      "username": "user.chua.cap",
+      "firstName": "Chưa cấp quyền",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
+    },
+    {
+      "id": "10000000-0000-4000-8000-000000000016",
+      "username": "user.khoa",
+      "firstName": "Tài khoản bị khóa",
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "Dev-12345", "temporary": false }]
     }
   ]
 }

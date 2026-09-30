@@ -4,9 +4,21 @@
   "version": "3.0.0",
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "vite build",
     "size-check": "node scripts/size-check.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "dev": "echo 'Giao diện bắt đầu ở mốc sau M0'"
+    "dev": "vite --host localhost --port 5173"
+  },
+  "dependencies": {
+    "@hcn/contracts": "workspace:*",
+    "@tanstack/react-query": "^5.90.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.9.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "vite": "^8.0.0"
   }
 }
