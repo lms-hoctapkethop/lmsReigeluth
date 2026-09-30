@@ -40,7 +40,7 @@ describe.skipIf(!ready)('testkit postgres:18', () => {
     await right.connect()
     try {
       const migrated = await left.query('SELECT count(*)::int AS n FROM schema_migrations')
-      expect(migrated.rows[0]?.n).toBe(5)
+      expect(migrated.rows[0]?.n).toBe(6)
       const app = new pg.Client({ connectionString: leftDb.appUrl })
       await app.connect()
       try {
