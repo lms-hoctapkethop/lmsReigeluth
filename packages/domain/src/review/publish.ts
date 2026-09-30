@@ -58,20 +58,9 @@ async function publishInTransaction(trx: Trx, meta: Meta, reviewId: string, inpu
     seen.add(decision.requirementId)
     if (decision.reason.trim().length < 3) throw new DomainError('VALIDATION_FAILED', { reason: 'REASON' })
   }
-  const planned = []
-  for (const decision of ordered) {
-    const currentDecision = await trx
-      .selectFrom('attainment_current')
-      .select(['id'])
-      .where('learner_id', '=', context.learnerId)
-      .where('offering_id', '=', context.offeringId)
-      .where('requirement_id', '=', decision.requirementId)
-      .executeTakeFirst()
-    planned.push({ ...decision, supersedesId: currentDecision?.id ?? null })
-  }
   await lockSubmission(trx, context.submissionId)
   await lockReview(trx, review.id)
-  for (const decision of planned) await lockDecision(trx, context.learnerId, context.offeringId, decision.requirementId)
+  for (const decision of ordered) await lockDecision(trx, context.learnerId, context.offeringId, decision.requirementId)
   const publishedAt = meta.clock.now()
   await trx
     .updateTable('reviews')
@@ -81,7 +70,7 @@ async function publishInTransaction(trx: Trx, meta: Meta, reviewId: string, inpu
     .execute()
   await trx.updateTable('submissions').set({ status: input.outcome }).where('id', '=', context.submissionId).execute()
   const decisions: DecisionDto[] = []
-  for (const decision of planned) {
+  for (const decision of ordered) {
     const currentDecision = await trx
       .selectFrom('attainment_current')
       .select(['id'])
@@ -89,8 +78,7 @@ async function publishInTransaction(trx: Trx, meta: Meta, reviewId: string, inpu
       .where('offering_id', '=', context.offeringId)
       .where('requirement_id', '=', decision.requirementId)
       .executeTakeFirst()
-    const nowId = currentDecision?.id ?? null
-    if (nowId !== decision.supersedesId) throw new DomainError('REVISION_CONFLICT', { reason: 'DECISION_CHANGED' })
+    if (currentDecision) throw new DomainError('REVISION_CONFLICT', { reason: 'DECISION_CHANGED' })
     try {
       const created = await insertAttainmentDecision(trx, {
         schoolId: context.schoolId,
@@ -101,14 +89,14 @@ async function publishInTransaction(trx: Trx, meta: Meta, reviewId: string, inpu
         reviewId: review.id,
         decidedBy: meta.actor.userId,
         reason: decision.reason,
-        supersedesId: decision.supersedesId,
+        supersedesId: null,
       })
       decisions.push({
         id: created.id,
         requirementId: decision.requirementId,
         decision: decision.decision,
         decidedAt: created.decidedAt.toISOString(),
-        supersedesId: decision.supersedesId,
+        supersedesId: null,
       })
     } catch (error) {
       if (pgCode(error) === '23505') throw new DomainError('REVISION_CONFLICT', { reason: 'DECISION_CHANGED' })

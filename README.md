@@ -133,7 +133,7 @@ Không có gói đặc tả 3.5, không có mục README "Thay đổi 3.5", và 
 - OpenAPI bắt `decisions[].reason` tối thiểu 3 ký tự mọi lần công bố. `docs/05` 9.0 chỉ bắt lý do khi đã có quyết định hiện hành. Mã theo OpenAPI.
 - `docs/05` 9.3 viết `expectedRevision` khớp thì 409. Mã hiểu là lệch revision thì 409 `REVISION_CONFLICT`.
 - Hàng chờ thêm query `late` và `itemId` vì mục 9.0 yêu cầu lọc theo mục và muộn, còn OpenAPI lúc đầu chỉ có `status`, `cursor`, `limit`.
-- Công bố đọc quyết định hiện hành trước khi khóa. Nếu trong lúc chờ khóa quyết định đó đổi, request trả 409 `REVISION_CONFLICT` reason `DECISION_CHANGED` và không nối chuỗi. Công bố tuần tự, khi hiện hành không đổi, vẫn ghi `supersedes_id`.
+- `publishReview` chỉ ghi quyết định gốc (`supersedes_id` null). Nếu đã có quyết định hiện hành cho cùng (HS, offering, YCCĐ), kể cả khi hai công bố chạy nối tiếp, request trả 409 `REVISION_CONFLICT` reason `DECISION_CHANGED`. Đổi quyết định đã có đi qua `supersedeDecision`. Mục 9.3 bước 4 nói công bố nối vào hiện hành; mã tách việc đó sang supersede để ca song song luôn còn đúng một gốc.
 - `getLearnerNeeds` và heatmap giữ `x-milestone: M7`, chưa có route.
 - `GET` bài nộp của phụ huynh trả `body: null` và `fileIds: []`.
 - Thông báo `ReleaseCreated` trỏ `/hoc/lop/:offeringId`. `ReviewPublished` và `DecisionSuperseded` trỏ `/hoc/ho-so/:offeringId` cho học sinh và `/phu-huynh/con/:learnerId` cho phụ huynh đã xác minh. Payload chỉ `{title, href}`.

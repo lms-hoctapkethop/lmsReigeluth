@@ -78,6 +78,11 @@ describe.skipIf(!ready)('chấm bài M7', () => {
       RESTART IDENTITY CASCADE
     `.execute(adminDb)
     await seedIdentity(adminDb, { issuer })
+    await sql`
+      UPDATE guardian_links
+      SET status = 'verified', revoked_at = NULL, revoked_by = NULL
+      WHERE guardian_id = ${personas.phMinh.subject} AND learner_id = ${personas.hsMinh.subject}
+    `.execute(adminDb)
   })
 
   afterAll(async () => {
@@ -261,11 +266,13 @@ describe.skipIf(!ready)('chấm bài M7', () => {
     const lan = await session(personas.gvLan.subject, 'teacher')
     const hung = await session(personas.gvHung.subject, 'teacher')
     await sql`
-      INSERT INTO teacher_assignments (school_id, offering_id, teacher_id, capabilities, valid)
+      INSERT INTO teacher_assignments (id, school_id, offering_id, teacher_id, capabilities, valid)
       VALUES (
+        '44000000-0000-4000-8000-0000000000f7',
         ${schools.an.id}, ${offerings.tin10a1.id}, ${personas.gvHung.subject},
         ARRAY['review']::text[], tstzrange('2026-09-01T00:00:00Z', NULL, '[)')
       )
+      ON CONFLICT (id) DO NOTHING
     `.execute(adminDb)
     const student = await session(personas.hsMinh.subject, 'student')
     const { requirementId, kcVersionId } = await link()
@@ -407,6 +414,7 @@ describe.skipIf(!ready)('chấm bài M7', () => {
     await sql`
       INSERT INTO offering_enrollments (school_id, offering_id, learner_id, status)
       VALUES (${schools.an.id}, ${offerings.tin10a1.id}, ${personas.hsAn.subject}, 'active')
+      ON CONFLICT (offering_id, learner_id) DO NOTHING
     `.execute(adminDb)
     const { requirementId, kcVersionId } = await link()
     const versionId = await publishModule(teacher, 'Hạn', [assignment('Bài hạn', requirementId, kcVersionId, 'a')], requirementId)
