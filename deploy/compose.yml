@@ -1,0 +1,217 @@
+# Học cùng nhau 3.0 · Docker Compose production (Ubuntu 24.04, một máy)
+# Dùng: docker compose -f deploy/compose.yml --env-file deploy/.env up -d
+# Bí mật đặt trong deploy/secrets/*.txt (chmod 600, không commit).
+
+name: hcn
+
+services:
+  caddy:
+    build:
+      context: ..
+      dockerfile: deploy/caddy/Dockerfile        # stage 1 build apps/web; stage 2 caddy:2 + /srv/web
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      ID_DOMAIN: ${ID_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    networks: [edge]
+
+  api:
+    build: { context: .., dockerfile: deploy/api/Dockerfile }
+    image: hcn/api:${APP_VERSION}
+    restart: unless-stopped
+    command: ["node", "apps/api/dist/main.js"]
+    environment:
+      NODE_ENV: production
+      APP_ORIGIN: https://${APP_DOMAIN}
+      OIDC_ISSUER: https://${ID_DOMAIN}/realms/hcn
+      OIDC_CLIENT_ID: hcn-web
+      OIDC_CLIENT_SECRET_FILE: /run/secrets/oidc_client_secret
+      KEYCLOAK_ADMIN_URL: http://keycloak:8080
+      KEYCLOAK_PROVISIONER_SECRET_FILE: /run/secrets/kc_provisioner_secret
+      DATABASE_URL_FILE: /run/secrets/database_url_api
+      COOKIE_SECRET_FILE: /run/secrets/cookie_secret
+      FILE_STORAGE_DIR: /data/files
+      TZ_DISPLAY: Asia/Ho_Chi_Minh
+      FEATURE_FLAGS: insight_read=true,ai=false
+    secrets: [oidc_client_secret, kc_provisioner_secret, database_url_api, cookie_secret]
+    volumes: [files:/data/files]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    depends_on:
+      db: { condition: service_healthy }
+    deploy:
+      resources: { limits: { cpus: "2.0", memory: 1536M } }
+    networks: [edge, internal]
+    read_only: true
+    tmpfs: [/tmp]
+
+  worker:
+    image: hcn/api:${APP_VERSION}
+    restart: unless-stopped
+    command: ["node", "apps/worker/dist/main.js"]
+    environment:
+      NODE_ENV: production
+      WORKER_DATABASE_URL_FILE: /run/secrets/database_url_worker
+      FILE_STORAGE_DIR: /data/files
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: "3310"
+    secrets: [database_url_worker]
+    volumes: [files:/data/files]
+    depends_on:
+      db: { condition: service_healthy }
+      clamav: { condition: service_healthy }
+    deploy:
+      resources: { limits: { cpus: "1.0", memory: 768M } }
+    networks: [internal]
+    read_only: true
+    tmpfs: [/tmp]
+
+  migrate:
+    image: ghcr.io/amacneil/dbmate:2
+    profiles: ["ops"]                     # chạy tay: docker compose --profile ops run --rm migrate up
+    environment:
+      DATABASE_URL_FILE: /run/secrets/database_url_owner
+    entrypoint: ["/bin/sh", "-c", "export DATABASE_URL=$$(cat $$DATABASE_URL_FILE) && dbmate --migrations-dir /db/migrations --no-dump-schema \"$$@\"", "--"]
+    secrets: [database_url_owner]
+    volumes: [../db:/db:ro]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [internal]
+
+  db:
+    build: { context: ., dockerfile: postgres/Dockerfile }   # postgres:18 + pgbackrest
+    image: hcn/postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_superuser_password
+      POSTGRES_DB: hcn
+    secrets: [pg_superuser_password, pg_api_password, pg_worker_password, pg_owner_password, pg_report_password, pg_keycloak_password]
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - pgbackrest:/var/lib/pgbackrest
+      - ./postgres/init.sh:/docker-entrypoint-initdb.d/10-init.sh:ro
+      - ./postgres/pgbackrest.conf:/etc/pgbackrest/pgbackrest.conf:ro
+    command:
+      - postgres
+      - -c
+      - shared_buffers=1536MB
+      - -c
+      - effective_cache_size=4GB
+      - -c
+      - work_mem=16MB
+      - -c
+      - max_connections=100
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=pgbackrest --stanza=hcn archive-push %p
+      - -c
+      - archive_timeout=300
+      - -c
+      - log_min_duration_statement=500
+      - -c
+      - timezone=UTC
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hcn"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    shm_size: 256m
+    deploy:
+      resources: { limits: { cpus: "3.0", memory: 6G } }
+    networks: [internal]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7
+    restart: unless-stopped
+    entrypoint: ["/bin/bash", "/opt/hcn/kc-entrypoint.sh"]      # đọc secret file vào biến môi trường rồi chạy kc.sh start --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD_FROM: /run/secrets/pg_keycloak_password
+      KC_HOSTNAME: https://${ID_DOMAIN}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: kcadmin
+      KC_BOOTSTRAP_ADMIN_PASSWORD_FROM: /run/secrets/kc_admin_password
+    secrets: [pg_keycloak_password, kc_admin_password]
+    volumes:
+      - ./keycloak/realm-hcn.json:/opt/keycloak/data/import/realm-hcn.json:ro
+      - ./keycloak/kc-entrypoint.sh:/opt/hcn/kc-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+    depends_on:
+      db: { condition: service_healthy }
+    deploy:
+      resources: { limits: { cpus: "1.5", memory: 1536M } }
+    networks: [edge, internal]
+
+  clamav:
+    image: clamav/clamav:1.4
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    volumes: [clamav_db:/var/lib/clamav]
+    deploy:
+      resources: { limits: { cpus: "1.0", memory: 2G } }
+    networks: [internal]
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter:v1.9.1
+    restart: unless-stopped
+    pid: host
+    volumes: ["/:/host:ro,rslave"]
+    command: ["--path.rootfs=/host"]
+    networks: [internal]
+
+networks:
+  edge: {}
+  internal: { internal: true }
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
+  pgdata: {}
+  pgbackrest: {}
+  files: {}
+  clamav_db: {}
+
+secrets:
+  oidc_client_secret:      { file: ./secrets/oidc_client_secret.txt }
+  kc_provisioner_secret:   { file: ./secrets/kc_provisioner_secret.txt }
+  kc_admin_password:       { file: ./secrets/kc_admin_password.txt }
+  cookie_secret:           { file: ./secrets/cookie_secret.txt }
+  database_url_api:        { file: ./secrets/database_url_api.txt }
+  database_url_worker:     { file: ./secrets/database_url_worker.txt }
+  database_url_owner:      { file: ./secrets/database_url_owner.txt }
+  pg_superuser_password:   { file: ./secrets/pg_superuser_password.txt }
+  pg_api_password:         { file: ./secrets/pg_api_password.txt }
+  pg_worker_password:      { file: ./secrets/pg_worker_password.txt }
+  pg_owner_password:       { file: ./secrets/pg_owner_password.txt }
+  pg_report_password:      { file: ./secrets/pg_report_password.txt }
+  pg_keycloak_password:    { file: ./secrets/pg_keycloak_password.txt }

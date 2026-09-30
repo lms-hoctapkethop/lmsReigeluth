@@ -1,0 +1,13 @@
+---
+description: Frontend React/Vite
+globs: apps/web/**
+alwaysApply: false
+---
+
+- Route và màn hình theo `docs/07-giao-dien.md`. URL có tham số là nguồn trạng thái ngữ cảnh (offering, learner); không giữ ngữ cảnh chỉ trong state.
+- Gọi API qua hook TanStack Query trong `features/<module>/api.ts`; client sinh từ `packages/contracts`. Không `fetch` rải rác.
+- Mọi request ghi gửi header `X-CSRF-Token` (đọc từ `/api/v1/me`) và `Idempotency-Key` (uuid tạo khi người dùng bấm, giữ nguyên khi retry).
+- Mỗi màn hình có đủ trạng thái: đang tải, rỗng, lỗi quyền (403), không tìm thấy (404), lỗi mạng, xung đột (409), lưu thành công. Chỉ báo "Đã lưu" hoặc "Đã nộp" khi server trả 2xx.
+- Màu và cỡ chữ lấy từ token trong `ui/tokens.css`. Không mã màu trong component.
+- Khả năng tiếp cận: phần tử tương tác là `button`/`a`/`input` thật; có nhãn; focus nhìn thấy; kéo thả có cách thay bằng bấm; không dùng màu làm tín hiệu duy nhất. Test Playwright chạy axe trên mỗi route chính.
+- Không hiển thị ước lượng số (xác suất) cho HS và PH. Dùng bốn nhãn chữ.

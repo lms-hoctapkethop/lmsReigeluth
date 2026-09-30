@@ -1,0 +1,12 @@
+---
+description: Luật chung cho mọi tệp trong repo Học cùng nhau
+globs:
+alwaysApply: true
+---
+
+- Đọc `AGENTS.md` trước khi sửa mã. Bất biến INV-01…INV-14 là lỗi chặn merge.
+- Nghiệp vụ lấy từ `docs/05-nghiep-vu-lenh-ghi.md` và `docs/06-danh-gia-va-ho-so.md`. Không tự suy luận quy tắc giáo dục; nếu thiếu, dừng và hỏi.
+- Mọi thay đổi hành vi phải kèm test. Ca nghiệm thu có mã (AC, A, B, C, P) phải xuất hiện trong tên test: `it('C05 not_shown does not create observation', …)`.
+- Chuỗi hiển thị tiếng Việt đặt trong `apps/web/src/i18n/vi.ts`; không rải chuỗi trong component.
+- Dùng `pnpm verify` trước khi báo xong.
+- Không thêm dependency ngoài danh sách trong `docs/02` khi chưa được đồng ý.

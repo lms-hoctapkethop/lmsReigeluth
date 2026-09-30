@@ -1,0 +1,6 @@
+export { normalizeNumber } from './quiz/normalize.ts'
+export { gradeResponse } from './quiz/grade.ts'
+export { WEIGHTS, observationFromCriterion, observationFromResponse } from './insight/observe.ts'
+export { R0_VERSION, r0Estimate } from './insight/r0.ts'
+export { rootGaps } from './insight/rootGaps.ts'
+export { computeCoverage } from './authoring/coverage.ts'

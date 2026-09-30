@@ -1,0 +1,23 @@
+# Môi trường phát triển: chỉ DB, Keycloak, ClamAV. API/web/worker chạy bằng pnpm dev trên máy.
+# docker compose -f deploy/compose.dev.yml up -d
+name: hcn-dev
+services:
+  db:
+    image: postgres:18
+    environment: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: hcn }
+    ports: ["5432:5432"]
+    volumes: [pgdev:/var/lib/postgresql]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U postgres"], interval: 3s, retries: 20 }
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports: ["8081:8080"]
+    volumes: [./keycloak/realm-hcn.dev.json:/opt/keycloak/data/import/realm-hcn.json:ro]
+  clamav:
+    image: clamav/clamav:1.4
+    ports: ["3310:3310"]
+volumes:
+  pgdev: {}

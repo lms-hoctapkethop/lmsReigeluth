@@ -1,0 +1,12 @@
+{
+  "name": "web",
+  "private": true,
+  "version": "3.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "size-check": "node scripts/size-check.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "echo 'Giao diện bắt đầu ở mốc sau M0'"
+  }
+}

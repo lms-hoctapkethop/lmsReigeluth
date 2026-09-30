@@ -1,0 +1,25 @@
+---
+description: Backend Fastify, domain use case, Kysely
+globs: apps/api/**,apps/worker/**,packages/domain/**,packages/db/**,packages/contracts/**
+alwaysApply: false
+---
+
+- Route chỉ: parse input bằng zod → gọi use case với `ctx` (actor, schoolId, requestId, idempotencyKey) → map output DTO. Không truy vấn DB trong route.
+- Use case theo khuôn:
+  ```ts
+  export async function submitAssignment(ctx: Ctx, input: SubmitInput): Promise<SubmitReceipt> {
+    return withIdempotency(ctx, 'submitAssignment', input, async (trx) => {
+      const release = await repo.releases.getForLearner(trx, ctx.schoolId, input.releaseId, ctx.actor.userId);
+      authorize(ctx.actor, 'submission.create', { release });   // ném Forbidden
+      // kiểm điều kiện nghiệp vụ, ném DomainError có code
+      // ghi dữ liệu, audit, outbox trong trx
+      return receipt;
+    });
+  }
+  ```
+- Transaction qua `db.transaction().setIsolationLevel('read committed').execute(fn)`. Khi cần tuần tự hóa theo đối tượng, dùng `SELECT … FOR UPDATE` trên hàng cha, không dùng khóa trong bộ nhớ.
+- Lỗi nghiệp vụ là `DomainError(code, httpStatus, details)`; error handler map sang JSON chuẩn. Không `throw new Error('...')` trần trong domain.
+- DTO học sinh định nghĩa riêng (`LearnerQuestionDto`) và không có trường `key`, `rationale`, `misconceptionId`. Test snapshot khóa hình dạng DTO.
+- Repository trả về kiểu tường minh, chọn cột cụ thể.
+- Mọi endpoint ghi (POST/PUT/PATCH/DELETE) đi qua plugin CSRF và kiểm `Origin`.
+- Worker: poll `outbox_events` bằng `FOR UPDATE SKIP LOCKED`, xử lý idempotent theo `(event_id, consumer)` trong `processed_events`, retry lũy thừa tối đa 8 lần rồi đánh dấu `dead`.

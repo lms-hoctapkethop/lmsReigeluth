@@ -1,0 +1,281 @@
+code791,extraction,flags,text,source_doc
+140110.0101a4,clean,,"Phân biệt được thông tin và dữ liệu, nêu được ví dụ minh hoạ.",QD791_PL22_TinHoc.docx
+140110.0101b3,clean,,"Chuyển đổi được giữa các đơn vị lưu trữ thông tin: B, KB, MB, ...",QD791_PL22_TinHoc.docx
+140110.0101c5,clean,,"Nêu được sự ưu việt của việc lưu trữ, xử lí và truyền thông tin bằng thiết bị số.",QD791_PL22_TinHoc.docx
+140110.0102a2,clean,,"Trình bày được những đóng góp cơ bản của tin học đối với xã hội, nêu được ví dụ minh hoạ.",QD791_PL22_TinHoc.docx
+140110.0102b5,clean,,Nêu được ví dụ cụ thể về thiết bị thông minh. Giải thích được vai trò của những thiết bị thông minh đối với sự phát triển của xã hội và cuộc cách mạng công nghiệp 4.0.,QD791_PL22_TinHoc.docx
+140110.0102c1,clean,,"Nhận biết được một vài thiết bị số thông dụng khác ngoài máy tính để bàn và laptop, giải thích được các thiết bị đó cũng là những hệ thống xử lí thông tin.",QD791_PL22_TinHoc.docx
+140110.0102d2,clean,,Giới thiệu được các thành tựu nổi bật ở một số mốc thời gian để minh hoạ sự phát triển của ngành tin học.,QD791_PL22_TinHoc.docx
+140110.0103a3,clean,,"Khởi động được một số thiết bị số thông dụng, sử dụng được các tệp dữ liệu, các chức năng và phần mềm ứng dụng cơ bản cài sẵn trên các thiết bị đó.",QD791_PL22_TinHoc.docx
+140110.0201a3,clean,,"Thực hiện được các phép tính cơ bản AND, OR, NOT, giải thích được ứng dụng của hệ nhị phân trong tin học. Giải thích được sơ lược việc số hoávăn bản, hình ảnh, âm thanh.",QD791_PL22_TinHoc.docx
+140110.0201b2,clean,,Giải thích được sơ lược về chức năng của bảng mã chuẩn quốc tế (Ví dụ: Unicode).,QD791_PL22_TinHoc.docx
+140110.0301a2,clean,,"Trình bày được những thay đổi về chất lượng cuộc sống, phương thức học tập và làm việc trong xã hội mà ở đó mạng máy tính được sử dụng phổ biến.",QD791_PL22_TinHoc.docx
+140110.0301b4,clean,,So sánh được mạng LAN và Internet.,QD791_PL22_TinHoc.docx
+140110.0301c5,clean,,Nêu được một số dịch vụ cụ thể mà Điện toán đám mây cung cấp cho người dùng.,QD791_PL22_TinHoc.docx
+140110.0301d5,clean,,Nêu được khái niệm Internet vạn vật (IoT).,QD791_PL22_TinHoc.docx
+140110.0301e5,clean,,Nêu được ví dụ cụ thể về thay đổi trong cuộc sống mà IoT đem lại. Phát biểu ý kiến cá nhân về ích lợicủa IoT.,QD791_PL22_TinHoc.docx
+140110.0302a3,clean,,"Sử dụng được một số chức năng xử lí thông tin trên máy PC và thiết bị số,ví dụ dịch tự động văn bản hay tiếng nói.",QD791_PL22_TinHoc.docx
+140110.0302b3,clean,,Khai thác được một số nguồn học liệu mở trên Internet.,QD791_PL22_TinHoc.docx
+140110.0302c5,clean,,Nêu được những nguy cơ và tác hại nếu tham gia các hoạt động trên Internet một cách bất cẩn và thiếu hiểu biết. Trình bày được một số cách đề phòng những tác hại đó.,QD791_PL22_TinHoc.docx
+140110.0302d5,clean,,Nêu được một vài cách phòng vệ khi bị bắt nạt trên mạng.,QD791_PL22_TinHoc.docx
+140110.0302e3,clean,,Biết cách tự bảo vệ dữ liệu của cá nhân.,QD791_PL22_TinHoc.docx
+140110.0302f3,clean,,Trình bày được sơ lược về phần mềm độc hại. Sử dụng được một số công cụ thông dụng để ngăn ngừa và diệt phần mềm độc hại.,QD791_PL22_TinHoc.docx
+140110.0401a5,clean,,"Nêu được một số vấn đề nảy sinh về pháp luật, đạo đức, văn hoá khi việc giao tiếp qua mạng trở nên phổ biến.",QD791_PL22_TinHoc.docx
+140110.0401b5,clean,,"Nêu được ví dụ minh hoạ sự vi phạm bản quyền thông tin và sản phẩm số, qua ví dụ đó giải thích được sự vi phạm đã diễn ra thế nào và có thể dẫn tới hậu quả gì.",QD791_PL22_TinHoc.docx
+140110.0401c2,clean,,"Trình bày và giải thích được một số nội dung cơ bản của Luật Công nghệ thông tin, Nghị định về quản lí, cung cấp, sử dụng các sản phẩm và dịch vụ Công nghệ thông tin, Luật An ninh mạng. Nêu được ví dụ minh hoạ.",QD791_PL22_TinHoc.docx
+140110.0401d2,clean,,"Giải thích được một số khía cạnh pháp lí của vấn đề bản quyền, của việc sở hữu, sử dụng và trao đổi thông tin trong môi trường số. Nêu được ví dụ minh hoạ.",QD791_PL22_TinHoc.docx
+140110.0401e3,clean,,"Vận dụng được Luật và Nghị định nêu trên để xác định được tính hợp pháp của một hành vi nào đó trong lĩnh vực quản lí, cung cấp, sử dụng các sản phẩm và dịch vụ Công nghệ thông tin.",QD791_PL22_TinHoc.docx
+140110.0401f5,clean,,Nêu được ví dụ về những tác hại của việc chia sẻ và phổ biến thông tin một cách bất cẩn.,QD791_PL22_TinHoc.docx
+140110.0401g5,clean,,Nêu được một vài biện pháp đơn giản và thông dụng để nâng cao tính an toàn và hợp pháp của việc chia sẻ thông tin trong môi trường số.,QD791_PL22_TinHoc.docx
+140110.0501a3,clean,,Sử dụng được một số chức năng cơ bản của phần mềm thiết kế đồ hoạ.,QD791_PL22_TinHoc.docx
+140110.0501b6,clean,,"Tạo được sản phẩm số đơn giản, hữu ích và thực tế như thiết kế logo, tạo banner, topic quảng cáo, băng rôn, áp phích, poster và thiệp chúc mừng, …",QD791_PL22_TinHoc.docx
+140110.0601a6,clean,,"Viết và thực hiện được một vài chương trình có sử dụng: hằng, biến, các cấu trúc điều khiển, các toán tử, các kiểu dữ liệu chuẩn và mảng, các câu lệnh vào - ra. Qua đó phát triển được năng lực giải quyết vấn đề và sáng tạo, rèn luyện được phẩm chất chăm chỉ, kiên trì và cẩn thận trong học và tự học.",QD791_PL22_TinHoc.docx
+140110.0602a6,clean,,Viết được chương trình có sử dụng chương trình con trong thư viện chuẩn.,QD791_PL22_TinHoc.docx
+140110.0602b6,clean,,Viết được chương trình con biểu diễn một thuật toán đơn giản và viết được chương trình có sử dụng chương trình con này.,QD791_PL22_TinHoc.docx
+140110.0603a2,clean,,Đọc hiểu được chương trình đơn giản.,QD791_PL22_TinHoc.docx
+140110.0603b4,clean,,Kiểm thử và gỡ lỗi được chương trình.,QD791_PL22_TinHoc.docx
+140110.0603c6,clean,,Viết và thực hiện được chương trình giải quyết bài toán đơn giản có vận dụng kiến thức liên môn.,QD791_PL22_TinHoc.docx
+140110.0701a2,clean,,"Trình bày được thông tin hướng nghiệp về nhóm nghề Thiết kế và Lập trình thông qua phân tích nghiệp vụ của một số nghề điển hình (Ví dụ: Thiết kế đồ hoạ, Thiết kế trò chơi máy tính, Lập trình viên, Phân tích thiết kế hệ thống,...): + Những nét sơ lược về công việc chính mà người làm nghề phải thực hiện. + Yêu cầu thiết yếu về kiến thức và kĩ năng cần có để làm nghề. + Ngành học có liên quan ở các bậc học tiếp theo. + Nhu cầu nhân lực hiện tại và tương lai của nhóm nghề đó.",QD791_PL22_TinHoc.docx
+140110.0701b4,clean,,"Tự tìm kiếm và khai thác được thông tin hướng nghiệp (qua các chương trình đào tạo, thông báo tuyển dụng nhân lực,...) về một vài ngành nghề khác trong lĩnh vực tin học.",QD791_PL22_TinHoc.docx
+140110.0701c3,clean,,Giao lưu được với bạn bè qua các kênh truyền thông tin số để tham khảo và trao đổi ý kiến về những thông tin trên.,QD791_PL22_TinHoc.docx
+140111.0101a2,clean,,"Trình bày được sơ lược lịch sử phát triển của hai hệ điều hành thông dụng cho PC, một hệ điều hành là phần mềm thương mại và hệ điều hành còn lại là phần mềm nguồn mở.",QD791_PL22_TinHoc.docx
+140111.0101b2,clean,,Trình bày được vài nét chính về một hệ điều hành thông dụng cho thiết bị di động và sử dụng được một số tiện ích cơ bản của hệ điều hành đó.,QD791_PL22_TinHoc.docx
+140111.0101c2,clean,,"Trình bày được một cách khái quát mối quan hệ giữa phần cứng, hệ điều hành và phần mềm ứng dụng. Trình bày được vai trò riêng của mỗi thành phần trong hoạt động chung của cả hệ thống.",QD791_PL22_TinHoc.docx
+140111.0102a2,clean,,"Trình bày được một số khái niệm có liên quan tới phần mềm nguồn mở: bản quyền phần mềm, giấy phép công cộng, phần mềm miễn phí. So sánh được phần mềm nguồn mở với phần mềm thương mại (nguồn đóng). Nêu được vai trò của phần mềm nguồn mở và phần mềm thương mại đối với sự phát triển của ICT.",QD791_PL22_TinHoc.docx
+140111.0102b5,clean,,"Nêu được tên một số phần mềm soạn thảo văn bản, phần mềm bảng tínhvà phần mềm trình chiếu nguồn mở, chẳng hạn Writer, Calc và Impress trong bộ OpenOffice.",QD791_PL22_TinHoc.docx
+140111.0102c3,clean,,Sử dụng được một số tiện ích có sẵn của hệ điều hành để nâng cao hiệu suất sử dụng máy tính.,QD791_PL22_TinHoc.docx
+140111.0102d3,clean,,"Kích hoạt và sử dụng được một vài chức năng cơ bản của một phần mềm soạn thảo văn bản, một phần mềm bảng tính và một phần mềm trình chiếu chạy trên Internet. Ví dụ cácphần mềm trong gói Google Docs.",QD791_PL22_TinHoc.docx
+140111.0201a1,clean,,"Nhận diện được hình dạng, mô tả được chức năng của các bộ phận chính bên trong thân máy tính như CPU, RAM và",QD791_PL22_TinHoc.docx
+140111.0201b1,clean,,"Nhận biết được sơ đồ của các mạch logic AND, OR, NOT, giải thích được vai trò của các mạch logic đó trong thực hiện các tính toán nhị phân.",QD791_PL22_TinHoc.docx
+140111.0201c3,clean,,Tuỳ chỉnh được một vài chức năng cơ bản của máy tính và các thiết bị vào - ra thông dụng để phù hợp với nhu cầu sử dụng và đạt hiệu quả tốt hơn.,QD791_PL22_TinHoc.docx
+140111.0202a2,clean,,Đọc hiểu được một số điểm chính trong tài liệu hướng dẫn về thiết bị số thông dụng. Thực hiện được một số những chỉ dẫn trong tài liệu đó.,QD791_PL22_TinHoc.docx
+140111.0202b2,clean,,"Đọc hiểu và giải thích được một số thông số cơ bản như kích thước màn hình, CPU, RAM, dung lượng lưu trữ, độ phân giải camera, ... của các thiết bị số thông dụng.Ví dụ: PC, máy tính bảng, điện thoại thông minh, tivi có khả năng kết nối Internet, ...",QD791_PL22_TinHoc.docx
+140111.0202c3,clean,,"Biết được cách kết nối các bộ phận thân máy, bàn phím, chuột, màn hình của máy tính với nhau.",QD791_PL22_TinHoc.docx
+140111.0202d3,clean,,"Biết được cách kết nối PC với các thiết bị số thông dụng như máy in, điện thoại thông minh, máy ảnh số, ...",QD791_PL22_TinHoc.docx
+140111.0301a3,clean,,"Sử dụng được một số công cụ trực tuyến như Google Driver hay Dropbox, ... để lưu trữ và chia sẻ tệp tin.",QD791_PL22_TinHoc.docx
+140111.0301b4,clean,,"Sử dụng được máy tìm kiếm, chẳng hạn máy tìm kiếm của Google, Yahoo, Bing, ... trên PC và thiết bị số thông minh để tìm kiếm thông tin bằng cách gõ từ khoá hoặc bằng tiếng nói.",QD791_PL22_TinHoc.docx
+140111.0301c4,clean,,Xác lập được các lựa chọn theo tiêu chí tìm kiếm để nâng cao hiệu quả tìm kiếm thông tin.,QD791_PL22_TinHoc.docx
+140111.0301d3,clean,,Sử dụng được những chức năng nâng cao của dịch vụ mạng xã hội.,QD791_PL22_TinHoc.docx
+140111.0301e1,clean,,Biết cách phân loại và đánh dấu các email.,QD791_PL22_TinHoc.docx
+140111.0401a5,clean,,Nêu được một số dạng lừa đảo phổ biến trên mạng và những biện pháp phòng tránh.,QD791_PL22_TinHoc.docx
+140111.0401b3,clean,,"Giao tiếp được trên mạng qua email, chat, mạng xã hội, ... và trong môi trường số một cách văn minh, phù hợp với các quy tắc và văn hoá ứng xử.",QD791_PL22_TinHoc.docx
+140111.0501a3,clean,,"Thực hiện được các thao tác xử lí ảnh cơ bản: cắt, phóng to, thu nhỏ, di chuyển, tẩy xoá ảnh và tạo ảnh động.",QD791_PL22_TinHoc.docx
+140111.0502a6,clean,,"Tạo được các đoạn phim, nhập tư liệu từ ảnh và video có sẵn, biên tập được đoạn phim phục vụ học tập và giải trí.",QD791_PL22_TinHoc.docx
+140111.0502b3,clean,,"Sử dụng được một số công cụ cơ bản biên tập phim: chỉnh sửa hình ảnh, âm thanh, tạo phụ đề, tạo các hiệu ứng chuyển cảnh, căn chỉnh thời gian.",QD791_PL22_TinHoc.docx
+140111.0502c6,clean,,"Tạo được đoạn phim hoạt hình từ ảnh, có hội thoại giữa các nhân vật và có phụ đề.",QD791_PL22_TinHoc.docx
+140111.0601a1,clean,,Nhận biết được nhu cầu lưu trữ dữ liệu và khai thác thông tin cho bài toán quản lí.,QD791_PL22_TinHoc.docx
+140111.0601b2,clean,,"Diễn đạt được khái niệm hệ Cơ sở dữ liệu, các khái niệm cơ bản trong mô hình Cơ sở dữ liệu quan hệ như quan hệ (bảng), khoá, khoá ngoài, truy vấn, cập nhật dữ liệu, ...",QD791_PL22_TinHoc.docx
+140111.0601c5,clean,,Nêu được những khái niệm cơ bản của hệ Cơ sở dữ liệu. Giải thích được các khái niệm đó qua ví dụ minh hoạ.,QD791_PL22_TinHoc.docx
+140111.0601d4,clean,,Phân biệt được hai loại kiến trúc hệ Cơ sở dữ liệu là tập trung và phân tán.,QD791_PL22_TinHoc.docx
+140111.0601e5,clean,,Nêu được tầm quan trọng và một số biện pháp bảo mật hệ Cơ sở dữ liệu.,QD791_PL22_TinHoc.docx
+140111.0701a6,clean,,"Tạo được các bảng và chỉ định được khoá cho mỗi bảng, thiết lập được mối quan hệ giữa các bảng qua việc chỉ định khoá ngoài.",QD791_PL22_TinHoc.docx
+140111.0701b3,clean,,Thực hiện được việc cập nhật Cơ sở dữ liệu.,QD791_PL22_TinHoc.docx
+140111.0701c5,clean,,Nêu được một vài tổ chức cần ứng dụng Cơ sở dữ liệu để quản lí hoạt động của mình.,QD791_PL22_TinHoc.docx
+140111.0701d3,clean,,"Thể hiện được tính cẩn thận, chăm chỉ,trách nhiệm trong việc lưu trữ và quản lí dữ liệu.",QD791_PL22_TinHoc.docx
+140111.0702a3,clean,,Sử dụng được các truy vấn để tìm kiếm và kết xuất thông tin từ Cơ sở dữ liệu.,QD791_PL22_TinHoc.docx
+140111.0702b5,clean,,Nêu được một vài nhận xét so sánh kết quả bài thực hành với một phần mềm quản lí do giáo viên giới thiệu hoặc đã từng biết.,QD791_PL22_TinHoc.docx
+140111.0702c2,clean,,Giải thích được tính ưu việt của việc quản lí dữ liệu một cách khoa học nhờ ứng dụng Cơ sở dữ liệu.,QD791_PL22_TinHoc.docx
+140111.0702d4,clean,,Tìm hiểu được thêm một vài chức năng của hệ Quản trị cơ sở dữ liệu.,QD791_PL22_TinHoc.docx
+140111.0801a2,clean,,Phát biểu được bài toán sắp xếp và bài toán tìm kiếm.,QD791_PL22_TinHoc.docx
+140111.0801b6,clean,,Viết được chương trình cho một vài thuật toán sắp xếp và tìm kiếm.,QD791_PL22_TinHoc.docx
+140111.0801c3,clean,,Vận dụng được các thuật toán đã học để giải quyết một bài toán cụ thể.,QD791_PL22_TinHoc.docx
+140111.0802a4,clean,,"Biết được việc kiểm thử giúp lập trình viên phát hiện lỗi, làm tăng độ tin cậy của chương trình nhưng chưa chứng minh được tính đúng của chương trình.",QD791_PL22_TinHoc.docx
+140111.0802b2,clean,,Trình bày được sơ lược khái niệm độ phức tạp thời gian của thuật toán và phép toán tích cực. Nêu được ví dụ minh hoạ.,QD791_PL22_TinHoc.docx
+140111.0802c3,clean,,"Vận dụng được những quy tắc thực hành xác định độ phức tạp thời gian của một số thuật toán, chương trình đã biết.",QD791_PL22_TinHoc.docx
+140111.0803a3,clean,,Giải thích và vận dụng được phương pháp làm mịn dần trong lập trình.,QD791_PL22_TinHoc.docx
+140111.0803b3,clean,,Giải thích và vận dụng được phương pháp thiết kế chương trình thành các mô đun cho một bài toán cụ thể.,QD791_PL22_TinHoc.docx
+140111.0803c1,clean,,"Nhận biết được lợi ích của phương pháp nêu trên:Hỗ trợ làm việc đồng thời, dễ dàng bảo trì, phát triển chương trình và tái sử dụng các mô đun.",QD791_PL22_TinHoc.docx
+140111.0804a2,clean,,Trình bày được cấu trúc dữ liệu mảng (một và hai chiều) và danh sách liên kết.,QD791_PL22_TinHoc.docx
+140111.0804b6,clean,,Tạo được một thư viện nhỏ và viết được chương trình có sử dụng thư viện vừa tạo ra.,QD791_PL22_TinHoc.docx
+140111.0804c6,clean,,Viết được chương trình vận dụng những kiến thức tích hợp liên môn để giải quyết vấn đề.,QD791_PL22_TinHoc.docx
+140111.0901a2,clean,,Trình bày được thông tin hướng nghiệp về nghề Quản trị cơ sở dữ liệu theo các yếu tố sau: + Những nét sơ lược về công việc chính mà người làm nghề phải thực hiện. + Yêu cầu thiết yếu về kiến thức và kĩ năng cần có để làm nghề. + Ngành học có liên quan ở các bậc học tiếp theo. + Nhu cầu nhân lực của xã hội trong hiện tại và tương lai gần về nghề đó.,QD791_PL22_TinHoc.docx
+140111.0901b4,clean,,"Tự tìm kiếm và khai thác được thông tin hướng nghiệp (qua các chương trình đào tạo, thông báo tuyển dụng nhân lực,...) về một vài ngành nghề khác trong lĩnh vực tin học.",QD791_PL22_TinHoc.docx
+140111.0901c3,clean,,Giao lưu được với bạn bè qua các kênh truyền thông số để tham khảo và trao đổi ý kiến về những thông tin trên.,QD791_PL22_TinHoc.docx
+140112.0101a2,clean,,Giải thích được sơ lược về khái niệm Trí tuệ nhân tạo (AI - Artificial Intelligence).,QD791_PL22_TinHoc.docx
+140112.0101b5,clean,,"Nêu được ví dụ minh hoạ cho một số ứng dụng điển hình của AI như điều khiển tự động, chẩn đoán bệnh, nhận dạng chữ viết tay, nhận dạng tiếng nói và khuôn mặt, trợ lí ảo, ...",QD791_PL22_TinHoc.docx
+140112.0101c5,clean,,Chỉ ra được một số lĩnh vực của khoa học công nghệ và đời sống đã và đang phát triển mạnh mẽ dựa trên những thành tựu to lớn của AI.,QD791_PL22_TinHoc.docx
+140112.0101d5,clean,,"Nêu được ví dụ để thấy một hệ thống AI có tri thức, có khả năng suy luận và khả năng học,...",QD791_PL22_TinHoc.docx
+140112.0101e5,clean,,Nêu được một cảnh báo về sự phát triển của AI trong tương lai.,QD791_PL22_TinHoc.docx
+140112.0102a3,clean,,"Kết nối được PC với các thiết bị số thông dụng như điện thoại di động, tivi có khả năng kết nối Internet, vòng đeo tay thông minh, thiết bị thực tại ảo,...",QD791_PL22_TinHoc.docx
+140112.0201a5,clean,,"Nêu được chức năng chính của một số thiết bị mạng thông dụng. Ví dụ: Access Point, Switch, Modem. Kết nối được các thiết bị đó với PC.",QD791_PL22_TinHoc.docx
+140112.0201b2,clean,,Mô tả sơ lược được vai trò và chức năng của giao thức mạng nói chung và giao thức TCP/IP nói riêng.,QD791_PL22_TinHoc.docx
+140112.0202a3,clean,,Sử dụng được các chức năng mạng của hệ điều hành để chia sẻ tài nguyên.,QD791_PL22_TinHoc.docx
+140112.0203a3,clean,,Kết nối được thiết bị di động vào mạng máy tính trong điều kiện phần cứng và phần mềm đã được chuẩn bị đầy đủ.,QD791_PL22_TinHoc.docx
+140112.0301a1,clean,,"Nhận diện hình dạng và phân biệt được chức năng các thiết bị mạng: Server, Switch, Modem, Access Point, cáp mạng.",QD791_PL22_TinHoc.docx
+140112.0301b5,clean,,Nêu được khái niệm và ứng dụng của một số loại đường truyền hữu tuyến và vô tuyến thông dụng.,QD791_PL22_TinHoc.docx
+140112.0301c2,clean,,"Trình bày và giải thích sơ lược được việc thiết kế mạng LAN cho một tổ chức nhỏ, ví dụ cho một trường phổ thông.",QD791_PL22_TinHoc.docx
+140112.0401a4,clean,,Phân tích được ưu và nhược điểm về giao tiếp trong thế giới ảo qua các ví dụ cụ thể.,QD791_PL22_TinHoc.docx
+140112.0401b4,clean,,Phân tích được tính nhân văn trong ứng xử ở một số tình huống tham gia thế giới ảo.,QD791_PL22_TinHoc.docx
+140112.0501a3,clean,,Sử dụng được một số chức năng cơ bản của phần mềm tạo trang web.,QD791_PL22_TinHoc.docx
+140112.0501b6,clean,,"Tạo được một trang web tĩnh đơn giản gồm một vài thành phần cơ bản: + Menu: bảng chọn chính liên kết đến các trang web tĩnh khác. + Content:tiêu đề trang, khung hiển thị các bài viết, ảnh đại diện, mẫu biểu (form).",QD791_PL22_TinHoc.docx
+140112.0601a2,clean,,Hiểu và giải thích được cấu trúc của một trang web dưới dạng HTML.,QD791_PL22_TinHoc.docx
+140112.0601b3,clean,,"Sử dụng được các thẻ HTML để trình bày trang web: + Định dạng văn bản, phông chữ, tạo liên kết, danh sách. + Đưa các tệp dữ liệu đa phương tiện vào trang web (Ví dụ: ảnh, âm thanh, video). + Tạo bảng, khung (frame). + Tạo mẫu biểu (form).",QD791_PL22_TinHoc.docx
+140112.0602a3,clean,,"Hiểu và sử dụng được một số thuộc tính cơ bản của CSS: màu sắc, phông chữ, nền, đường viền, kích cỡ,...",QD791_PL22_TinHoc.docx
+140112.0602b3,clean,,"Sử dụng được các yếu tố vùng chọn như class, id, tag,...",QD791_PL22_TinHoc.docx
+140112.0602c3,clean,,"Sử dụng được CSS làm trang web đẹp, đa dạng,sinh động hơn.",QD791_PL22_TinHoc.docx
+140112.0701a5,clean,,"Nêu được sơ lược về mục tiêu và một số thành tựu của Khoa học dữ liệu, nêu được ví dụ minh hoạ.",QD791_PL22_TinHoc.docx
+140112.0701b1,clean,,Biết được vai trò của máy tính đối với sự phát triển của Khoa học dữ liệu.,QD791_PL22_TinHoc.docx
+140112.0701c1,clean,,"Biết được tính ưu việt trong việc sử dụng máy tính và thuật toán hiệu quả để xử lí khối dữ liệu lớn, nêu được ví dụ minh hoạ.",QD791_PL22_TinHoc.docx
+140112.0701d5,clean,,Nêu được trải nghiệm của bản thân trong việc trích rút thông tin và tri thức hữu ích từ dữ liệu đã có.,QD791_PL22_TinHoc.docx
+140112.0702a2,clean,,Giải thích được sơ lược về khái niệm Học máy.,QD791_PL22_TinHoc.docx
+140112.0702b5,clean,,"Nêu được vai trò của Học máy trong những công việc như lọc thư rác, chẩn đoán bệnh, phân tích thị trường, nhận dạng tiếng nói và chữ viết, dịch tự động,...",QD791_PL22_TinHoc.docx
+140112.0801a5,clean,,Nêu được một vài lĩnh vực trong đời sống có sử dụng kĩ thuật mô phỏng.,QD791_PL22_TinHoc.docx
+140112.0801b5,clean,,Nêu được một vài vấn đề thực tế mà ở đó có thể cần dùng kĩ thuật mô phỏng để giải quyết.,QD791_PL22_TinHoc.docx
+140112.0801c3,clean,,Sử dụng và giải thích được lợi ích của một vài phần mềm mô phỏng.,QD791_PL22_TinHoc.docx
+140112.0901a2,clean,,"Trình bày được thông tin hướng nghiệp nhóm nghề Dịch vụ và Quản trị (Sửa chữa và bảo trì máy tính, Quản trị mạng, Bảo mật hệ thống thông tin, Quản trị và bảo trì hệ thống) theo các yếu tố sau: + Những nét sơ lược về công việc chính mà người làm nghề phải thực hiện.",QD791_PL22_TinHoc.docx
+140112.0901b4,clean,,"Tự tìm kiếm và khai thác được thông tin hướng nghiệp qua các chương trình đào tạo, thông báo tuyển dụng nhân lực, ...) về một vài ngành nghề khác trong lĩnh vực tin học.",QD791_PL22_TinHoc.docx
+140112.0901c3,clean,,Giao lưu được với bạn bè qua các kênh truyền thông số để tham khảo và trao đổi ý kiến về những thông tin trên.,QD791_PL22_TinHoc.docx
+140112.0902a5,clean,,"Nêu được tên một số ngành nghề và lĩnh vực có sử dụng nhân lực tin học, đồng thời giải thích được vai trò và công việc của chuyên viên tin học trong một số ngành nghề.",QD791_PL22_TinHoc.docx
+140112.0902b4,clean,,Tìm hiểu được thông tin ngành đào tạo của một số cơ sở đào tạo Công nghệ thông tin.,QD791_PL22_TinHoc.docx
+020107.0101a1,clean,,Nhận biết được số hữu tỉ và lấy được ví dụ về số hữu tỉ.,QD791_PL08_Toan.pdf
+020107.0101b1,clean,,Nhận biết được tập hợp các số hữu tỉ.,QD791_PL08_Toan.pdf
+020107.0101c3,clean,,Biểu diễn được số hữu tỉ trên trục số.,QD791_PL08_Toan.pdf
+020107.0101d1,clean,,Nhận biết được số đối của một số hữu tỉ.,QD791_PL08_Toan.pdf
+020107.0101e1,clean,,Nhận biết được thứ tự trong tập hợp các số hữu tỉ. So sánh được hai số hữu tỉ.,QD791_PL08_Toan.pdf
+020107.0102a3,check,pdf_word_order,"Thực tỉ. hiện được các phép tính: cộng, trừ, nhân, chia trong tập hợp số hữu",QD791_PL08_Toan.pdf
+020107.0102b3,clean,,"Mô tả được phép tính luỹ thừa với số mũ tự nhiên của một số hữu tỉ và một số tính chất của phép tính đó (tích và thương của hai luỹ thừa cùng cơ số, luỹ thừa của luỹ thừa).",QD791_PL08_Toan.pdf
+020107.0102c2,clean,,"Mô tả được thứ tự thực hiện các phép tính, quy tắc dấu ngoặc, quy tắc chuyển vế trong tập hợp số hữu tỉ.",QD791_PL08_Toan.pdf
+020107.0102d3,check,text_too_short,,QD791_PL08_Toan.pdf
+020107.0102e3,clean,,"Giải quyết được một số vấn đề thực tiễn gắn với các phép tính về số hữu tỉ (ví dụ: các bài toán liên quan đến chuyển động trong Vật lí, trong đo đạc,...).",QD791_PL08_Toan.pdf
+020107.0201a1,clean,,Nhận biết được khái niệm căn bậc hai số học của một số không âm.,QD791_PL08_Toan.pdf
+020107.0201b3,clean,,Tính được giá trị (đúng nguyên dương bằng máy hoặc tính cầm gần tay. đúng) căn bậc hai số học của một số,QD791_PL08_Toan.pdf
+020107.0202a1,clean,,Nhận biết được số thập phân hữu hạn và số thập phân vô hạn tuần hoàn.,QD791_PL08_Toan.pdf
+020107.0202b1,clean,,"Nhận biết được số vô tỉ, số thực, tập hợp các số thực.",QD791_PL08_Toan.pdf
+020107.0202c1,check,pdf_word_order,Nhận trường biết hợp được thuận trục lợi. số thực và biểu diễn được số thực trên trục số trong,QD791_PL08_Toan.pdf
+020107.0202d1,clean,,Nhận biết được số đối của một số thực.,QD791_PL08_Toan.pdf
+020107.0202e1,clean,,Nhận biết được thứ tự trong tập hợp các số thực.,QD791_PL08_Toan.pdf
+020107.0202f1,clean,,Nhận biết được giá trị tuyệt đối của một số thực.,QD791_PL08_Toan.pdf
+020107.0202g3,check,pdf_word_order,Thực trước. hiện được ước lượng và làm tròn số căn cứ vào độ chính xác cho,QD791_PL08_Toan.pdf
+020107.0203a1,clean,,Nhận biết được tỉ lệ thức và các tính chất của tỉ lệ thức.,QD791_PL08_Toan.pdf
+020107.0203b3,clean,,Vận dụng được tính chất của tỉ lệ thức trong giải toán.,QD791_PL08_Toan.pdf
+020107.0203c1,clean,,Nhận biết được dãy tỉ số bằng nhau.,QD791_PL08_Toan.pdf
+020107.0203d3,clean,,"Vận dụng được tính chất của dãy tỉ số bằng nhau trong giải toán (ví dụ: chia một số thành các phần tỉ lệ với các số cho trước,...)",QD791_PL08_Toan.pdf
+020107.0204a3,clean,,"Giải được một số bài toán đơn giản về đại lượng tỉ lệ thuận (ví dụ: bài toán về tổng sản phẩm thu được và năng suất lao động,...).",QD791_PL08_Toan.pdf
+020107.0204b3,check,contains_other_code,"Giải được một số bài toán đơn giản về đại lượng tỉ lệ thuận (ví dụ: bài toán về tổng sản phẩm thu được và năng suất lao động,...). 020107.0204a3 Giải được một số bài toán đơn giản về đại lượng tỉ lệ nghịch (ví dụ: bài toán về thời gian hoàn thành kế hoạch và năng suất lao động,...).",QD791_PL08_Toan.pdf
+020107.0301a1,clean,,Nhận biết được biểu thức số.,QD791_PL08_Toan.pdf
+020107.0301b1,clean,,Nhận biết được biểu thức đại số.,QD791_PL08_Toan.pdf
+020107.0301c3,clean,,Tính được giá trị của một biểu thức đại số.,QD791_PL08_Toan.pdf
+020107.0302a1,clean,,Nhận biết được định nghĩa đa thức một biến.,QD791_PL08_Toan.pdf
+020107.0302b1,clean,,Nhận đa thức biết một được biến. cách biểu diễn đa thức một biến; xác định được bậc của,QD791_PL08_Toan.pdf
+020107.0302c3,clean,,Tính được giá trị của đa thức khi biết giá trị của biến.,QD791_PL08_Toan.pdf
+020107.0302d1,clean,,Nhận biết được khái niệm nghiệm của đa thức một biến.,QD791_PL08_Toan.pdf
+020107.0302e3,clean,,"Thực hiện được các phép tính: phép cộng, phép trừ, phép nhân, phép chia trong tập hợp các đa thức một biến; vận dụng được những tính chất của các phép tính đó trong tính toán.",QD791_PL08_Toan.pdf
+020107.0401a2,clean,,hình hộp chữ nhật và hình lập phương.,QD791_PL08_Toan.pdf
+020107.0401b3,clean,,"Giải tích xung quyết quanh được của một hình số vấn hộp đề chữ thực nhật, tiễn hình gắn lập với phương việc tính (ví thể dụ: tích, tính diện thể",QD791_PL08_Toan.pdf
+020107.0402a2,clean,,"Mô tả được hình lăng trụ đứng tam giác, hình lăng trụ đứng tứ giác (ví dụ: hai mặt đáy là song song; các mặt bên đều là hình chữ nhật) và tạo lập được hình lăng trụ đứng tam giác, hình lăng trụ đứng tứ giác.",QD791_PL08_Toan.pdf
+020107.0402b3,clean,,"Tính được diện tích xung quanh, thể tích của hình lăng trụ đứng tam giác, hình lăng trụ đứng tứ giác.",QD791_PL08_Toan.pdf
+020107.0402c3,check,text_too_short,,QD791_PL08_Toan.pdf
+020107.0501a1,clean,,"Nhận biết được các góc ở vị trí đặc biệt (hai góc kề bù, hai góc đối đỉnh).",QD791_PL08_Toan.pdf
+020107.0501b1,clean,,Nhận biết được tia phân giác của một góc.,QD791_PL08_Toan.pdf
+020107.0501c1,clean,,Nhận biết được cách vẽ tia phân giác của một góc bằng dụng cụ học tập.,QD791_PL08_Toan.pdf
+020107.0502a2,clean,,Mô tả được một số tính chất của hai đường thẳng song song.,QD791_PL08_Toan.pdf
+020107.0502b2,clean,,"Mô tả được dấu hiệu song song của hai đường thẳng thông qua cặp góc đồng vị, cặp góc so le trong.",QD791_PL08_Toan.pdf
+020107.0502c1,clean,,Nhận biết được tiên đề Euclid về đường thẳng song song.,QD791_PL08_Toan.pdf
+020107.0503a1,clean,,"Khái niệm định lí, chứng minh một định lí Nhận biết được thế nào là một định lí, chứng minh một định lí.",QD791_PL08_Toan.pdf
+020107.0504a3,clean,,Giải thích được định lí về tổng các góc trong một tam giác bằng 180o.,QD791_PL08_Toan.pdf
+020107.0504b1,clean,,Nhận biết được liên hệ về độ dài của ba cạnh trong một tam giác.,QD791_PL08_Toan.pdf
+020107.0504c1,clean,,Nhận biết được khái niệm hai tam giác bằng nhau.,QD791_PL08_Toan.pdf
+020107.0504d3,clean,,"Giải giác vuông. thích được các trường hợp bằng nhau của hai tam giác, của hai tam",QD791_PL08_Toan.pdf
+020107.0504e2,clean,,Mô tả được tam giác cân và giải thích được tính chất của tam giác cân (ví dụ: hai cạnh bên bằng nhau; hai góc đáy bằng nhau).,QD791_PL08_Toan.pdf
+020107.0504f1,check,text_too_short,,QD791_PL08_Toan.pdf
+020107.0504g1,clean,,Nhận biết được đường của đường trung trực. trung trực của một đoạn thẳng và tính chất cơ bản,QD791_PL08_Toan.pdf
+020107.0504h1,clean,,"Nhận biết được: các đường đặc biệt trong tam giác (đường trung tuyến, đường cao, đường phân giác, đường trung trực); sự đồng quy của các đường đặc biệt đó.",QD791_PL08_Toan.pdf
+020107.0505a2,clean,,"Diễn đạt được lập luận và chứng minh hình học trong những trường hợp đơn giản (ví dụ: lập luận và chứng minh được các đoạn thẳng bằng nhau, các góc bằng nhau từ các điều kiện ban đầu liên quan đến tam giác,...).",QD791_PL08_Toan.pdf
+020107.0505b3,clean,,"Giải quyết được học như: đo, vẽ, một tạo dựng số vấn các đề hình thực đã tiễn học. liên quan đến ứng dụng của hình",QD791_PL08_Toan.pdf
+020107.0601a3,clean,,"chí cho trước từ những nguồn: văn bản, bảng biểu, kiến thức trong các môn học khác và trong thực tiễn. Giải thích được tính hợp lí của dữ liệu theo các tiêu chí toán học đơn giản (ví dụ: tính hợp lí, tính đại diện của một kết luận trong phỏng vấn; tính",QD791_PL08_Toan.pdf
+020107.0601b3,clean,,hợp lí của các quảng cáo;...).,QD791_PL08_Toan.pdf
+020107.0602a2,clean,,Đọc và mô tả thành thạo các dữ liệu ở dạng biểu đồ thống kê: biểu đồ hình quạt tròn (pie chart); biểu đồ đoạn thẳng (line graph).,QD791_PL08_Toan.pdf
+020107.0602b4,check,text_too_short,,QD791_PL08_Toan.pdf
+020107.0602c1,clean,,Nhận biết được những dạng biểu diễn khác nhau cho một tập dữ liệu.,QD791_PL08_Toan.pdf
+020107.0701a2,clean,,Nhận ra được vấn đề hoặc quy luật đơn giản dựa trên phân tích các số liệu thu được ở dạng: biểu đồ hình quạt tròn (cho sẵn) (pie chart); biểu đồ đoạn thẳng (line graph).,QD791_PL08_Toan.pdf
+020107.0701b3,clean,,ở dạng: biểu đồ hình quạt tròn (cho sẵn) (pie chart); biểu đồ đoạn thẳng từ các số liệu và biểu đồ (line graph). thống kê đã có,QD791_PL08_Toan.pdf
+020107.0701c1,clean,,"Nhận biết được mối liên hệ giữa thống kê với những kiến thức trong các môn học khác trong Chương trình lớp 7 (ví dụ: Lịch sử và Địa lí lớp 7, Khoa học tự nhiên lớp 7,...) và trong thực tiễn (ví dụ: môi trường, y học, tài chính,...).",QD791_PL08_Toan.pdf
+020107.0801a2,clean,,Làm quen với các khái niệm mở đầu về biến cố ngẫu nhiên và xác suất của biến cố ngẫu nhiên trong các ví dụ đơn giản.,QD791_PL08_Toan.pdf
+020107.0801b1,clean,,"Nhận biết được xác suất của một biến cố ngẫu nhiên trong một số ví dụ đơn giản (ví dụ: lấy bóng trong túi, tung xúc xắc,...).",QD791_PL08_Toan.pdf
+020110.0101a6,clean,,"lập và phát biểu được các mệnh đề toán học, bao gồm: mệnh đề phủ định; mệnh đề đảo; mệnh đề tương đương; mệnh đề có chứa kí hiệu ∀, ∃; điều kiện cần, điều kiện đủ, điều kiện cần và đủ. đương. Điều kiện cần và đủ.",QD791_PL08_Toan.pdf
+020110.0101b4,check,pdf_word_order,Xác trường định hợp được đơn giản. tính đúng/sai của một mệnh đề toán học trong những,QD791_PL08_Toan.pdf
+020110.0102a1,clean,,"Nhận biết được các khái niệm cơ bản về tập hợp (tập con, hai tập hợp bằng nhau, tập rỗng) và biết sử dụng các kí hiệu ⊂, ⊃, ∅.",QD791_PL08_Toan.pdf
+020110.0102b3,check,text_too_short,,QD791_PL08_Toan.pdf
+020110.0102c3,clean,,"Giải quyết được một số vấn đề thực tiễn gắn với phép toán trên tập hợp (ví dụ: những bài toán liên quan đến đếm số phần tử của hợp các tập hợp,...).",QD791_PL08_Toan.pdf
+020110.0201a1,clean,,Nhận biết được bất phương trình và hệ bất phương trình bậc nhất hai ẩn.,QD791_PL08_Toan.pdf
+020110.0201b3,clean,,Biểu bậc nhất diễn hai được ẩn miền trên mặt nghiệm phẳng của toạ bất độ. phương trình và hệ bất phương trình,QD791_PL08_Toan.pdf
+020110.0201c3,clean,,"Vận dụng được kiến thức về bất phương trình, hệ bất phương trình bậc nhất hai ẩn vào giải quyết bài toán thực tiễn (ví dụ: bài toán tìm cực trị của biểu thức F = ax + by trên một miền đa giác,...).",QD791_PL08_Toan.pdf
+020110.0301a1,clean,,"Nhận biết được những mô hình thực tế (dạng bảng, biểu đồ, công thức) dẫn đến khái niệm hàm số.",QD791_PL08_Toan.pdf
+020110.0301b2,check,text_too_short,,QD791_PL08_Toan.pdf
+020110.0301c2,clean,,"Mô tả được các đặc trưng hình học của đồ thị hàm số đồng biến, hàm số nghịch biến.",QD791_PL08_Toan.pdf
+020110.0301d3,check,text_too_short,,QD791_PL08_Toan.pdf
+020110.0302a6,clean,,Thiết lập được bảng giá trị của hàm số bậc hai.,QD791_PL08_Toan.pdf
+020110.0302b6,clean,,Vẽ được Parabola (parabol) là đồ thị hàm số bậc hai.,QD791_PL08_Toan.pdf
+020110.0302c1,clean,,"Nhận biết được các tính chất cơ bản của Parabola như đỉnh, trục đối xứng.",QD791_PL08_Toan.pdf
+020110.0302d3,check,pdf_word_order,Nhận đồ thị. biết và giải thích được các tính chất của hàm số bậc hai thông qua,QD791_PL08_Toan.pdf
+020110.0302e3,clean,,"Vận dụng được kiến thức về hàm số bậc hai và đồ thị vào giải quyết bài toán thực tiễn (ví dụ: xác định độ cao của cầu, cổng có hình dạng Parabola,...).",QD791_PL08_Toan.pdf
+020110.0303a3,clean,,Giải thích được định lí về dấu của tam thức bậc hai từ việc quan sát đồ thị của hàm bậc hai.,QD791_PL08_Toan.pdf
+020110.0303b3,clean,,Giải được bất phương trình bậc hai.,QD791_PL08_Toan.pdf
+020110.0303c3,clean,,"Vận dụng được bất phương trình bậc hai một ẩn vào giải quyết bài toán thực tiễn (ví dụ: xác định chiều cao tối đa để xe có thể qua hầm có hình dạng Parabola,...).",QD791_PL08_Toan.pdf
+020110.0304a3,clean,,Giải được phương trình chứa căn thức có dạng:,QD791_PL08_Toan.pdf
+020110.0401a3,clean,,"Vận dụng được quy tắc cộng và quy tắc nhân trong một số tình huống đơn giản (ví dụ: đếm số khả năng xuất hiện mặt sấp/ngửa khi tung một số đồng xu,...).",QD791_PL08_Toan.pdf
+020110.0401b3,clean,,"Vận dụng được sơ đồ hình cây trong các bài toán đếm đơn giản các đối tượng trong Toán học, trong các môn học khác cũng như trong thực tiễn (ví dụ: đếm số hợp tử tạo thành trong Sinh học, hoặc đếm số trận đấu trong một giải thể thao,...).",QD791_PL08_Toan.pdf
+020110.0401c3,clean,,"Tính được số các hoán vị, chỉnh hợp, tổ hợp.",QD791_PL08_Toan.pdf
+020110.0401d3,clean,,"Tính được số các hoán vị, chỉnh hợp, tổ hợp bằng máy tính cầm tay.",QD791_PL08_Toan.pdf
+020110.0402a3,clean,,Khai triển được nhị thức Newton 5) bằng cách vận dụng tổ hợp. (a + b)n với số mũ thấp (n = 4 hoặc n =,QD791_PL08_Toan.pdf
+020110.0501a1,clean,,Nhận biết được giá trị lượng giác của một góc từ 0 độ đến 180 độ.,QD791_PL08_Toan.pdf
+020110.0501b3,clean,,Tính được giá trị lượng giác (đúng hoặc gần đúng) của một góc từ 0 độ đến 180 độ bằng máy tính cầm tay.,QD791_PL08_Toan.pdf
+020110.0501c3,clean,,"Giải nhau, thích bù nhau. được hệ thức liên hệ giữa giá trị lượng giác của các góc phụ",QD791_PL08_Toan.pdf
+020110.0501d3,clean,,"Giải thích được các hệ thức lượng cơ bản trong tam giác: định lí côsin, định lí sin, công thức tính diện tích tam giác.",QD791_PL08_Toan.pdf
+020110.0501e3,check,text_too_short,,QD791_PL08_Toan.pdf
+020110.0502a1,clean,,"Nhận biết được khái niệm vectơ, vectơ bằng nhau, vectơ-không.",QD791_PL08_Toan.pdf
+020110.0502b3,clean,,Biểu thị được một số đại lượng trong thực tiễn bằng vectơ.,QD791_PL08_Toan.pdf
+020110.0502c3,clean,,"Thực hiện được các phép toán trên vectơ (tổng và hiệu hai vectơ, tích của một số với vectơ, tích vô hướng của hai vectơ) và mô tả được những tính chất hình học (ba điểm thẳng hàng, trung điểm của đoạn thẳng, trọng tâm của tam giác,...) bằng vectơ.",QD791_PL08_Toan.pdf
+020110.0502d3,clean,,"Sử dụng được vectơ và các phép toán trên vectơ để giải thích một số hiện tượng có liên quan đến Vật lí và Hoá học (ví dụ: những vấn đề liên quan đến lực, đến chuyển động,...).",QD791_PL08_Toan.pdf
+020110.0502e3,clean,,"Vận dụng được kiến thức về vectơ để giải một số bài toán hình học và một số bài toán liên quan đến thực tiễn (ví dụ: xác định lực tác dụng lên vật,...).",QD791_PL08_Toan.pdf
+020110.0601a1,clean,,Nhận biết được toạ độ của vectơ đối với một hệ trục toạ độ.,QD791_PL08_Toan.pdf
+020110.0601b4,clean,,"Tìm đầu mút được của toạ nó. độ của một vectơ, độ dài của một vectơ khi biết toạ độ hai",QD791_PL08_Toan.pdf
+020110.0601c3,clean,,Sử dụng được biểu thức toạ độ của các phép toán vectơ trong tính toán.,QD791_PL08_Toan.pdf
+020110.0601d3,clean,,Vận dụng được phương pháp toạ độ vào bài toán giải tam giác.,QD791_PL08_Toan.pdf
+020110.0601e3,clean,,"Vận dụng được kiến thức về toạ độ của vectơ để giải một số bài toán liên quan đến thực tiễn (ví dụ: vị trí của vật trên mặt phẳng toạ độ,...).",QD791_PL08_Toan.pdf
+020110.0602a2,clean,,Mô tả được phương trình tổng quát và phương trình tham số của đường thẳng trong mặt phẳng toạ độ.,QD791_PL08_Toan.pdf
+020110.0602b6,check,text_too_short,,QD791_PL08_Toan.pdf
+020110.0602c1,clean,,"Nhận góc với biết nhau được bằng hai phương đường thẳng pháp toạ cắt độ. nhau, song song, trùng nhau, vuông",QD791_PL08_Toan.pdf
+020110.0602d6,clean,,Thiết lập được công thức tính góc giữa hai đường thẳng.,QD791_PL08_Toan.pdf
+020110.0602e3,clean,,Tính được khoảng cách từ một điểm đến một đường thẳng bằng phương pháp toạ độ.,QD791_PL08_Toan.pdf
+020110.0602f3,check,contains_other_code,Tính được khoảng cách từ một điểm đến một đường thẳng bằng phương pháp toạ độ. 020110.0602e3 Giải thích được mối liên hệ giữa đồ thị hàm số bậc nhất và đường thẳng trong mặt phẳng toạ độ.,QD791_PL08_Toan.pdf
+020110.0602g3,clean,,Vận toán dụng có liên được quan kiến đến thức thực về tiễn. phương trình đường thẳng để giải một số bài,QD791_PL08_Toan.pdf
+020110.0603a6,clean,,Thiết lập được phương trình đường tròn khi biết toạ độ tâm và bán kính; biết toạ độ ba điểm mà đường tròn đi qua; xác định được tâm và bán kính đường tròn khi biết phương trình của đường tròn.,QD791_PL08_Toan.pdf
+020110.0603b6,clean,,Thiết tiếp điểm. lập được phương trình tiếp tuyến của đường tròn khi biết toạ độ của,QD791_PL08_Toan.pdf
+020110.0603c3,clean,,"Vận dụng được kiến thức về phương trình đường tròn để giải một số bài toán liên quan đến thực tiễn (ví dụ: bài toán về chuyển động tròn trong Vật lí,...).",QD791_PL08_Toan.pdf
+020110.0604a1,clean,,Nhận biết được ba đường conic bằng hình học.,QD791_PL08_Toan.pdf
+020110.0604b1,clean,,Nhận phẳng biết toạ độ. được phương trình chính tắc của ba đường conic trong mặt,QD791_PL08_Toan.pdf
+020110.0604c3,clean,,"Giải quyết được giải thích một số một hiện số tượng vấn đề trong thực Quang tiễn gắn học,...). với ba đường conic (ví dụ:",QD791_PL08_Toan.pdf
+020110.0701a2,clean,,"Số gần đúng Số gần đúng. Sai số Hiểu được khái niệm số gần đúng, sai số tuyệt đối.",QD791_PL08_Toan.pdf
+020110.0701b4,clean,,Xác định được số gần đúng của một số với độ chính xác cho trước.,QD791_PL08_Toan.pdf
+020110.0701c4,clean,,Xác định được sai số tương đối của số gần đúng.,QD791_PL08_Toan.pdf
+020110.0701d4,clean,,Xác định được số quy tròn của số gần đúng với độ chính xác cho trước.,QD791_PL08_Toan.pdf
+020110.0701e3,clean,,Biết sử dụng máy tính cầm tay để tính toán với các số gần đúng.,QD791_PL08_Toan.pdf
+020110.0801a4,clean,,Phát hiện và lí giải được số liệu không chính xác dựa trên mối liên hệ toán học đơn giản giữa các số liệu đã được biểu diễn trong nhiều ví dụ.,QD791_PL08_Toan.pdf
+020110.0901a3,clean,,"Tính được số đặc trưng đo xu thế trung tâm cho mẫu số liệu không ghép nhóm: số trung bình cộng (hay số trung bình), trung vị (median), tứ phân vị (quartiles), mốt (mode).",QD791_PL08_Toan.pdf
+020110.0901b3,clean,,Giải thích được ý nghĩa và vai trò của các số đặc trưng nói trên của mẫu số liệu trong thực tiễn.,QD791_PL08_Toan.pdf
+020110.0901c5,clean,,Chỉ ra được những kết luận nhờ ý nghĩa của số đặc trưng nói trên của mẫu số liệu trong trường hợp đơn giản.,QD791_PL08_Toan.pdf
+020110.0902a3,clean,,"Tính được số đặc trưng đo mức độ phân tán cho mẫu số liệu không ghép nhóm: khoảng biến thiên, khoảng tứ phân vị, phương sai, độ lệch chuẩn.",QD791_PL08_Toan.pdf
+020110.0902b3,check,contains_other_code,"Tính được số đặc trưng đo mức độ phân tán cho mẫu số liệu không ghép nhóm: khoảng biến thiên, khoảng tứ phân vị, phương sai, độ lệch chuẩn. 020110.0902a3 Giải thích được ý nghĩa và vai trò của các số đặc trưng nói trên của mẫu số liệu trong thực tiễn.",QD791_PL08_Toan.pdf
+020110.0902c5,clean,,Chỉ ra được những kết luận nhờ ý nghĩa của số đặc trưng nói trên của mẫu số liệu trong trường hợp đơn giản.,QD791_PL08_Toan.pdf
+020110.0902d1,clean,,Nhận môn học biết trong được Chương mối liên trình hệ giữa lớp 10 thống và trong kê với thực những tiễn. kiến thức của các,QD791_PL08_Toan.pdf
+020110.1001a1,clean,,Nhận biết được một số khái niệm về xác suất cổ điển: phép thử ngẫu nhiên; không gian mẫu; biến cố (biến cố là tập con của không gian mẫu); biến cố đối; định nghĩa cổ điển của xác suất; nguyên lí xác suất bé.,QD791_PL08_Toan.pdf
+020110.1001b2,clean,,"Mô tả được không gian mẫu, biến cố trong một số thí nghiệm đơn giản (ví dụ: tung đồng xu hai lần, tung đồng xu ba lần, tung xúc xắc hai lần).",QD791_PL08_Toan.pdf
+020110.1101a3,clean,,được xác suất của biến cố trong một số bài toán đơn giản bằng phương pháp tổ hợp (trường hợp xác suất phân bố đều).,QD791_PL08_Toan.pdf
+020110.1101b3,clean,,"Tính hình cây được (ví xác dụ: suất tung trong xúc một số thí nghiệm lặp bằng cách sử xắc hai lần, tính xác suất để tổng số dụng sơ đồ chấm xuất",QD791_PL08_Toan.pdf
+020110.1102a3,clean,,Các quy tắc tính xác suất Mô tả được các tính chất cơ bản của xác suất. Tính được xác suất của biến cố đối.,QD791_PL08_Toan.pdf
+020110.1102b3,check,contains_other_code,Các quy tắc tính xác suất Mô tả được các tính chất cơ bản của xác suất. Tính được xác suất của biến cố đối. 020110.1102a3,QD791_PL08_Toan.pdf
+020110.1201a2,clean,,Mô tả được các bước chứng minh tính đúng đắn của một mệnh đề toán học bằng phương pháp quy nạp.,QD791_PL08_Toan.pdf
+020110.1201b4,check,pdf_word_order,Chứng minh được pháp quy nạp toán tính học. đúng đắn của một mệnh đề toán học bằng phương,QD791_PL08_Toan.pdf
+020110.1201c3,clean,,Vận đề thực dụng tiễn. được phương pháp quy nạp toán học để giải quyết một số vấn,QD791_PL08_Toan.pdf
+020110.1202a3,clean,,Khai triển được nhị thức Newton (a + b)^n bằng cách vận dụng tổ hợp.,QD791_PL08_Toan.pdf
+020110.1202b4,clean,,Xác Pascal. định được các hệ số trong nhị thức Newton thông qua tam giác,QD791_PL08_Toan.pdf
+020110.1202c4,clean,,Xác định được hệ số của xk trong khai triển (ax + b)^n thành đa thức.,QD791_PL08_Toan.pdf
+020110.1301a1,clean,,Nhận biết được khái niệm nghiệm của hệ phương trình bậc nhất ba ẩn.,QD791_PL08_Toan.pdf
+020110.1301b3,clean,,Giải được hệ phương trình bậc nhất ba ẩn bằng phương pháp Gauss.,QD791_PL08_Toan.pdf
+020110.1301c4,clean,,Tìm được nghiệm hệ phương trình bậc nhất ba ẩn bằng máy tính cầm tay.,QD791_PL08_Toan.pdf
+020110.1302a3,clean,,"Vận dụng được cách giải hệ phương trình bậc nhất ba ẩn vào giải quyết một số bài toán Vật lí (tính điện trở, tính cường độ dòng điện trong dòng điện không đổi,...), Hoá học (cân bằng phản ứng,...), Sinh học (bài tập nguyên phân, giảm phân,...).",QD791_PL08_Toan.pdf
+020110.1302b3,clean,,Vận vấn đề dụng thực cách tiễn giải cuộc hệ sống phương (ví dụ: trình bài bậc toán nhất lập ba kế ẩn hoạch để giải sản quyết một số,QD791_PL08_Toan.pdf
+020110.1401a4,clean,,"Xác định được các yếu tố đặc trưng của đường conic (đỉnh, tiêu điểm, tiêu cự, độ dài trục, tâm sai, đường chuẩn, bán kính qua tiêu) khi biết phương trình chính tắc của đường conic đó.",QD791_PL08_Toan.pdf
+020110.1401b1,clean,,Nhận biết được đường conic như là giao của mặt phẳng với mặt nón.,QD791_PL08_Toan.pdf
+020110.1401c3,clean,,"Giải quyết được một số vấn đề thực tiễn gắn với ba đường conic (ví dụ: giải thích một số hiện tượng trong Quang học, xác định quỹ đạo chuyển động của các hành tinh trong hệ Mặt Trời,...).",QD791_PL08_Toan.pdf

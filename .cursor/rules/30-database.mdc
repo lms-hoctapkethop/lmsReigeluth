@@ -1,0 +1,13 @@
+---
+description: Migration và truy vấn PostgreSQL
+globs: db/**,packages/db/**
+alwaysApply: false
+---
+
+- Không sửa migration đã merge. Thêm tệp mới `YYYYMMDDHHMMSS_<ten>.sql` theo định dạng dbmate (`-- migrate:up` / `-- migrate:down`).
+- Mỗi bảng nghiệp vụ có `school_id` (trừ dữ liệu chương trình quốc gia: `curriculum_requirements`, `knowledge_components`, `kc_versions`, `kc_edges`, `misconceptions`, `subjects`).
+- Quan hệ con trong cùng trường dùng khóa ngoại ghép `(parent_id, school_id)` → `parent(id, school_id)`.
+- Ràng buộc liên hàng (không chồng thời gian, DAG) dùng EXCLUDE hoặc trigger đã có; không giả bằng CHECK một hàng.
+- Bảng bất biến (`*_versions`, `question_items`, `question_keys`, `rubric_criteria`, `submission_versions`, `observations`, `audit_log`) có trigger chặn UPDATE/DELETE; thêm bảng bất biến mới phải gắn trigger `forbid_mutation()`.
+- Migration phải chạy được hai lần trên DB trống trong CI (up → down → up).
+- Chỉ mục mới kèm lý do trong comment (truy vấn nào dùng).

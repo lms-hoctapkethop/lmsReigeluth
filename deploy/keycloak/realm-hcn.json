@@ -1,0 +1,69 @@
+{
+  "realm": "hcn",
+  "enabled": true,
+  "displayName": "Học cùng nhau",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["vi", "en"],
+  "defaultLocale": "vi",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": true,
+  "sslRequired": "external",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "failureFactor": 8,
+  "waitIncrementSeconds": 60,
+  "passwordPolicy": "length(8) and notUsername and notEmail and passwordHistory(3)",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 43200,
+  "ssoSessionMaxLifespan": 604800,
+  "revokeRefreshToken": true,
+  "clients": [
+    {
+      "clientId": "hcn-web",
+      "name": "Học cùng nhau web",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "CHANGE_ME_REGENERATE_AFTER_IMPORT",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": ["https://hoc.truong.edu.vn/auth/callback"],
+      "webOrigins": ["https://hoc.truong.edu.vn"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://hoc.truong.edu.vn/"
+      },
+      "defaultClientScopes": ["openid", "profile", "email"]
+    },
+    {
+      "clientId": "hcn-provisioner",
+      "name": "Cấp tài khoản từ API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "CHANGE_ME_REGENERATE_AFTER_IMPORT",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-hcn-provisioner",
+      "enabled": true,
+      "serviceAccountClientId": "hcn-provisioner",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-users"]
+      }
+    }
+  ]
+}

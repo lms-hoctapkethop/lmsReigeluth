@@ -1,0 +1,13 @@
+---
+description: Kiểm thử
+globs: **/*.test.ts,**/*.spec.ts,tests/**,e2e/**
+alwaysApply: false
+---
+
+- Test integration dùng PostgreSQL thật qua Testcontainers (`postgres:18`), migration chạy đầy đủ, mỗi test file một schema hoặc transaction rollback. Không mock DB cho use case.
+- Dữ liệu test tạo bằng factory trong `tests/factories/` với bộ nhân vật cố định (docs/09 mục 4): trường A, trường B, GV Lan, GV Hùng, HS Minh, HS An, PH của Minh…
+- Tên test chứa mã ca: `AC01`, `A06`, `B03`, `C08`, `P1a-05`, `SEC-03`…
+- Test quyền dùng bảng ma trận `tests/authz/matrix.ts`; thêm endpoint mới phải thêm hàng vào ma trận.
+- Test đồng thời dùng `Promise.all` với hai kết nối DB riêng; khẳng định kết quả bằng truy vấn DB, không chỉ bằng HTTP status.
+- E2E Playwright: selector theo role/label (`getByRole`), không theo class CSS. Mỗi spec chạy `checkA11y()`.
+- Không `sleep` cố định; chờ theo điều kiện.

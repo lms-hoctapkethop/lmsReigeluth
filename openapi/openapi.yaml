@@ -1,0 +1,1202 @@
+openapi: 3.1.0
+info:
+  title: Học cùng nhau API
+  version: 3.0.0
+  description: |
+    Hợp đồng API lõi của LMS Học cùng nhau. Mọi endpoint dưới /api/v1 yêu cầu cookie phiên `hcn_sid`.
+    Request không an toàn (POST/PUT/PATCH/DELETE) yêu cầu header `X-CSRF-Token` và `Origin` hợp lệ.
+    Lệnh có hậu quả yêu cầu `Idempotency-Key`. Lỗi theo schema `ErrorResponse`.
+servers:
+  - url: https://hoc.example.edu.vn
+tags:
+  - name: session
+  - name: admin
+  - name: curriculum
+  - name: authoring
+  - name: release
+  - name: learning
+  - name: quiz
+  - name: review
+  - name: records
+  - name: family
+  - name: notifications
+  - name: ops
+
+security:
+  - session: []
+
+paths:
+  /health/live:
+    get:
+      tags: [ops]
+      security: []
+      operationId: healthLive
+      responses:
+        '200': { description: Tiến trình sống }
+  /health/ready:
+    get:
+      tags: [ops]
+      security: []
+      operationId: healthReady
+      responses:
+        '200': { description: Kết nối DB sẵn sàng }
+        '503': { description: Chưa sẵn sàng }
+
+  /auth/login:
+    get:
+      tags: [session]
+      security: []
+      operationId: authLogin
+      parameters:
+        - { name: returnTo, in: query, schema: { type: string, pattern: '^/' } }
+      responses:
+        '302': { description: Chuyển tới Keycloak }
+  /auth/callback:
+    get:
+      tags: [session]
+      security: []
+      operationId: authCallback
+      parameters:
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+      responses:
+        '302': { description: 'Tạo phiên, chuyển về returnTo' }
+        '403': { description: Tài khoản chưa được cấp quyền }
+  /auth/logout:
+    post:
+      tags: [session]
+      operationId: authLogout
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      responses:
+        '204': { description: Đã đăng xuất }
+
+  /api/v1/me:
+    get:
+      tags: [session]
+      operationId: getMe
+      responses:
+        '200':
+          description: Người dùng, ngữ cảnh, CSRF token
+          content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } }
+        '401': { $ref: '#/components/responses/Error' }
+  /api/v1/me/context:
+    post:
+      tags: [session]
+      operationId: switchContext
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/Context' } } }
+      responses:
+        '200': { description: Đã đổi, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/v1/offerings:
+    get:
+      tags: [learning]
+      operationId: listMyOfferings
+      description: GV thấy offering được phân công; HS thấy offering đã ghi danh; admin thấy toàn trường.
+      responses:
+        '200':
+          description: Danh sách
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Offering' } } } }
+
+  /api/v1/admin/offerings:
+    post:
+      tags: [admin]
+      operationId: createOffering
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [courseId, academicYearId, term, code, title]
+              properties:
+                courseId: { $ref: '#/components/schemas/Uuid' }
+                academicYearId: { $ref: '#/components/schemas/Uuid' }
+                term: { type: integer, enum: [1, 2] }
+                code: { type: string, pattern: '^[A-Z0-9_-]{3,40}$' }
+                title: { type: string, minLength: 1, maxLength: 200 }
+                classIds: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '201': { description: Đã tạo, content: { application/json: { schema: { $ref: '#/components/schemas/Offering' } } } }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/v1/admin/offerings/{offeringId}/teachers:
+    post:
+      tags: [admin]
+      operationId: assignTeacher
+      parameters: [ { $ref: '#/components/parameters/OfferingId' }, { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [teacherId]
+              properties:
+                teacherId: { $ref: '#/components/schemas/Uuid' }
+                capabilities: { type: array, items: { type: string, enum: [teach, author, release, review, view] } }
+      responses:
+        '201': { description: Đã phân công }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/v1/admin/offerings/{offeringId}/enrollments:
+    post:
+      tags: [admin]
+      operationId: enrollLearners
+      parameters: [ { $ref: '#/components/parameters/OfferingId' }, { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [learnerIds]
+              properties:
+                learnerIds: { type: array, minItems: 1, maxItems: 500, items: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '200':
+          description: Kết quả từng HS
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enrolled: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+                  alreadyEnrolled: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+                  rejected: { type: array, items: { type: object, properties: { learnerId: { $ref: '#/components/schemas/Uuid' }, reason: { type: string } } } }
+  /api/v1/admin/users/import:
+    post:
+      tags: [admin]
+      operationId: importUsers
+      description: Nhận CSV, tạo tài khoản Keycloak và users. Trả mật khẩu tạm một lần.
+      parameters: [ { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } }
+      responses:
+        '200':
+          description: Kết quả
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created: { type: array, items: { type: object, properties: { userId: { $ref: '#/components/schemas/Uuid' }, username: { type: string }, temporaryPassword: { type: string } } } }
+                  errors: { type: array, items: { type: object, properties: { row: { type: integer }, code: { type: string }, message: { type: string } } } }
+  /api/v1/admin/guardian-links:
+    get:
+      tags: [admin]
+      operationId: listGuardianLinks
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [pending, verified, revoked] } }
+      responses:
+        '200': { description: Danh sách, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/GuardianLink' } } } } }
+    post:
+      tags: [admin]
+      operationId: createGuardianLink
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [guardianId, learnerId, relation]
+              properties:
+                guardianId: { $ref: '#/components/schemas/Uuid' }
+                learnerId: { $ref: '#/components/schemas/Uuid' }
+                relation: { type: string, enum: [father, mother, guardian, other] }
+      responses:
+        '201': { description: Tạo ở trạng thái pending, content: { application/json: { schema: { $ref: '#/components/schemas/GuardianLink' } } } }
+  /api/v1/admin/guardian-links/{linkId}/verify:
+    post:
+      tags: [admin]
+      operationId: verifyGuardianLink
+      parameters: [ { $ref: '#/components/parameters/LinkId' }, { $ref: '#/components/parameters/Csrf' } ]
+      responses:
+        '200': { description: Đã xác minh, content: { application/json: { schema: { $ref: '#/components/schemas/GuardianLink' } } } }
+  /api/v1/admin/guardian-links/{linkId}/revoke:
+    post:
+      tags: [admin]
+      operationId: revokeGuardianLink
+      parameters: [ { $ref: '#/components/parameters/LinkId' }, { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [reason], properties: { reason: { type: string, minLength: 3 } } } } }
+      responses:
+        '200': { description: Đã thu hồi; có hiệu lực ngay request sau }
+
+  /api/v1/curriculum/requirements:
+    get:
+      tags: [curriculum]
+      operationId: listRequirements
+      parameters:
+        - { name: subject, in: query, required: true, schema: { type: string, pattern: '^[0-9]{4}$' } }
+        - { name: grade, in: query, required: true, schema: { type: integer, minimum: 1, maximum: 12 } }
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+      responses:
+        '200': { description: YCCĐ, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Requirement' } } } } }
+  /api/v1/curriculum/kcs:
+    get:
+      tags: [curriculum]
+      operationId: listKcs
+      parameters:
+        - { name: requirementId, in: query, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { name: subject, in: query, schema: { type: string } }
+        - { name: grade, in: query, schema: { type: integer } }
+        - { name: status, in: query, schema: { type: string, enum: [proposed, approved] } }
+      responses:
+        '200': { description: KC version, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/KcVersion' } } } } }
+    post:
+      tags: [curriculum]
+      operationId: proposeKc
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, subjectCode, grade, name, observableCriteria, requirementIds]
+              properties:
+                code: { type: string, pattern: '^KC-[A-Z0-9-]{3,40}$' }
+                subjectCode: { type: string }
+                grade: { type: integer }
+                name: { type: string }
+                description: { type: string }
+                observableCriteria: { type: string }
+                requirementIds: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '201': { description: Đã đề xuất, content: { application/json: { schema: { $ref: '#/components/schemas/KcVersion' } } } }
+  /api/v1/curriculum/kc-versions/{kcVersionId}/review:
+    post:
+      tags: [curriculum]
+      operationId: reviewKcVersion
+      parameters:
+        - { name: kcVersionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [approved, rejected] }, note: { type: string } } } } }
+      responses:
+        '200': { description: Đã duyệt }
+  /api/v1/curriculum/kc-edges:
+    post:
+      tags: [curriculum]
+      operationId: proposeKcEdge
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fromKcVersionId, toKcVersionId, edgeType]
+              properties:
+                fromKcVersionId: { $ref: '#/components/schemas/Uuid' }
+                toKcVersionId: { $ref: '#/components/schemas/Uuid' }
+                edgeType: { type: string, enum: [prerequisite, develops_into, part_of] }
+                rationale: { type: string }
+      responses:
+        '201': { description: Đã đề xuất }
+  /api/v1/curriculum/kc-edges/{edgeId}/review:
+    post:
+      tags: [curriculum]
+      operationId: reviewKcEdge
+      parameters:
+        - { name: edgeId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [decision], properties: { decision: { type: string, enum: [approved, rejected] } } } } }
+      responses:
+        '200': { description: Đã duyệt }
+        '422': { description: 'KC_EDGE_CYCLE: duyệt cạnh này tạo chu trình', content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/v1/modules:
+    post:
+      tags: [authoring]
+      operationId: createModule
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [courseId, title]
+              properties:
+                courseId: { $ref: '#/components/schemas/Uuid' }
+                title: { type: string, minLength: 1, maxLength: 200 }
+                requirementIds: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '201': { description: Tạo module và bản nháp revision 1, content: { application/json: { schema: { $ref: '#/components/schemas/ModuleDraftEnvelope' } } } }
+  /api/v1/modules/{moduleId}/draft:
+    get:
+      tags: [authoring]
+      operationId: getModuleDraft
+      parameters: [ { $ref: '#/components/parameters/ModuleId' } ]
+      responses:
+        '200':
+          description: Bản nháp (có đáp án — chỉ GV có quyền author)
+          headers: { ETag: { schema: { type: string }, description: 'W/"<revision>"' } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/ModuleDraftEnvelope' } } }
+    put:
+      tags: [authoring]
+      operationId: saveModuleDraft
+      parameters: [ { $ref: '#/components/parameters/ModuleId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ModuleDraftPayload' } } }
+      responses:
+        '200': { description: 'Đã lưu, revision tăng 1', content: { application/json: { schema: { $ref: '#/components/schemas/ModuleDraftEnvelope' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/v1/modules/{moduleId}/draft/validate:
+    post:
+      tags: [authoring]
+      operationId: validateModuleDraft
+      parameters: [ { $ref: '#/components/parameters/ModuleId' }, { $ref: '#/components/parameters/Csrf' } ]
+      responses:
+        '200': { description: Ma trận độ phủ và cảnh báo, content: { application/json: { schema: { $ref: '#/components/schemas/CoverageReport' } } } }
+  /api/v1/modules/{moduleId}/versions:
+    post:
+      tags: [authoring]
+      operationId: publishModuleVersion
+      parameters: [ { $ref: '#/components/parameters/ModuleId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedRevision]
+              properties:
+                expectedRevision: { type: integer, minimum: 1 }
+                acknowledgements:
+                  type: array
+                  description: Lý do giữ cảnh báo không chặn (V02, V03, V06, V08)
+                  items: { type: object, required: [code, target, reason], properties: { code: { type: string }, target: { type: string }, reason: { type: string, minLength: 5 } } }
+      responses:
+        '201': { description: 'Đã tạo phiên bản bất biến', content: { application/json: { schema: { $ref: '#/components/schemas/ModuleVersionSummary' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { description: COVERAGE_BLOCKED hoặc VALIDATION_FAILED, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/v1/offerings/{offeringId}/path-releases:
+    post:
+      tags: [release]
+      operationId: releaseModules
+      parameters: [ { $ref: '#/components/parameters/OfferingId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, modules]
+              properties:
+                title: { type: string }
+                modules:
+                  type: array
+                  minItems: 1
+                  maxItems: 20
+                  items:
+                    type: object
+                    required: [moduleVersionId, availableFrom]
+                    properties:
+                      moduleVersionId: { $ref: '#/components/schemas/Uuid' }
+                      availableFrom: { type: string, format: date-time }
+                      dueAt: { type: [string, 'null'], format: date-time }
+                      acceptUntil: { type: [string, 'null'], format: date-time }
+                      latePolicy: { type: string, enum: [reject, accept_marked] }
+      responses:
+        '201': { description: Receipt, content: { application/json: { schema: { $ref: '#/components/schemas/ReleaseReceipt' } } } }
+  /api/v1/offerings/{offeringId}/releases:
+    get:
+      tags: [release]
+      operationId: listReleases
+      parameters: [ { $ref: '#/components/parameters/OfferingId' } ]
+      responses:
+        '200': { description: Danh sách module release, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ModuleReleaseSummary' } } } } }
+  /api/v1/module-releases/{releaseId}/schedule:
+    patch:
+      tags: [release]
+      operationId: changeSchedule
+      parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                dueAt: { type: [string, 'null'], format: date-time }
+                acceptUntil: { type: [string, 'null'], format: date-time }
+                reason: { type: string, minLength: 3 }
+      responses:
+        '200': { description: Đã đổi lịch, content: { application/json: { schema: { $ref: '#/components/schemas/ModuleReleaseSummary' } } } }
+
+  /api/v1/me/today:
+    get:
+      tags: [learning]
+      operationId: getLearnerToday
+      responses:
+        '200': { description: Việc cần làm của HS, content: { application/json: { schema: { $ref: '#/components/schemas/LearnerToday' } } } }
+  /api/v1/module-releases/{releaseId}:
+    get:
+      tags: [learning]
+      operationId: getReleaseForLearner
+      description: DTO học sinh. Không chứa đáp án, lý giải, ánh xạ lỗi hiểu sai (INV-06).
+      parameters: [ { $ref: '#/components/parameters/ReleaseId' } ]
+      responses:
+        '200': { description: Nội dung module đã giao, content: { application/json: { schema: { $ref: '#/components/schemas/LearnerRelease' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/module-releases/{releaseId}/items/{itemId}/view:
+    post:
+      tags: [learning]
+      operationId: markViewed
+      parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/ItemId' }, { $ref: '#/components/parameters/Csrf' } ]
+      responses:
+        '200': { description: Tiến độ, content: { application/json: { schema: { $ref: '#/components/schemas/Progress' } } } }
+  /api/v1/module-releases/{releaseId}/items/{itemId}/self-mark:
+    post:
+      tags: [learning]
+      operationId: selfMark
+      parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/ItemId' }, { $ref: '#/components/parameters/Csrf' } ]
+      responses:
+        '200': { description: Tiến độ, content: { application/json: { schema: { $ref: '#/components/schemas/Progress' } } } }
+  /api/v1/module-releases/{releaseId}/items/{itemId}/submission/draft:
+    get:
+      tags: [learning]
+      operationId: getSubmissionDraft
+      parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/ItemId' } ]
+      responses:
+        '200': { description: Bản nháp, content: { application/json: { schema: { $ref: '#/components/schemas/SubmissionDraft' } } } }
+    put:
+      tags: [learning]
+      operationId: saveSubmissionDraft
+      parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/ItemId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SubmissionBodyInput' } } }
+      responses:
+        '200': { description: Đã lưu nháp trên server, content: { application/json: { schema: { $ref: '#/components/schemas/SubmissionDraft' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/v1/module-releases/{releaseId}/items/{itemId}/submissions:
+    post:
+      tags: [learning]
+      operationId: submitAssignment
+      parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/ItemId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [draftRevision]
+              properties:
+                draftRevision: { type: integer, minimum: 1, description: Nộp đúng bản nháp đã lưu }
+      responses:
+        '201': { description: Biên nhận, content: { application/json: { schema: { $ref: '#/components/schemas/SubmissionReceipt' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+        '410': { $ref: '#/components/responses/Error' }
+        '423': { $ref: '#/components/responses/Error' }
+  /api/v1/submissions/{submissionId}:
+    get:
+      tags: [learning]
+      operationId: getSubmission
+      parameters: [ { name: submissionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
+      responses:
+        '200': { description: 'Bài nộp, các phiên bản và phản hồi đã công bố', content: { application/json: { schema: { $ref: '#/components/schemas/SubmissionDetail' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/files:
+    post:
+      tags: [learning]
+      operationId: uploadFile
+      parameters: [ { $ref: '#/components/parameters/Csrf' } ]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } }
+      responses:
+        '201': { description: Tệp ở trạng thái pending quét, content: { application/json: { schema: { $ref: '#/components/schemas/FileMeta' } } } }
+        '413': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /api/v1/files/{fileId}:
+    get:
+      tags: [learning]
+      operationId: downloadFile
+      parameters: [ { name: fileId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
+      responses:
+        '200': { description: Stream tệp (Content-Disposition attachment), content: { application/octet-stream: { schema: { type: string, format: binary } } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '423': { $ref: '#/components/responses/Error' }
+
+  /api/v1/module-releases/{releaseId}/items/{itemId}/attempts:
+    post:
+      tags: [quiz]
+      operationId: startAttempt
+      parameters: [ { $ref: '#/components/parameters/ReleaseId' }, { $ref: '#/components/parameters/ItemId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '201': { description: Lượt làm, content: { application/json: { schema: { $ref: '#/components/schemas/Attempt' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/v1/attempts/{attemptId}:
+    get:
+      tags: [quiz]
+      operationId: getAttempt
+      parameters: [ { $ref: '#/components/parameters/AttemptId' } ]
+      responses:
+        '200': { description: Lượt làm, content: { application/json: { schema: { $ref: '#/components/schemas/Attempt' } } } }
+  /api/v1/attempts/{attemptId}/questions/{questionId}/answers:
+    post:
+      tags: [quiz]
+      operationId: answerQuestion
+      description: |
+        practice: chấm ngay, trả phản hồi theo lỗi hiểu sai. diagnostic/exit_ticket: lưu, không trả đúng sai tới khi submit
+        (trừ khi showFeedback=immediate). Không nhận trường correct/score từ client.
+      parameters: [ { $ref: '#/components/parameters/AttemptId' }, { $ref: '#/components/parameters/QuestionId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AnswerInput' } } }
+      responses:
+        '200': { description: Kết quả lần trả lời, content: { application/json: { schema: { $ref: '#/components/schemas/AnswerResult' } } } }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/v1/attempts/{attemptId}/questions/{questionId}/hints:
+    post:
+      tags: [quiz]
+      operationId: requestHint
+      parameters: [ { $ref: '#/components/parameters/AttemptId' }, { $ref: '#/components/parameters/QuestionId' }, { $ref: '#/components/parameters/Csrf' } ]
+      responses:
+        '200':
+          description: Gợi ý bậc tiếp theo
+          content: { application/json: { schema: { type: object, required: [level, text], properties: { level: { type: integer, minimum: 1, maximum: 3 }, text: { type: string }, remaining: { type: integer } } } } }
+        '409': { description: Hết gợi ý hoặc mục đích không cho gợi ý, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+  /api/v1/attempts/{attemptId}/submit:
+    post:
+      tags: [quiz]
+      operationId: submitAttempt
+      parameters: [ { $ref: '#/components/parameters/AttemptId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      responses:
+        '200': { description: Đã nộp; completion submit bất kể điểm, content: { application/json: { schema: { $ref: '#/components/schemas/Attempt' } } } }
+
+  /api/v1/offerings/{offeringId}/review-queue:
+    get:
+      tags: [review]
+      operationId: getReviewQueue
+      parameters:
+        - { $ref: '#/components/parameters/OfferingId' }
+        - { name: status, in: query, schema: { type: string, enum: [submitted, changes_requested, reviewed] } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        '200':
+          description: Hàng chờ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/QueueItem' } }
+                  nextCursor: { type: [string, 'null'] }
+  /api/v1/submission-versions/{submissionVersionId}/reviews:
+    post:
+      tags: [review]
+      operationId: openReview
+      description: Tạo hoặc trả bản nháp review đang mở cho đúng phiên bản bài nộp.
+      parameters:
+        - { name: submissionVersionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Bản nháp, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewDraft' } } } }
+  /api/v1/reviews/{reviewId}:
+    put:
+      tags: [review]
+      operationId: saveReviewDraft
+      parameters: [ { $ref: '#/components/parameters/ReviewId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReviewDraftInput' } } }
+      responses:
+        '200': { description: Đã lưu nháp, content: { application/json: { schema: { $ref: '#/components/schemas/ReviewDraft' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/v1/reviews/{reviewId}/publish:
+    post:
+      tags: [review]
+      operationId: publishReview
+      parameters: [ { $ref: '#/components/parameters/ReviewId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedRevision, expectedSubmissionVersionId, outcome, decisions]
+              properties:
+                expectedRevision: { type: integer }
+                expectedSubmissionVersionId: { $ref: '#/components/schemas/Uuid' }
+                outcome: { type: string, enum: [reviewed, changes_requested] }
+                decisions:
+                  type: array
+                  description: Rỗng = chỉ gửi phản hồi (mặc định)
+                  items:
+                    type: object
+                    required: [requirementId, decision, reason]
+                    properties:
+                      requirementId: { $ref: '#/components/schemas/Uuid' }
+                      decision: { type: string, enum: [achieved, not_yet] }
+                      reason: { type: string, minLength: 3 }
+      responses:
+        '200': { description: Đã công bố, content: { application/json: { schema: { $ref: '#/components/schemas/PublishedReview' } } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/v1/attainment-decisions/{decisionId}/supersede:
+    post:
+      tags: [review]
+      operationId: supersedeDecision
+      parameters:
+        - { name: decisionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, reason, reviewId]
+              properties:
+                decision: { type: string, enum: [achieved, not_yet] }
+                reason: { type: string, minLength: 5 }
+                reviewId: { $ref: '#/components/schemas/Uuid' }
+      responses:
+        '201': { description: Quyết định mới nối tiếp }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /api/v1/learners/{learnerId}/records:
+    get:
+      tags: [records]
+      operationId: getLearnerRecords
+      parameters: [ { $ref: '#/components/parameters/LearnerId' }, { name: offeringId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
+      responses:
+        '200': { description: Hồ sơ theo YCCĐ với ba lớp số liệu, content: { application/json: { schema: { $ref: '#/components/schemas/LearnerRecords' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/learners/{learnerId}/needs:
+    get:
+      tags: [records]
+      operationId: getLearnerNeeds
+      description: GV phân công thấy value; HS chỉ thấy nhãn chữ; PH không có quyền (B08).
+      parameters: [ { $ref: '#/components/parameters/LearnerId' }, { name: offeringId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
+      responses:
+        '200': { description: Nhu cầu theo KC, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/NeedsItem' } } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/offerings/{offeringId}/heatmap:
+    get:
+      tags: [records]
+      operationId: getHeatmap
+      parameters: [ { $ref: '#/components/parameters/OfferingId' } ]
+      responses:
+        '200': { description: Bản đồ nhiệt HS × KC, content: { application/json: { schema: { $ref: '#/components/schemas/Heatmap' } } } }
+
+  /api/v1/me/children:
+    get:
+      tags: [family]
+      operationId: listMyChildren
+      responses:
+        '200': { description: Con có liên kết đã xác minh, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ChildSummary' } } } } }
+  /api/v1/children/{learnerId}/overview:
+    get:
+      tags: [family]
+      operationId: getChildOverview
+      parameters: [ { $ref: '#/components/parameters/LearnerId' } ]
+      responses:
+        '200': { description: Chỉ dữ liệu đã công bố, content: { application/json: { schema: { $ref: '#/components/schemas/ChildOverview' } } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/family-supports:
+    post:
+      tags: [family]
+      operationId: commitFamilySupport
+      parameters: [ { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [learnerId, content]
+              properties:
+                learnerId: { $ref: '#/components/schemas/Uuid' }
+                offeringId: { $ref: '#/components/schemas/Uuid' }
+                content: { type: string, minLength: 3, maxLength: 500 }
+      responses:
+        '201': { description: Đã ghi nhận; không ảnh hưởng tiến độ hay mức đạt của HS }
+  /api/v1/family-supports/{supportId}/cancel:
+    post:
+      tags: [family]
+      operationId: cancelFamilySupport
+      parameters:
+        - { name: supportId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '200': { description: Đã hủy }
+
+  /api/v1/notifications:
+    get:
+      tags: [notifications]
+      operationId: listNotifications
+      parameters:
+        - { name: unread, in: query, schema: { type: boolean } }
+      responses:
+        '200': { description: Hộp thông báo, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Notification' } } } } }
+  /api/v1/notifications/{notificationId}/read:
+    post:
+      tags: [notifications]
+      operationId: markNotificationRead
+      parameters:
+        - { name: notificationId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+        - { $ref: '#/components/parameters/Csrf' }
+      responses:
+        '204': { description: Đã đọc }
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: hcn_sid
+  parameters:
+    Csrf: { name: X-CSRF-Token, in: header, required: true, schema: { type: string } }
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 8, maxLength: 128 } }
+    IfMatch: { name: If-Match, in: header, required: true, description: 'Revision hiện tại, dạng W/"<n>"', schema: { type: string } }
+    OfferingId: { name: offeringId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    ModuleId: { name: moduleId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    ReleaseId: { name: releaseId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    ItemId: { name: itemId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    AttemptId: { name: attemptId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    QuestionId: { name: questionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    ReviewId: { name: reviewId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    LearnerId: { name: learnerId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    LinkId: { name: linkId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+  responses:
+    Error:
+      description: Lỗi
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    Uuid: { type: string, format: uuid }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, request_id]
+          properties:
+            code:
+              type: string
+              enum: [BAD_REQUEST, UNAUTHENTICATED, FORBIDDEN, CSRF_FAILED, NOT_FOUND, REVISION_CONFLICT, IDEMPOTENCY_KEY_REUSED, REQUEST_IN_PROGRESS,
+                     SUBMISSION_VERSION_CHANGED, ALREADY_PUBLISHED, ATTEMPT_LIMIT_REACHED, RELEASE_CLOSED, FILE_TOO_LARGE, FILE_TYPE_NOT_ALLOWED,
+                     VALIDATION_FAILED, COVERAGE_BLOCKED, FEATURE_NOT_ENABLED, KC_EDGE_CYCLE, FILE_NOT_SCANNED, RATE_LIMITED, INTERNAL]
+            message: { type: string }
+            request_id: { type: string }
+            details: { type: object, additionalProperties: true }
+    Role: { type: string, enum: [admin, teacher, student, guardian] }
+    Context:
+      type: object
+      required: [schoolId, role]
+      properties:
+        schoolId: { $ref: '#/components/schemas/Uuid' }
+        role: { $ref: '#/components/schemas/Role' }
+    Me:
+      type: object
+      required: [userId, displayName, contexts, activeContext, csrfToken]
+      properties:
+        userId: { $ref: '#/components/schemas/Uuid' }
+        displayName: { type: string }
+        contexts: { type: array, items: { allOf: [ { $ref: '#/components/schemas/Context' }, { type: object, properties: { schoolName: { type: string } } } ] } }
+        activeContext: { $ref: '#/components/schemas/Context' }
+        csrfToken: { type: string }
+    Offering:
+      type: object
+      required: [id, code, title, subjectCode, grade, term, myRole]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        code: { type: string }
+        title: { type: string }
+        subjectCode: { type: string }
+        grade: { type: integer }
+        term: { type: integer }
+        myRole: { type: string, enum: [teacher, student, admin] }
+    GuardianLink:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        guardianId: { $ref: '#/components/schemas/Uuid' }
+        guardianName: { type: string }
+        learnerId: { $ref: '#/components/schemas/Uuid' }
+        learnerName: { type: string }
+        relation: { type: string }
+        status: { type: string, enum: [pending, verified, revoked] }
+    Requirement:
+      type: object
+      required: [id, code791Stem, grade, subjectCode, text, reviewStatus]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        code791Stem: { type: string, examples: ['140110.0601a'] }
+        bloomLevel: { type: [integer, 'null'], minimum: 1, maximum: 6 }
+        subjectCode: { type: string }
+        grade: { type: integer }
+        text: { type: string }
+        orientation: { type: [string, 'null'], enum: [common, ICT, CS, null] }
+        reviewStatus: { type: string, enum: [unverified, source_checked, approved, rejected] }
+    KcVersion:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        kcId: { $ref: '#/components/schemas/Uuid' }
+        code: { type: string }
+        versionNo: { type: integer }
+        name: { type: string }
+        observableCriteria: { type: string }
+        status: { type: string, enum: [proposed, approved, rejected, superseded] }
+        prerequisites: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+    RichDoc:
+      type: object
+      required: [format, blocks]
+      properties:
+        format: { const: hcn-rich/1 }
+        blocks: { type: array, items: { type: object, additionalProperties: true } }
+    ModuleDraftPayload:
+      type: object
+      description: Schema đầy đủ ở packages/contracts (ModuleDraft v1, docs/03 mục 4.1)
+      required: [schema, title, requirementIds, items]
+      properties:
+        schema: { const: module-draft/1 }
+        title: { type: string }
+        description: { type: string }
+        requirementIds: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+        items: { type: array, maxItems: 100, items: { type: object, additionalProperties: true } }
+    ModuleDraftEnvelope:
+      type: object
+      required: [moduleId, revision, payload, updatedAt]
+      properties:
+        moduleId: { $ref: '#/components/schemas/Uuid' }
+        revision: { type: integer }
+        payload: { $ref: '#/components/schemas/ModuleDraftPayload' }
+        updatedAt: { type: string, format: date-time }
+        latestVersionNo: { type: [integer, 'null'] }
+    CoverageReport:
+      type: object
+      required: [rows, warnings, blocking]
+      properties:
+        rows:
+          type: array
+          items:
+            type: object
+            properties:
+              requirementId: { $ref: '#/components/schemas/Uuid' }
+              code791Stem: { type: string }
+              bloomLevel: { type: [integer, 'null'] }
+              choiceObservations: { type: integer }
+              productObservations: { type: integer }
+        warnings:
+          type: array
+          items:
+            type: object
+            required: [code, level, target, message]
+            properties:
+              code: { type: string, enum: [V01, V02, V03, V04, V05, V06, V07, V08] }
+              level: { type: string, enum: [block, caution, info] }
+              target: { type: string }
+              message: { type: string }
+        blocking: { type: boolean }
+    ModuleVersionSummary:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        moduleId: { $ref: '#/components/schemas/Uuid' }
+        versionNo: { type: integer }
+        digest: { type: string }
+        publishedAt: { type: string, format: date-time }
+    ReleaseReceipt:
+      type: object
+      required: [pathReleaseId, moduleReleaseIds, createdAt]
+      properties:
+        pathReleaseId: { $ref: '#/components/schemas/Uuid' }
+        moduleReleaseIds: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+        createdAt: { type: string, format: date-time }
+    ModuleReleaseSummary:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        moduleVersionId: { $ref: '#/components/schemas/Uuid' }
+        title: { type: string }
+        availableFrom: { type: string, format: date-time }
+        dueAt: { type: [string, 'null'], format: date-time }
+        acceptUntil: { type: [string, 'null'], format: date-time }
+        scheduleRevision: { type: integer }
+    LearnerToday:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              releaseId: { $ref: '#/components/schemas/Uuid' }
+              itemId: { $ref: '#/components/schemas/Uuid' }
+              offeringTitle: { type: string }
+              title: { type: string }
+              itemType: { type: string, enum: [page, assignment, quiz, link] }
+              purpose: { type: [string, 'null'] }
+              dueAt: { type: [string, 'null'], format: date-time }
+              status: { type: string, enum: [not_started, in_progress, completed, submitted, changes_requested, reviewed] }
+        newFeedback: { type: integer }
+    LearnerQuestion:
+      type: object
+      description: Không có answerKey, rationale, misconception (INV-06)
+      additionalProperties: false
+      required: [id, qtype, stem, bloomTarget, hintsAvailable]
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        qtype: { type: string, enum: [single_choice, multi_choice, numeric, short_text] }
+        stem: { $ref: '#/components/schemas/RichDoc' }
+        options: { type: array, items: { type: object, additionalProperties: false, required: [id, label], properties: { id: { type: string }, label: { type: string } } } }
+        bloomTarget: { type: integer }
+        hintsAvailable: { type: integer }
+    LearnerRelease:
+      type: object
+      properties:
+        releaseId: { $ref: '#/components/schemas/Uuid' }
+        title: { type: string }
+        dueAt: { type: [string, 'null'], format: date-time }
+        requirements: { type: array, items: { $ref: '#/components/schemas/Requirement' } }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { $ref: '#/components/schemas/Uuid' }
+              itemType: { type: string, enum: [header, page, assignment, quiz, link] }
+              title: { type: string }
+              indent: { type: integer }
+              body: { $ref: '#/components/schemas/RichDoc' }
+              url: { type: string }
+              completionRule: { type: string }
+              purpose: { type: [string, 'null'] }
+              rubric:
+                type: [object, 'null']
+                properties:
+                  criteria: { type: array, items: { type: object, properties: { title: { type: string }, meets: { type: string }, developing: { type: string }, notYet: { type: string } } } }
+              progress: { $ref: '#/components/schemas/Progress' }
+    Progress:
+      type: object
+      properties:
+        status: { type: string, enum: [not_started, in_progress, completed] }
+        completedAt: { type: [string, 'null'], format: date-time }
+    SubmissionBodyInput:
+      type: object
+      required: [body]
+      properties:
+        body:
+          oneOf:
+            - type: object
+              required: [type, text]
+              properties: { type: { const: text }, text: { type: string, maxLength: 100000 } }
+            - type: object
+              required: [type, language, text]
+              properties:
+                type: { const: code }
+                language: { type: string, enum: [python, sql, html, css, text] }
+                text: { type: string, maxLength: 100000 }
+                testCases: { type: array, maxItems: 30, items: { type: object, properties: { input: { type: string }, expected: { type: string }, actual: { type: string }, note: { type: string } } } }
+            - type: object
+              required: [type, doc]
+              properties: { type: { const: rich }, doc: { $ref: '#/components/schemas/RichDoc' } }
+        reflection: { type: string, maxLength: 2000 }
+        fileIds: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/Uuid' } }
+    SubmissionDraft:
+      type: object
+      properties:
+        submissionId: { $ref: '#/components/schemas/Uuid' }
+        draftRevision: { type: integer }
+        body: { type: [object, 'null'] }
+        savedAt: { type: [string, 'null'], format: date-time }
+        status: { type: string }
+    SubmissionReceipt:
+      type: object
+      required: [submissionId, submissionVersionId, versionNo, submittedAt, isLate, contentHash]
+      properties:
+        submissionId: { $ref: '#/components/schemas/Uuid' }
+        submissionVersionId: { $ref: '#/components/schemas/Uuid' }
+        versionNo: { type: integer }
+        submittedAt: { type: string, format: date-time }
+        isLate: { type: boolean }
+        contentHash: { type: string }
+    SubmissionDetail:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        status: { type: string }
+        versions: { type: array, items: { type: object, properties: { id: { $ref: '#/components/schemas/Uuid' }, versionNo: { type: integer }, submittedAt: { type: string, format: date-time }, isLate: { type: boolean }, body: { type: object } } } }
+        publishedReviews: { type: array, items: { $ref: '#/components/schemas/PublishedReview' } }
+    FileMeta:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        originalName: { type: string }
+        sizeBytes: { type: integer }
+        mime: { type: string }
+        scanStatus: { type: string, enum: [pending, clean, infected, error] }
+    Attempt:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        purpose: { type: string, enum: [diagnostic, practice, exit_ticket, self_assessment, summative] }
+        attemptNo: { type: integer }
+        status: { type: string, enum: [in_progress, submitted] }
+        questions: { type: array, items: { $ref: '#/components/schemas/LearnerQuestion' } }
+        answered: { type: array, items: { $ref: '#/components/schemas/Uuid' } }
+        score: { type: [number, 'null'] }
+        maxScore: { type: [number, 'null'] }
+    AnswerInput:
+      type: object
+      required: [response]
+      additionalProperties: false
+      properties:
+        response:
+          oneOf:
+            - { type: object, required: [option], additionalProperties: false, properties: { option: { type: string } } }
+            - { type: object, required: [options], additionalProperties: false, properties: { options: { type: array, items: { type: string } } } }
+            - { type: object, required: [raw], additionalProperties: false, properties: { raw: { type: string, maxLength: 200 } } }
+    AnswerResult:
+      type: object
+      required: [tryNo, revealed]
+      properties:
+        tryNo: { type: integer }
+        revealed: { type: boolean, description: false khi mục đích không cho phản hồi ngay }
+        correct: { type: [boolean, 'null'] }
+        feedback: { type: [string, 'null'], description: Lỗi hiểu sai hoặc thông điệp chung; không lộ đáp án khi practice chưa đúng }
+        misconceptionCode: { type: [string, 'null'] }
+        hintsUsed: { type: integer }
+    QueueItem:
+      type: object
+      properties:
+        submissionId: { $ref: '#/components/schemas/Uuid' }
+        submissionVersionId: { $ref: '#/components/schemas/Uuid' }
+        learnerId: { $ref: '#/components/schemas/Uuid' }
+        learnerName: { type: string }
+        itemTitle: { type: string }
+        versionNo: { type: integer }
+        submittedAt: { type: string, format: date-time }
+        isLate: { type: boolean }
+        status: { type: string }
+    ReviewDraft:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        revision: { type: integer }
+        submissionVersionId: { $ref: '#/components/schemas/Uuid' }
+        isCurrentVersion: { type: boolean, description: false nếu HS đã nộp bản mới hơn }
+        comment: { type: [string, 'null'] }
+        criteria: { type: array, items: { $ref: '#/components/schemas/CriterionResult' } }
+        requirements: { type: array, items: { $ref: '#/components/schemas/Requirement' } }
+    CriterionResult:
+      type: object
+      required: [criterionId, level]
+      properties:
+        criterionId: { $ref: '#/components/schemas/Uuid' }
+        title: { type: string }
+        level: { type: [string, 'null'], enum: [meets, developing, not_yet, not_shown, null] }
+        note: { type: [string, 'null'] }
+    ReviewDraftInput:
+      type: object
+      properties:
+        comment: { type: [string, 'null'], maxLength: 5000 }
+        criteria: { type: array, items: { $ref: '#/components/schemas/CriterionResult' } }
+    PublishedReview:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        submissionVersionId: { $ref: '#/components/schemas/Uuid' }
+        publishedAt: { type: string, format: date-time }
+        outcome: { type: string, enum: [reviewed, changes_requested] }
+        comment: { type: [string, 'null'] }
+        criteria: { type: array, items: { $ref: '#/components/schemas/CriterionResult' } }
+        decisions: { type: array, items: { $ref: '#/components/schemas/Decision' } }
+    Decision:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        requirementId: { $ref: '#/components/schemas/Uuid' }
+        decision: { type: string, enum: [achieved, not_yet] }
+        decidedAt: { type: string, format: date-time }
+        supersedesId: { type: [string, 'null'], format: uuid }
+    LearnerRecords:
+      type: object
+      properties:
+        offeringId: { $ref: '#/components/schemas/Uuid' }
+        activity: { type: object, properties: { completed: { type: integer }, required: { type: integer } } }
+        requirements:
+          type: array
+          items:
+            type: object
+            properties:
+              requirement: { $ref: '#/components/schemas/Requirement' }
+              currentDecision: { oneOf: [ { $ref: '#/components/schemas/Decision' }, { type: 'null' } ] }
+              history: { type: array, items: { $ref: '#/components/schemas/Decision' } }
+              evidence: { type: array, items: { type: object, properties: { reviewId: { $ref: '#/components/schemas/Uuid' }, submissionVersionId: { $ref: '#/components/schemas/Uuid' }, publishedAt: { type: string, format: date-time } } } }
+        lastUpdatedAt: { type: string, format: date-time }
+    NeedsItem:
+      type: object
+      properties:
+        kcVersionId: { $ref: '#/components/schemas/Uuid' }
+        kcName: { type: string }
+        status: { type: string, enum: [insufficient, needs_support, developing, strong] }
+        value: { type: [number, 'null'], description: Chỉ trả cho GV }
+        nObservations: { type: integer }
+        modelVersion: { type: string }
+        computedAt: { type: string, format: date-time }
+    Heatmap:
+      type: object
+      properties:
+        kcs: { type: array, items: { type: object, properties: { kcVersionId: { $ref: '#/components/schemas/Uuid' }, name: { type: string }, topoIndex: { type: integer } } } }
+        learners: { type: array, items: { type: object, properties: { learnerId: { $ref: '#/components/schemas/Uuid' }, name: { type: string } } } }
+        cells: { type: array, items: { type: object, properties: { learnerId: { $ref: '#/components/schemas/Uuid' }, kcVersionId: { $ref: '#/components/schemas/Uuid' }, status: { type: string }, nObservations: { type: integer } } } }
+        lastUpdatedAt: { type: string, format: date-time }
+    ChildSummary:
+      type: object
+      properties:
+        learnerId: { $ref: '#/components/schemas/Uuid' }
+        name: { type: string }
+        className: { type: string }
+    ChildOverview:
+      type: object
+      properties:
+        learnerId: { $ref: '#/components/schemas/Uuid' }
+        offerings:
+          type: array
+          items:
+            type: object
+            properties:
+              offeringId: { $ref: '#/components/schemas/Uuid' }
+              title: { type: string }
+              activity: { type: object, properties: { completed: { type: integer }, required: { type: integer } } }
+              achievedRequirements: { type: integer }
+              totalRequirements: { type: integer }
+              publishedFeedback: { type: array, items: { $ref: '#/components/schemas/PublishedReview' } }
+        supports: { type: array, items: { type: object, properties: { id: { $ref: '#/components/schemas/Uuid' }, content: { type: string }, status: { type: string }, createdAt: { type: string, format: date-time } } } }
+    Notification:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/Uuid' }
+        kind: { type: string }
+        title: { type: string }
+        link: { type: string }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: [string, 'null'], format: date-time }

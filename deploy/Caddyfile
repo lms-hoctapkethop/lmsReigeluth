@@ -1,0 +1,66 @@
+# Học cùng nhau · Caddy
+# Hai tên miền: ứng dụng và đăng nhập (Keycloak). HTTPS tự động qua ACME.
+
+{
+	email {$ACME_EMAIL}
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+}
+
+{$APP_DOMAIN} {
+	import security_headers
+	encode zstd gzip
+	request_body {
+		max_size 30MB
+	}
+
+	# X-Request-Id cho mọi request tới API
+	@api path /api/* /auth/* /health/*
+	handle @api {
+		request_header X-Request-Id {http.request.uuid}
+		reverse_proxy api:3000 {
+			header_up X-Request-Id {http.request.header.X-Request-Id}
+		}
+	}
+
+	# /metrics không mở ra ngoài
+	handle /metrics* {
+		respond 404
+	}
+
+	# SPA tĩnh
+	handle {
+		root * /srv/web
+		header /assets/* Cache-Control "public, max-age=31536000, immutable"
+		header / Cache-Control "no-cache"
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://{$ID_DOMAIN}"
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+{$ID_DOMAIN} {
+	import security_headers
+	# Chỉ mở realm hcn và tài nguyên cần cho đăng nhập; chặn console quản trị từ Internet
+	@admin path /admin* /realms/master*
+	handle @admin {
+		respond 404
+	}
+	reverse_proxy keycloak:8080
+}
