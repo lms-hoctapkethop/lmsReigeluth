@@ -61,6 +61,16 @@ const rubric = z.strictObject({
   criteria: z.array(criterion).min(1).max(10),
 })
 
+export const submissionConfig = z.strictObject({
+  types: z.array(z.enum(['text', 'code', 'rich'])).min(1).max(3),
+  allowFiles: z.boolean().optional(),
+  maxFiles: z.number().int().min(0).max(10).optional(),
+}).superRefine((value, ctx) => {
+  if (new Set(value.types).size !== value.types.length) {
+    ctx.addIssue({ code: 'custom', message: 'DUPLICATE_SUBMISSION_TYPE', path: ['types'] })
+  }
+})
+
 const assessmentOf = (question: z.ZodType) =>
   z.strictObject({
     purpose: z.enum(['diagnostic', 'practice', 'exit_ticket', 'self_assessment', 'summative']),
@@ -100,6 +110,7 @@ function itemsOf(question: z.ZodType) {
       body: rich,
       requirementIds: z.array(z.string().uuid()).max(20),
       rubric: rubric.optional(),
+      submission: submissionConfig.optional(),
     }),
     z.strictObject({
       clientKey: key,
@@ -172,16 +183,7 @@ export type ModuleDraftStored = z.infer<typeof moduleDraftStored>
 
 export type DraftParse = { ok: true; draft: ModuleDraftStored } | { ok: false; code: 'FEATURE_NOT_ENABLED' | 'VALIDATION_FAILED' }
 
-function containsImage(value: unknown): boolean {
-  if (!value || typeof value !== 'object') return false
-  if (Array.isArray(value)) return value.some(containsImage)
-  const record = value as Record<string, unknown>
-  if (record.type === 'image') return true
-  return Object.values(record).some(containsImage)
-}
-
 export function parseModuleDraft(value: unknown, mode: 'input' | 'stored'): DraftParse {
-  if (containsImage(value)) return { ok: false, code: 'FEATURE_NOT_ENABLED' }
   const schema = mode === 'input' ? moduleDraftInput : moduleDraftStored
   const parsed = schema.safeParse(value)
   if (!parsed.success) return { ok: false, code: parsed.error.issues.some((issue) => issue.message === 'FEATURE_NOT_ENABLED') ? 'FEATURE_NOT_ENABLED' : 'VALIDATION_FAILED' }

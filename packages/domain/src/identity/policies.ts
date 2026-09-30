@@ -42,6 +42,12 @@ export type Facts = {
   authorAssigned?: boolean
   moduleOwner?: boolean
   moduleEditor?: boolean
+  releaseAssigned?: boolean
+  enrolled?: boolean
+  teacherAssigned?: boolean
+  guardianLinked?: boolean
+  reviewAssigned?: boolean
+  viewAssigned?: boolean
 }
 
 export type Decision =
@@ -81,12 +87,24 @@ export function can(actor: Actor, action: Action, facts: Facts): Decision {
       return facts.moduleOwner || facts.moduleEditor ? { allow: true } : { allow: false, reason: 'NOT_ASSIGNED' }
     case 'release.create':
     case 'release.change':
+      if (!actor.roles.includes('teacher')) return { allow: false, reason: 'CAPABILITY_MISSING' }
+      return facts.releaseAssigned ? { allow: true } : { allow: false, reason: 'NOT_ASSIGNED' }
     case 'release.read_learner':
+      if (actor.roles.includes('student')) return facts.enrolled ? { allow: true } : { allow: false, reason: 'NOT_ENROLLED' }
+      if (actor.roles.includes('teacher')) return facts.teacherAssigned ? { allow: true } : { allow: false, reason: 'NOT_ASSIGNED' }
+      if (actor.roles.includes('guardian')) return facts.guardianLinked ? { allow: true } : { allow: false, reason: 'NOT_LINKED' }
+      return { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'progress.write':
     case 'submission.draft':
     case 'submission.create':
+      if (!actor.roles.includes('student')) return { allow: false, reason: 'CAPABILITY_MISSING' }
+      return facts.enrolled ? { allow: true } : { allow: false, reason: 'NOT_ENROLLED' }
     case 'submission.read':
-      // TODO(M5)
+      if (actor.roles.includes('student')) return facts.enrolled ? { allow: true } : { allow: false, reason: 'NOT_ENROLLED' }
+      if (actor.roles.includes('teacher')) {
+        return facts.reviewAssigned || facts.viewAssigned ? { allow: true } : { allow: false, reason: 'NOT_ASSIGNED' }
+      }
+      if (actor.roles.includes('guardian')) return facts.guardianLinked ? { allow: true } : { allow: false, reason: 'NOT_LINKED' }
       return { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'attempt.*':
       // TODO(M6)

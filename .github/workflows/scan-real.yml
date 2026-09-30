@@ -1,0 +1,20 @@
+# Quét EICAR bằng ClamAV thật. Không chạy trên pull_request nên không chặn PR.
+name: scan-real
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 18 * * *'
+jobs:
+  scan-real:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: ClamAV 1.4 INSTREAM EICAR
+        run: |
+          docker run -d --name clamd -p 3310:3310 clamav/clamav:1.4
+          for i in $(seq 1 60); do
+            node scripts/scan-eicar.mjs && exit 0
+            sleep 10
+          done
+          docker logs clamd
+          exit 1

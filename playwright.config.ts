@@ -6,6 +6,7 @@ const issuer = process.env.OIDC_ISSUER ?? 'http://localhost:8081/realms/hcn'
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 120_000,
+  workers: 1,
   use: { baseURL: 'http://localhost:5173', trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
@@ -25,6 +26,8 @@ export default defineConfig({
         SESSION_MAX_DAYS: '7',
         TRUST_PROXY: '',
         PORT: '4319',
+        HCN_CLOCK_FILE: '/tmp/hcn-e2e-clock',
+        FILE_STORAGE_DIR: '/tmp/hcn-e2e-files',
       },
     },
     {

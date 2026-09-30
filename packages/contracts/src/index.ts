@@ -34,3 +34,4 @@ export type LogoutResponse = z.infer<typeof logoutResponseSchema>
 
 export { parseModuleDraft, moduleDraftInput, moduleDraftStored, type ModuleDraftInput, type ModuleDraftStored, type DraftParse } from './json/module-draft.ts'
 export { parseRichText, paragraph, type RichDoc, type RichParse } from './json/rich-text.ts'
+export { submissionBodyInput, submitAssignmentInput, type SubmissionBodyInput, type SubmitAssignmentInput } from './json/submission.ts'

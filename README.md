@@ -1,6 +1,6 @@
 # Học cùng nhau
 
-Repo được làm mới theo bộ đặc tả triển khai 3.0 (30/09/2026). Mốc hiện tại là **M3**: chương trình, thành phần kiến thức, và lỗi hiểu sai.
+Repo được làm mới theo bộ đặc tả triển khai 3.0 (30/09/2026). Mốc hiện tại là **M5**: giao bài, học, nộp bài và tệp.
 
 ## Thay đổi 3.1
 
@@ -45,7 +45,7 @@ Mục này không có sẵn trên `main` khi bắt đầu M4. `main` mới có M
 
 - `tests/reference/pure.reference.mjs` được thêm tham số `prereqKcs` và 2 vector (diagnostic được phép, practice thì V05). 37 vector cũ giữ nguyên kỳ vọng. Nếu không thêm, `ALL 39 PASS` là không thể. Script và Vitest đều in 39 PASS.
 - Miễn V05 cho tiên quyết trực tiếp chỉ khi mục quiz có `purpose = diagnostic` và KC đó đã duyệt. Practice, exit ticket, summative vẫn bị V05.
-- Rich text `hcn-rich/1`: tối đa 100 khối, đoạn 8 000 ký tự, mã 20 000, toán 2 000, href 2 000, bảng 10×10. Từ chối HTML cả trong khối `code`. Link phải là `https://` sau khi cắt khoảng trắng và ký tự điều khiển. Khối `image` trả 422 `FEATURE_NOT_ENABLED`.
+- Rich text `hcn-rich/1`: tối đa 100 khối, đoạn 8 000 ký tự, mã 20 000, toán 2 000, href 2 000, bảng 10×10. Từ chối HTML cả trong khối `code`. Link phải là `https://` sau khi cắt khoảng trắng và ký tự điều khiển. Khối `image` ở M4 trả 422 `FEATURE_NOT_ENABLED`. Từ M5 khối ảnh được bật, xem mục Thay đổi M5.
 - KaTeX 0.18 với `trust: false` vẫn render `\href` và `\url`, và chỉ cảnh báo `\htmlClass`. Bộ phân tích chặn ba lệnh đó trên nguồn TeX trước khi gọi `renderToString(..., { trust: false, throwOnError: true })`.
 - `If-Match` của bản nháp là số revision (`W/"<n>"` hoặc chữ số), không phải micro giây của `updated_at`.
 - Trường `source`, `approvedBy`, `provisional` bị từ chối ở schema nhận vào. Khi lưu, câu mới nhận `source=teacher`, `provisional=false`. Câu đã có trong DB giữ các trường server theo `clientKey`, kể cả câu `ai_proposal` do superuser chèn. Phản hồi GET/PUT gỡ các trường đó để vòng lưu tiếp không bị 422.
@@ -57,8 +57,26 @@ Mục này không có sẵn trên `main` khi bắt đầu M4. `main` mới có M
 - `listMyModules` chỉ trả module trong khóa mà giáo viên là chủ hoặc collaborator editor, và có phân công `author`. `module.create/edit/publish` từ chối admin, học sinh, phụ huynh.
 - `toLearnerRelease` là hàm duy nhất chiếu DTO học sinh. Xem trước gọi hàm này và không ghi tiến độ.
 - Ngân sách gzip 250 KB áp cho tệp mà `index.html` tải ngay (lộ `/hoc`). Studio, KaTeX và kéo thả được tách chunk, không tính vào ngân sách đó.
-- `db/tests/schema_invariants.sql` không sửa. `db/tests/curriculum_review_invariants.sql` giữ 10 ca DB17–DB21d của đặc tả 3.3; chỉ tên cột được đổi theo migration 0005 của repo. Ngưỡng CI là 36 PASS trên `invariants.log`.
+- `db/tests/schema_invariants.sql` không sửa. `db/tests/curriculum_review_invariants.sql` giữ 10 ca DB17–DB21d của đặc tả 3.3; chỉ tên cột được đổi theo migration 0005 của repo. Ngưỡng CI từ M5 là 52 PASS trên `invariants.log`.
 - Phím tắt dàn mục là Alt+Mũi tên, kèm nút Lên/Xuống. Không ghi localStorage.
+
+## Thay đổi M5
+
+Không có gói đặc tả 3.4 trong repo hay bản chụp Drive. Migration `0006` và `db/tests/learning_invariants.sql` (DB22–DB26) được viết từ prompt M5 và CHECK đã có ở migration 0002–0003. Các file bất biến cũ không sửa. Ngưỡng CI là 52 PASS.
+
+- `submission` trên nhiệm vụ là tùy chọn. Khi thiếu, học sinh nhận mặc định `{ types: ['text'], allowFiles: false, maxFiles: 0 }`. Cột `submission_config` để NULL trong trường hợp đó.
+- ZIP bị từ chối đến M10. Allowlist hiện tại là pdf, png, jpeg, webp, txt, py, docx, xlsx, pptx. Tệp rỗng là `VALIDATION_FAILED` với `reason = EMPTY_FILE`.
+- `GET /files/{id}?disposition=inline` chỉ dành cho ảnh mà người gọi được xem. Mọi tải xuống khác là `attachment`. Cả hai đều có `nosniff` và `Content-Security-Policy: sandbox`. Tên tệp theo RFC 5987.
+- Chủ tệp xem được meta kể cả khi `infected`. Tải xuống tệp `infected` hoặc `error` luôn 404. `pending` khi tải xuống là 423.
+- Quét lỗi: consumer `files.scan` thử 3 lần rồi đặt `scan_status = error` và đánh dấu sự kiện done. Consumer khác chết sau 8 lần. Sự kiện không có consumer được đánh dấu done.
+- Giờ mở bài so với `Meta.clock`. Đồng hồ đọc `HCN_CLOCK_FILE` rồi `HCN_NOW`, không theo đồng hồ trình duyệt. `submitted_at` và `is_late` vẫn là `now()` của Postgres.
+- Nộp bài chỉ nhận `draftRevision`. Nội dung và `fileIds` lấy từ nháp trên server. Băm nội dung là JCS của nháp đó.
+- HS sai ghi danh hoặc chưa tới giờ mở nhận 404, không phải 403. 410 chỉ khi nộp sau `accept_until`, hoặc sau `due_at` với `late_policy = reject`.
+- Tự lưu trên web là 2 giây. Mất mạng hiện đúng câu "Chưa lưu, đang thử lại". Không ghi bài vào localStorage hay sessionStorage. Soạn mã là textarea có số dòng, không chạy mã. Bài dạng rich là một đoạn, không mở studio.
+- `Idempotency-Key` của hộp giao bài sinh một lần mỗi lần mở hộp. Ngày giờ trên form hiểu là `Asia/Ho_Chi_Minh`.
+- `GET /api/v1/curriculum/kcs` (`listKcs`) chưa có route. Giữ trong OpenAPI với `x-milestone: M3` để OA-02 bỏ qua và không xóa path khỏi hợp đồng.
+- Thêm mã `FILE_REJECTED` (422). Worker được `DELETE` trên `idempotency_keys` và `sessions` để dọn hàng giờ.
+- Ảnh trong học liệu phải cùng trường và `scan_status = clean` lúc phát hành, nếu không thì 422 `VALIDATION_FAILED` với `details.reason = IMAGE_NOT_CLEAN`.
 
 ## Chạy
 

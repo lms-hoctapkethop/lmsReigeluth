@@ -43,7 +43,7 @@ export const richBlock = z.discriminatedUnion('type', [
     text: z.string().max(richLimits.code),
   }),
   z.strictObject({ type: z.literal('math'), tex: z.string().min(1).max(richLimits.math) }),
-  z.strictObject({ type: z.literal('image'), fileId: z.string().uuid(), alt: z.string().min(1).max(200) }),
+  z.strictObject({ type: z.literal('image'), fileId: z.string().uuid(), alt: z.string().min(1).max(300) }),
   z.strictObject({
     type: z.literal('table'),
     rows: z.array(z.array(z.string().max(500)).max(richLimits.table)).max(richLimits.table),
@@ -58,15 +58,7 @@ export const richDoc = z.strictObject({
 
 export type RichDoc = z.infer<typeof richDoc>
 
-export type RichParse = { ok: true; doc: RichDoc } | { ok: false; code: 'FEATURE_NOT_ENABLED' | 'VALIDATION_FAILED' }
-
-function hasImage(value: unknown): boolean {
-  if (!value || typeof value !== 'object') return false
-  if (Array.isArray(value)) return value.some(hasImage)
-  const record = value as Record<string, unknown>
-  if (record.type === 'image') return true
-  return Object.values(record).some(hasImage)
-}
+export type RichParse = { ok: true; doc: RichDoc } | { ok: false; code: 'VALIDATION_FAILED' }
 
 function httpsLink(href: string): boolean {
   if (control.test(href) || href !== href.trim()) return false
@@ -106,7 +98,6 @@ function linksOf(doc: RichDoc): string[] {
 }
 
 export function parseRichText(value: unknown): RichParse {
-  if (hasImage(value)) return { ok: false, code: 'FEATURE_NOT_ENABLED' }
   const parsed = richDoc.safeParse(value)
   if (!parsed.success) return { ok: false, code: 'VALIDATION_FAILED' }
   if (textsOf(parsed.data).some((text) => htmlLike.test(text))) return { ok: false, code: 'VALIDATION_FAILED' }

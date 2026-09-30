@@ -15,6 +15,7 @@
     "@hcn/db": "workspace:*",
     "canonicalize": "^5.1.0",
     "csv-parse": "^5.6.0",
+    "file-type": "^22.1.1",
     "kysely": "^0.28.5"
   }
 }

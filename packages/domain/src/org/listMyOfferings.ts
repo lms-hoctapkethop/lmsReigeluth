@@ -13,6 +13,7 @@ export async function listMyOfferings(db: Db, meta: Meta): Promise<OfferingDto[]
       'offerings.id as id',
       'offerings.code as code',
       'offerings.title as title',
+      'offerings.course_id as courseId',
       'courses.subject_code as subjectCode',
       'courses.grade as grade',
       'offerings.term as term',

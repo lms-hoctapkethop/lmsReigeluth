@@ -379,6 +379,7 @@ export interface ModuleItemsTable {
   completion_rule: 'none' | 'view' | 'self_mark' | 'submit'
   rubric_version_id: string | null
   requirement_ids: string[]
+  submission_config: unknown | null
 }
 
 export interface AssessmentVersionsTable {
@@ -428,6 +429,122 @@ export interface OptionMisconceptionsTable {
   misconception_id: string
 }
 
+export interface PathReleasesTable {
+  id: Generated<string>
+  school_id: string
+  offering_id: string
+  title: string
+  created_by: string
+  created_at: Generated<Date>
+}
+
+export interface ModuleReleasesTable {
+  id: Generated<string>
+  school_id: string
+  offering_id: string
+  path_release_id: string
+  module_version_id: string
+  position: number
+  available_from: Date
+  due_at: Date | null
+  accept_until: Date | null
+  late_policy: 'reject' | 'accept_marked'
+  schedule_revision: Generated<number>
+  created_at: Generated<Date>
+}
+
+export interface ReleaseScheduleChangesTable {
+  id: Generated<string>
+  module_release_id: string
+  from_revision: number
+  old_values: unknown
+  new_values: unknown
+  reason: string
+  changed_by: string
+  changed_at: Generated<Date>
+}
+
+export interface FilesTable {
+  id: Generated<string>
+  school_id: string
+  owner_id: string
+  storage_key: string
+  sha256: string
+  size_bytes: ColumnType<string, number, number>
+  mime_detected: string
+  original_name: string
+  scan_status: 'pending' | 'clean' | 'infected' | 'error'
+  scanned_at: Date | null
+  created_at: Generated<Date>
+}
+
+export interface ContentFilesTable {
+  id: Generated<string>
+  school_id: string
+  module_version_id: string
+  module_item_id: string
+  file_id: string
+  alt: string
+  created_at: Generated<Date>
+}
+
+export interface ActivityProgressTable {
+  id: Generated<string>
+  school_id: string
+  learner_id: string
+  module_release_id: string
+  module_item_id: string
+  status: 'in_progress' | 'completed'
+  completion_rule: 'view' | 'self_mark' | 'submit'
+  source_event: string
+  completed_at: Date | null
+  updated_at: Date
+}
+
+export interface SubmissionsTable {
+  id: Generated<string>
+  school_id: string
+  learner_id: string
+  module_release_id: string
+  module_item_id: string
+  status: 'draft' | 'submitted' | 'changes_requested' | 'reviewed'
+  current_version_no: number
+  draft_revision: number
+  draft_body: unknown | null
+  draft_updated_at: Date | null
+  created_at: Generated<Date>
+}
+
+export interface SubmissionVersionsTable {
+  id: Generated<string>
+  submission_id: string
+  version_no: number
+  body: unknown
+  reflection: string | null
+  content_hash: string
+  is_late: boolean
+  submitted_at: Generated<Date>
+}
+
+export interface SubmissionVersionFilesTable {
+  submission_version_id: string
+  file_id: string
+}
+
+export interface ReviewsTable {
+  id: string
+  school_id: string
+  submission_id: string
+  status: 'draft' | 'published'
+  submission_version_id: string
+}
+
+export interface ProcessedEventsTable {
+  event_id: string
+  consumer: string
+  processed_at: Generated<Date>
+}
+
 export interface Database {
   schools: SchoolsTable
   users: UsersTable
@@ -467,4 +584,15 @@ export interface Database {
   question_keys: QuestionKeysTable
   question_kc_links: QuestionKcLinksTable
   option_misconceptions: OptionMisconceptionsTable
+  path_releases: PathReleasesTable
+  module_releases: ModuleReleasesTable
+  release_schedule_changes: ReleaseScheduleChangesTable
+  files: FilesTable
+  content_files: ContentFilesTable
+  activity_progress: ActivityProgressTable
+  submissions: SubmissionsTable
+  submission_versions: SubmissionVersionsTable
+  submission_version_files: SubmissionVersionFilesTable
+  reviews: ReviewsTable
+  processed_events: ProcessedEventsTable
 }
