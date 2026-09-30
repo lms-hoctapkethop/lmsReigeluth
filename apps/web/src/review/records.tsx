@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
-import { ApiError, apiJson } from '../learn/http.ts'
+import { ApiError, apiJson, retryUnlessDenied } from '../learn/http.ts'
 import styles from './desk.module.css'
 
 type Decision = { id: string; decision: 'achieved' | 'not_yet'; decidedAt: string }
@@ -26,6 +26,7 @@ export function LearnerRecord() {
   const records = useQuery({
     queryKey: ['records', me.userId, offeringId],
     queryFn: () => apiJson<Records>(`/api/v1/learners/${me.userId}/records?offeringId=${offeringId}`),
+    retry: retryUnlessDenied,
   })
   if (records.isLoading) return <p>Đang tải hồ sơ.</p>
   if (records.error instanceof ApiError && (records.error.status === 404 || records.error.status === 403)) {

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router'
-import { ApiError, apiJson } from '../learn/http.ts'
+import { ApiError, apiJson, retryUnlessDenied } from '../learn/http.ts'
 import styles from './desk.module.css'
 
 type Item = {
@@ -22,6 +22,7 @@ export function ReviewQueue() {
   const queue = useQuery({
     queryKey: ['review-queue', offeringId],
     queryFn: () => apiJson<{ items: Item[] }>(`/api/v1/offerings/${offeringId}/review-queue`),
+    retry: retryUnlessDenied,
   })
   if (queue.isLoading) return <p>Đang tải hàng chờ.</p>
   if (queue.error instanceof ApiError && (queue.error.status === 404 || queue.error.status === 403)) {

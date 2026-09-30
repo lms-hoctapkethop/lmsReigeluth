@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
-import { ApiError, apiJson } from '../learn/http.ts'
+import { ApiError, apiJson, retryUnlessDenied } from '../learn/http.ts'
 import styles from './desk.module.css'
 
 type Level = 'meets' | 'developing' | 'not_yet' | 'not_shown'
@@ -76,6 +76,7 @@ export function ReviewDesk() {
     queryKey: ['review', submissionVersionId],
     queryFn: () => apiJson<Draft>(`/api/v1/submission-versions/${submissionVersionId}/reviews`, me.csrfToken, { method: 'POST' }),
     refetchInterval: 2000,
+    retry: retryUnlessDenied,
   })
   const submission = useQuery({
     queryKey: ['submission', review.data?.submissionId],

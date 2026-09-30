@@ -11,6 +11,11 @@ export class ApiError extends Error {
   }
 }
 
+export function retryUnlessDenied(failureCount: number, error: Error): boolean {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false
+  return failureCount < 2
+}
+
 export async function apiJson<T>(path: string, csrf?: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   if (csrf) headers.set('x-csrf-token', csrf)

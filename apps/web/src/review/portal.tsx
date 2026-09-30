@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link, useParams, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
-import { ApiError, apiJson } from '../learn/http.ts'
+import { ApiError, apiJson, retryUnlessDenied } from '../learn/http.ts'
 import styles from './desk.module.css'
 
 type Child = { learnerId: string; name: string; className: string }
@@ -53,6 +53,7 @@ export function GuardianChild() {
   const overview = useQuery({
     queryKey: ['child-overview', learnerId],
     queryFn: () => apiJson<Overview>(`/api/v1/children/${learnerId}/overview`),
+    retry: retryUnlessDenied,
   })
   if (overview.isLoading) return <p>Đang tải tổng quan.</p>
   if (overview.error instanceof ApiError && (overview.error.status === 404 || overview.error.status === 403)) {
