@@ -1,6 +1,6 @@
 # Học cùng nhau
 
-Repo được làm mới theo bộ đặc tả triển khai 3.0 (30/09/2026). Mốc hiện tại là **M5**: giao bài, học, nộp bài và tệp.
+Repo được làm mới theo bộ đặc tả triển khai 3.0 (30/09/2026). Mốc hiện tại là **M6**: quiz.
 
 ## Thay đổi 3.1
 
@@ -77,6 +77,35 @@ Không có gói đặc tả 3.4 trong repo hay bản chụp Drive. Migration `00
 - `GET /api/v1/curriculum/kcs` (`listKcs`) chưa có route. Giữ trong OpenAPI với `x-milestone: M3` để OA-02 bỏ qua và không xóa path khỏi hợp đồng.
 - Thêm mã `FILE_REJECTED` (422). Worker được `DELETE` trên `idempotency_keys` và `sessions` để dọn hàng giờ.
 - Ảnh trong học liệu phải cùng trường và `scan_status = clean` lúc phát hành, nếu không thì 422 `VALIDATION_FAILED` với `details.reason = IMAGE_NOT_CLEAN`.
+
+## Thay đổi M6
+
+Không có gói đặc tả 3.5, không có mục README "Thay đổi 3.5", và `docs/05` không có mục 8.0 (chỉ có mục 8 rồi 8.1–8.4). `AGENTS.md` mục 7 lúc bắt đầu chưa nói `db/SPEC_SHA256SUMS`. Các lựa chọn dưới đây là chỗ đặc tả im lặng hoặc chỗ prompt M6 khác tài liệu cũ:
+
+- Không thêm migration. Bảng quiz đã có từ migration 0003. Kysely được khai báo tay cho `quiz_attempts`, `question_responses`, `attempt_hint_usage`, `attainment_decisions`. Không chạy `kysely-codegen`.
+- `db/SPEC_SHA256SUMS` chỉ khóa các tệp đã đóng trước M6: migration, ba tệp bất biến cũ, và `tests/reference/pure.reference.mjs`. `db/tests/quiz_invariants.sql` là tệp mới (DB27–DB29, 22 PASS). Ngưỡng CI là 78 PASS, cao hơn mức tối thiểu 66.
+- `gradeResponse` và `normalizeNumber` giữ nguyên bản M0. 39 vector không đổi.
+- `question_keys` chỉ đọc qua `readQuestionKey`. ESLint cấm import hàm đó ngoài `answer.ts` và `submit.ts`. `hcn_app` vẫn được SELECT vì migration 0004 đã GRANT; worker vẫn bị REVOKE. Không GRANT thêm.
+- Khóa idempotency: `start:<releaseId>:<itemId>`, `answer:<attemptId>:<questionId>`, `submit:<attemptId>`. `requestHint` không có khóa. Cùng key và cùng body trả receipt cũ.
+- Mọi lệnh ghi của lượt khóa `quiz_attempts` bằng `FOR UPDATE`. `try_no` lấy max+1 trong khóa đó. Câu trả lời chỉ INSERT, không UPDATE.
+- Practice đã đúng thì 409 `ALREADY_ANSWERED` với `details.reason = ALREADY_CORRECT` (docs/05 8.2 ghi `VALIDATION_FAILED` / `ALREADY_ANSWERED_CORRECTLY`). Đã nộp: `SUBMITTED`. Hết gợi ý: `NO_MORE_HINTS`. Gợi ý khi không phải practice: `HINTS_DISABLED`.
+- Practice luôn hiện đúng/sai, kể cả khi `show_feedback = never`, và không trả đáp án. Mục đích khác: `never` không lộ; `immediate` lộ ngay; `after_submit` chỉ sau nộp; `after_due` chỉ khi đã nộp, có `due_at`, và `now` sau hạn. Không có hạn thì `after_due` không lộ.
+- `max_attempts` null của diagnostic và exit ticket được hiểu là 1. Practice, self-assessment và summative null là không giới hạn.
+- `startAttempt` trả 201 cả khi nối lại lượt `in_progress`. Lượt diagnostic đã hết hạn mức trả 409 `ATTEMPT_LIMIT_REACHED`; giao diện hiện "Đã hoàn thành".
+- `toLearnerAttempt` là hàm duy nhất chiếu DTO học sinh. Thêm `questionStates` (OpenAPI trước đó chỉ có `answered`). Không trả `answerKey`, `rationale`, `correctAnswer`, `optionMisconceptions`, `kcRequired`, `kcObservable`. `GET` bài học chỉ còn `hintsAvailable`, không còn văn bản gợi ý chưa mở.
+- Body `notLearned: true` chỉ hợp lệ ngoài practice. Diagnostic ghi `correct` NULL, vẫn tính vào `max_score`, điểm câu đó là 0. Practice trả 422 `VALIDATION_FAILED` reason `NOT_LEARNED` và không ghi hàng.
+- `minScore`, `min_score`, `kcGate`, `kc_gate`, `gate` → 422 `FEATURE_NOT_ENABLED` reason `MIN_SCORE_OR_KC_GATE`. Không có cột schema. `decision`, `attainment`, `attainmentDecision` → 422 reason `ATTAINMENT`. Không ghi `attainment_decisions`.
+- `correct` hoặc `score` ở body trả lời bị zod từ chối 422, không ghi `question_responses`.
+- Số sai định dạng (`1.000`, rỗng, chữ, `1/0`) là 422 `VALIDATION_FAILED`; `details.message` là "Em nhập số thập phân bằng dấu phẩy, ví dụ 1,5". Web hiện đúng câu đó dưới ô. Dấu trừ U+2212 được nhận.
+- Điểm lượt là tổng `gradeResponse` của lần trả lời cuối mỗi câu, làm tròn 3 chữ số. `max_score` là số câu. `submitted_at` và `activity_progress.completed_at` lấy `Meta.clock`, khác bài tập M5 vốn dùng `now()` của Postgres. Hoàn thành khi nộp, bất kể điểm. Không ghi audit cho quiz.
+- Outbox `QuestionAnswered` có `responseIds` là chuỗi id cách nhau bằng dấu phẩy vì payload outbox là `Record<string, string>`. Practice phát lúc trả lời. Mục đích khác phát lúc nộp. Không có consumer M7/M8.
+- `answerQuestion` và `requestHint` mỗi loại 60 lần/phút/người, nhóm rate-limit riêng, không cộng vào trần 120 của lệnh ghi.
+- `UPSTREAM_IDP_ERROR` (502) khi `importUsers` gặp Keycloak `unavailable`. Timeout từng dòng vẫn là `IDP_TIMEOUT` trong kết quả lô, không đổi ca import cũ.
+- Đồng hồ giả chỉ khi `NODE_ENV=test` hoặc `HCN_TEST_CLOCK=1`. Production có `HCN_NOW` hoặc `HCN_CLOCK_FILE` thì không khởi động. Tệp đồng hồ đọc tối đa một lần mỗi giây. Playwright đặt `HCN_TEST_CLOCK=1` để J04 vẫn dùng tệp.
+- SEC-08 quét JSON sau khi bỏ `label`, `stem`, `openedHints`, `text` (học sinh phải thấy nhãn phương án). Vị trí phương án đúng giữ thứ tự tác giả. Phản hồi quiz có `Cache-Control: private, no-store`. Bản build bật source map `hidden`; script quét HTML, bundle và `.map`.
+- Seed không có `M-TIN10-01`. J05 dùng `M-TIN10-CAULENH` ("Quên phép gán và viết dấu bằng."). `optionMisconceptions` nhận id, không nhận mã.
+- Ô quiz không ghi `localStorage` hay `sessionStorage`. Tải lại gọi `startAttempt` với khóa mới và đọc `questionStates`. Ô số không điền lại nội dung đã gõ vì DTO không trả `raw`.
+- Màn ≤ 640 px hiện một câu (`data-active`). Desktop hiện cả danh sách. Không đồng hồ đếm giờ, không bảng xếp hạng.
 
 ## Chạy
 

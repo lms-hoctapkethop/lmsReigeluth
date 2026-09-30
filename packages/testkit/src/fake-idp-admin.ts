@@ -3,7 +3,7 @@ import { IdpAdminError, type CreateIdpUser, type IdpAdmin, type IdpUser } from '
 
 export class FakeIdpAdmin implements IdpAdmin {
   readonly users = new Map<string, { id: string; username: string; enabled: boolean; password: string }>()
-  failAtCall: { call: number; kind: 'timeout' | 'exists' | 'orphan' } | null = null
+  failAtCall: { call: number; kind: 'timeout' | 'exists' | 'orphan' | 'unavailable' } | null = null
   private calls = 0
   private deleteThrows = false
 
@@ -26,6 +26,7 @@ export class FakeIdpAdmin implements IdpAdmin {
     const plan = this.failAtCall
     if (plan && plan.call === this.calls) {
       if (plan.kind === 'timeout') throw new IdpAdminError('timeout')
+      if (plan.kind === 'unavailable') throw new IdpAdminError('unavailable')
       if (plan.kind === 'exists') throw new IdpAdminError('exists')
       const id = `not-a-uuid-${this.calls}`
       this.users.set(id, { id, username: input.username, enabled: true, password: input.temporaryPassword })

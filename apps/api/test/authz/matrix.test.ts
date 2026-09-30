@@ -45,7 +45,6 @@ const later: [Action, string][] = [
   ['submission.draft', 'M5'],
   ['submission.create', 'M5'],
   ['submission.read', 'M5'],
-  ['attempt.*', 'M6'],
   ['review.*', 'M7'],
   ['review.read_published', 'M7'],
   ['decision.supersede', 'M7'],
@@ -75,6 +74,21 @@ describe('ma trận quyền M2', () => {
   }
   for (const [action, milestone] of later) {
     for (const role of roles) it.todo(`${action} ${role} ${milestone}`)
+  }
+})
+
+describe('attempt.*', () => {
+  const actor = (role: 'admin' | 'teacher' | 'student' | 'guardian') => ({ userId: 'u', schoolId: 's', roles: [role] })
+  it('học sinh đã ghi danh được làm quiz', () => {
+    expect(can(actor('student'), 'attempt.*', { enrolled: true }).allow).toBe(true)
+  })
+  it('học sinh chưa ghi danh không được làm quiz', () => {
+    expect(can(actor('student'), 'attempt.*', {}).allow).toBe(false)
+  })
+  for (const role of ['admin', 'teacher', 'guardian'] as const) {
+    it(`${role} không làm quiz`, () => {
+      expect(can(actor(role), 'attempt.*', { enrolled: true }).allow).toBe(false)
+    })
   }
 })
 

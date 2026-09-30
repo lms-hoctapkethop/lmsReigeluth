@@ -4,7 +4,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring, chore/m4-close, m5-learning]
+    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring, chore/m4-close, m5-learning, m6-quiz]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -20,6 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: Spec files unchanged
+        run: sha256sum -c db/SPEC_SHA256SUMS
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm audit --prod --audit-level high
@@ -59,7 +61,8 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/schema_invariants.sql 2>&1 | tee invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/curriculum_review_invariants.sql 2>&1 | tee -a invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/learning_invariants.sql 2>&1 | tee -a invariants.log
-          test "$(grep -c 'PASS' invariants.log)" -ge 52
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/quiz_invariants.sql 2>&1 | tee -a invariants.log
+          test "$(grep -c 'PASS' invariants.log)" -ge 78
 
   unit-integration:
     runs-on: ubuntu-24.04
@@ -106,6 +109,8 @@ jobs:
       - run: pnpm build
       - name: Bundle budget route /hoc < 250 KB gzip (NFR-08)
         run: pnpm --filter web run size-check
+      - name: Built assets do not contain the answer sentinel (SEC-08)
+        run: node apps/web/scripts/answer-leak-scan.mjs
 
   e2e:
     runs-on: ubuntu-24.04

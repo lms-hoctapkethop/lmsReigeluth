@@ -180,6 +180,14 @@ describe.skipIf(!ready)('importUsers', () => {
     expect([...idp.users.keys()].some((id) => id.startsWith('not-a-uuid-'))).toBe(true)
   })
 
+  it('UPSTREAM_IDP_ERROR khi Keycloak không phản hồi', async () => {
+    const auth = await admin()
+    idp.failAtCall = { call: 1, kind: 'unavailable' }
+    const response = await upload(auth, csv(['Mới,hs.idp-down,student,,,']), 'import-idp-down')
+    expect(response.statusCode).toBe(502)
+    expect(response.json().error.code).toBe('UPSTREAM_IDP_ERROR')
+  })
+
   it('importUsers quá 5 lần một giờ thì 429', async () => {
     const limited = await buildApp({
       config: {

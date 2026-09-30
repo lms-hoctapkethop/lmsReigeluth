@@ -10,5 +10,5 @@ export default defineConfig({
       '/auth': 'http://127.0.0.1:4319',
     },
   },
-  build: { outDir: 'dist', emptyOutDir: true },
+  build: { outDir: 'dist', emptyOutDir: true, sourcemap: 'hidden' },
 })

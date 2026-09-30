@@ -68,7 +68,34 @@ function readSecret(env: NodeJS.ProcessEnv, name: string): string | undefined {
   return env[name]
 }
 
+const clockSchema = z
+  .object({
+    nodeEnv: z.string().optional(),
+    clockFile: z.string().optional(),
+    clockNow: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.nodeEnv !== 'production') return
+    if (value.clockFile !== undefined) ctx.addIssue({ code: 'custom', path: ['HCN_CLOCK_FILE'], message: 'HCN_CLOCK_FILE' })
+    if (value.clockNow !== undefined) ctx.addIssue({ code: 'custom', path: ['HCN_NOW'], message: 'HCN_NOW' })
+  })
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  const clock = clockSchema.safeParse({
+    nodeEnv: env.NODE_ENV,
+    clockFile: env.HCN_CLOCK_FILE,
+    clockNow: env.HCN_NOW,
+  })
+  if (!clock.success) {
+    const names = [
+      ...new Set(
+        clock.error.issues
+          .map((issue) => issue.path[0])
+          .filter((item): item is string => typeof item === 'string'),
+      ),
+    ]
+    throw new ConfigError(names.length > 0 ? names : ['HCN_CLOCK_FILE'])
+  }
   const trustProxy = (env.TRUST_PROXY ?? '').split(',').map((item) => item.trim()).filter((item) => item.length > 0)
   const parsed = schema.safeParse({
     appOrigin: env.APP_ORIGIN?.replace(/\/$/, ''),

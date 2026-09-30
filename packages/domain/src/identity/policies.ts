@@ -107,8 +107,8 @@ export function can(actor: Actor, action: Action, facts: Facts): Decision {
       if (actor.roles.includes('guardian')) return facts.guardianLinked ? { allow: true } : { allow: false, reason: 'NOT_LINKED' }
       return { allow: false, reason: 'CAPABILITY_MISSING' }
     case 'attempt.*':
-      // TODO(M6)
-      return { allow: false, reason: 'CAPABILITY_MISSING' }
+      if (!actor.roles.includes('student')) return { allow: false, reason: 'CAPABILITY_MISSING' }
+      return facts.enrolled ? { allow: true } : { allow: false, reason: 'NOT_ENROLLED' }
     case 'review.*':
     case 'review.read_published':
     case 'decision.supersede':

@@ -27,6 +27,7 @@ export default defineConfig({
         TRUST_PROXY: '',
         PORT: '4319',
         HCN_CLOCK_FILE: '/tmp/hcn-e2e-clock',
+        HCN_TEST_CLOCK: '1',
         FILE_STORAGE_DIR: '/tmp/hcn-e2e-files',
       },
     },

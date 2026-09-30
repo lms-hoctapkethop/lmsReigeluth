@@ -18,6 +18,8 @@ export {
 export { validateModuleDraft, type CoverageReportDto } from './authoring/validate.ts'
 export { publishModuleVersion, type ModuleVersionSummary } from './authoring/publish.ts'
 export { toLearnerRelease } from './learning/projection.ts'
+export { startAttempt, getAttempt, answerQuestion, requestHint, submitAttempt } from './quiz/commands.ts'
+export { toLearnerAttempt, numericFormatMessage } from './quiz/project.ts'
 export {
   getLearnerToday,
   getReleaseForLearner,
@@ -30,13 +32,13 @@ export {
 } from './learning/commands.ts'
 export { releaseModules, changeSchedule, listReleases, listModuleVersions } from './release/commands.ts'
 export { uploadFile, readFileMeta, openDownload, dispositionHeader, type FileMeta } from './files/upload.ts'
-export { DomainError, type ErrorCode } from './errors.ts'
+export { DomainError, errorCodes, type ErrorCode } from './errors.ts'
 export { safeReturnTo } from './identity/returnTo.ts'
 export { can, authorize, type Actor, type Action, type Facts, type Decision, type Role } from './identity/policies.ts'
 export { getMe } from './identity/getMe.ts'
 export { switchContext } from './identity/switchContext.ts'
 export { establishSession, revokeSession } from './identity/establishSession.ts'
-export { systemClock, type Clock } from './org/clock.ts'
+export { resetClockCache, systemClock, type Clock } from './org/clock.ts'
 export { IdpAdminError, type IdpAdmin, type CreateIdpUser, type IdpUser } from './org/idp-admin.ts'
 export { temporaryPassword, temporaryPasswordAlphabet } from './org/temporary-password.ts'
 export { createAcademicYear, listAcademicYears } from './org/createAcademicYear.ts'

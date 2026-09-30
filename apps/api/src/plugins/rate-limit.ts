@@ -23,6 +23,20 @@ export const uploadRateLimit = {
   keyGenerator: (request: FastifyRequest) => request.auth?.userId ?? request.ip,
 }
 
+export const answerRateLimit = {
+  max: 60,
+  timeWindow: '1 minute',
+  groupId: 'answer',
+  keyGenerator: (request: FastifyRequest) => request.auth?.userId ?? request.ip,
+}
+
+export const hintRateLimit = {
+  max: 60,
+  timeWindow: '1 minute',
+  groupId: 'hint',
+  keyGenerator: (request: FastifyRequest) => request.auth?.userId ?? request.ip,
+}
+
 export const importRateLimit = {
   max: 5,
   timeWindow: '1 hour',

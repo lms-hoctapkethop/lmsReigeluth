@@ -218,7 +218,9 @@ async function runImport(db: Db, meta: Meta, idp: IdpAdmin, csv: string, issuer:
           continue
         }
       }
-      if (error instanceof IdpAdminError && error.kind === 'exists') {
+      if (error instanceof IdpAdminError && error.kind === 'unavailable') {
+        throw new DomainError('UPSTREAM_IDP_ERROR')
+      } else if (error instanceof IdpAdminError && error.kind === 'exists') {
         errors.push({ row: rowNumber, code: 'USER_EXISTS', message: 'Mã định danh đã tồn tại.' })
       } else if (error instanceof IdpAdminError && error.kind === 'timeout') {
         errors.push({ row: rowNumber, code: 'IDP_TIMEOUT', message: 'Máy định danh không phản hồi.' })

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { parse } from 'yaml'
 import { createDb } from '@hcn/db'
+import { errorCodes } from '@hcn/domain'
 import { describe, expect, it } from 'vitest'
 import type { AppConfig } from '../src/config.ts'
 import { buildApp } from '../src/server.ts'
@@ -49,5 +50,15 @@ describe('OA-02', () => {
     expect({ missingInOpenApi, missingInApp }).toEqual({ missingInOpenApi: [], missingInApp: [] })
     await app.close()
     await db.destroy()
+  })
+})
+
+describe('OA-03', () => {
+  it('OA-03 mã trong errors.ts khớp enum ErrorResponse.code hai chiều', () => {
+    const document = parse(readFileSync(new URL('../../../openapi/openapi.yaml', import.meta.url), 'utf8'), { uniqueKeys: true }) as {
+      components: { schemas: { ErrorResponse: { properties: { error: { properties: { code: { enum: string[] } } } } } } }
+    }
+    const documented = document.components.schemas.ErrorResponse.properties.error.properties.code.enum
+    expect([...documented].sort()).toEqual([...errorCodes].sort())
   })
 })

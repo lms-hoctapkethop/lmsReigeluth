@@ -19,6 +19,16 @@ th, td { border: 1px solid var(--c-line); padding: var(--space-2); text-align: l
 .editor textarea { border: 0; min-height: 12rem; resize: vertical; }
 dialog { border: 1px solid var(--c-line); border-radius: var(--radius); max-width: 36rem; width: calc(100% - 2rem); }
 dialog::backdrop { background: rgb(0 0 0 / 40%); }
+.quiz { display: flex; flex-direction: column; gap: var(--space-4); }
+.quizList { display: flex; flex-direction: column; gap: var(--space-4); }
+.quizCard { display: flex; flex-direction: column; gap: var(--space-3); }
+.misconception { border: 1px solid var(--c-line); padding: var(--space-3); }
+.onlyMobile { display: none; }
+@media (max-width: 640px) {
+  .onlyMobile { display: flex; gap: var(--space-3); }
+  .quizCard { display: none; }
+  .quizCard[data-active='true'] { display: flex; }
+}
 @media (max-width: 720px) {
   .stack { max-width: none; }
   table { display: block; overflow-x: auto; }
