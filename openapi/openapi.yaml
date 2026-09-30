@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Học cùng nhau API
-  version: 3.5.0
+  version: 3.7.0
   description: |
     Hợp đồng API lõi của LMS Học cùng nhau. Mọi endpoint dưới /api/v1 yêu cầu cookie phiên `hcn_sid`.
     Request không an toàn (POST/PUT/PATCH/DELETE) yêu cầu header `X-CSRF-Token` và `Origin` hợp lệ.
@@ -1068,7 +1068,7 @@ paths:
   /api/v1/learners/{learnerId}/needs:
     get:
       tags: [records]
-      x-milestone: M7
+      x-milestone: M8
       operationId: getLearnerNeeds
       description: GV phân công thấy value; HS chỉ thấy nhãn chữ; PH không có quyền (B08).
       parameters: [ { $ref: '#/components/parameters/LearnerId' }, { name: offeringId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
@@ -1078,11 +1078,15 @@ paths:
   /api/v1/offerings/{offeringId}/heatmap:
     get:
       tags: [records]
-      x-milestone: M7
+      x-milestone: M8
       operationId: getHeatmap
-      parameters: [ { $ref: '#/components/parameters/OfferingId' } ]
+      description: Chỉ GV có phân công với offering. includeValues=true thêm value vào ô (docs/06 mục 8).
+      parameters:
+        - { $ref: '#/components/parameters/OfferingId' }
+        - { name: includeValues, in: query, schema: { type: boolean, default: false } }
       responses:
         '200': { description: Bản đồ nhiệt HS × KC, content: { application/json: { schema: { $ref: '#/components/schemas/Heatmap' } } } }
+        '404': { $ref: '#/components/responses/Error' }
 
   /api/v1/me/children:
     get:
@@ -1613,8 +1617,16 @@ components:
       properties:
         kcs: { type: array, items: { type: object, properties: { kcVersionId: { $ref: '#/components/schemas/Uuid' }, name: { type: string }, topoIndex: { type: integer } } } }
         learners: { type: array, items: { type: object, properties: { learnerId: { $ref: '#/components/schemas/Uuid' }, name: { type: string } } } }
-        cells: { type: array, items: { type: object, properties: { learnerId: { $ref: '#/components/schemas/Uuid' }, kcVersionId: { $ref: '#/components/schemas/Uuid' }, status: { type: string }, nObservations: { type: integer } } } }
-        lastUpdatedAt: { type: string, format: date-time }
+        cells: { type: array, items: { type: object, properties: { learnerId: { $ref: '#/components/schemas/Uuid' }, kcVersionId: { $ref: '#/components/schemas/Uuid' }, status: { type: string, enum: [insufficient, needs_support, developing, strong] }, nObservations: { type: integer }, value: { type: [number, 'null'], description: 'Chỉ khi includeValues=true' } } } }
+        rootGaps:
+          type: array
+          items:
+            type: object
+            properties:
+              learnerId: { $ref: '#/components/schemas/Uuid' }
+              groups: { type: array, items: { type: object, properties: { root: { $ref: '#/components/schemas/Uuid' }, affected: { type: array, items: { $ref: '#/components/schemas/Uuid' } }, capped: { type: boolean } } } }
+        modelVersion: { type: string }
+        lastUpdatedAt: { type: [string, 'null'], format: date-time }
     ChildSummary:
       type: object
       properties:

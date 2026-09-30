@@ -142,6 +142,24 @@ Không có gói đặc tả 3.5, không có mục README "Thay đổi 3.5", và 
 - Worker ghi `processed_events` rồi mới đánh dấu outbox `done`, hai commit tách nhau để ca sập giữa chừng không nhân đôi thông báo. Hàng outbox vẫn bị khóa `FOR UPDATE` đến khi cập nhật trạng thái, nên hai worker không xử lý trùng.
 - `reviewer_id` là người lưu nháp gần nhất. Audit `review.publish` ghi người công bố, không ghi nội dung nhận xét.
 
+## Thay đổi 3.7
+
+Đặc tả cho M8 (nền dữ liệu chẩn đoán), viết trên `main` 6b7a902.
+
+- Migration 0009 `20261007000100_insight_guards.sql`:
+  - `question_responses.points` (0..1) để quan sát giữ đúng điểm lẻ của multi_choice `partial`; worker không đọc `question_keys` nên không thể tự chấm lại;
+  - thu hồi quyền ghi `observations`, `needs_estimates`, `misconception_signals` của `hcn_app`, chỉ worker ghi;
+  - `needs_estimates` chỉ thêm;
+  - view `needs_current_kc` gộp ước lượng theo KC qua mọi version.
+- `db/tests/insight_guards_invariants.sql` (DB38–DB41). CI yêu cầu ≥ 111 PASS; hai tệp có trong `db/SPEC_SHA256SUMS`.
+- `docs/06`:
+  - 3.0: điểm câu, nguồn quan sát, backfill cho dữ liệu M6–M7 mà worker đã đánh dấu `done`;
+  - 4: R0 theo KC, chỉ INSERT khi đổi, đổi mô hình giữ lịch sử;
+  - 8: cột, thứ tự, ô `insufficient`, `rootGaps`, `includeValues` chỉ cho GV.
+- `docs/05` mục 11.0: role worker, tín hiệu lỗi hiểu sai, tắt AI, quyền đọc nhu cầu.
+- `openapi.yaml` 3.7.0: `getLearnerNeeds`, `getHeatmap` chuyển `x-milestone` sang M8 (M8 gỡ khi cài route); heatmap thêm `includeValues`, `value`, `rootGaps`, `modelVersion`.
+- Ghi nhận từ M7: `publishReview` chỉ ghi quyết định gốc; đổi quyết định đã có đi qua `supersedeDecision` (README "Thay đổi M7"). Đặc tả chấp nhận cách này.
+
 ## Chạy
 
 ```bash

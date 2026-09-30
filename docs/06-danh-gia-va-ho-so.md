@@ -31,6 +31,19 @@ Mọi hàm ở đây là **hàm thuần** (không I/O). Bản cài đặt tham c
 
 ## 3 Quan sát
 
+### 3.0 Chốt ở 3.7 (M8)
+
+- **Điểm câu**: use case chấm (M6) ghi thêm `question_responses.points` (0..1, 3 chữ số) lúc INSERT; `correct = (points = 1)`. Hàng cũ `points` NULL: worker suy `1` nếu `correct = true`, `0` nếu `false`, bỏ qua nếu NULL. Worker không bao giờ đọc `question_keys`.
+- **Nguồn quan sát** (consumer `insight.deriveObservations`, chỉ chạy bằng role `hcn_worker`):
+  - `QuestionAnswered`: payload `responseIds` (chuỗi nối dấu phẩy, M6). Practice: mỗi hàng. Mục đích khác: chỉ các hàng trong payload (đã là hàng cuối khi nộp).
+  - `ReviewPublished`: mọi `review_criterion_results` của review có tiêu chí gắn KC.
+  - KC lấy từ `question_kc_links` role `observable` (không `required`, B01) hoặc `rubric_criteria.kc_version_id`; ghi đúng `kc_version_id` lúc đó.
+  - `source_type`: purpose của assessment (`diagnostic`, `practice`, `exit_ticket`) hoặc `review`; `self_assessment`, `summative` không tạo.
+  - `hints_used`, `provisional_item` chép sang; `observed_at` = `answered_at` hoặc `published_at`.
+  - `ON CONFLICT (source_ref, kc_version_id) DO NOTHING` (B02). Có hàng mới thì phát `ObservationsAdded {learnerId, offeringId, kcIds}`.
+- **Backfill** (CLI `pnpm insight:backfill`, chạy một lần khi triển khai M8 và an toàn khi chạy lại): duyệt mọi `question_responses` của lượt đã nộp (mục đích khác practice: chỉ hàng `try_no` lớn nhất mỗi câu) và của practice (mọi hàng), cùng mọi review `published`; tạo quan sát như trên rồi tính lại ước lượng. Sự kiện M6–M7 đã bị đánh dấu `done` không bị mất.
+
+
 Quan sát là cầu nối từ minh chứng tới ước lượng. Worker tạo quan sát, không bao giờ API.
 
 ### 3.1 Từ câu trả lời
@@ -55,6 +68,9 @@ Mỗi hàng `question_responses` tạo một quan sát cho **mỗi KC trong Q_ob
 Mỗi tiêu chí có KC tạo một quan sát trọng số 1,0: `meets` → 1; `developing` → 0,5; `not_yet` → 0; `not_shown` → không tạo (C05); tiêu chí không gắn KC → không tạo. `source_ref = 'review_criterion:<review_id>:<criterion_id>'`.
 
 ## 4 Ước lượng R0
+
+**Chốt ở 3.7:** ước lượng tính theo **KC** (gộp quan sát của mọi version thuộc cùng `knowledge_components.id`), ghi `needs_estimates.kc_version_id` = version `approved` hiện hành của KC đó. Hồ sơ và bản đồ nhiệt đọc view `needs_current_kc` (0009). Consumer `insight.recomputeNeeds` nhận `ObservationsAdded`, gọi `r0Estimate` (39 vector), INSERT chỉ khi `status` hoặc `value` khác hàng hiện hành cùng `model_version`. Đổi mô hình (`R0@1.1.0`…) = CLI `pnpm insight:recompute --model <ver>` tính lại toàn bộ, không xóa hàng cũ (B11). Hằng `R0_MODEL_VERSION` trong code quyết định bản hiển thị.
+
 
 Đầu vào: mọi quan sát của (HS, offering, KC version). Đầu ra ghi `needs_estimates` với `model_version = 'R0@1.0.0'`.
 
@@ -98,5 +114,8 @@ Trên đồ thị cạnh `prerequisite` đã duyệt: với mỗi KC `needs_supp
 Nhu cầu (ước lượng) ở endpoint riêng `/needs`. Giao diện dùng nhãn khác nhau cho ba lớp và luôn ghi "cập nhật lúc…".
 
 ## 8 Bản đồ nhiệt
+
+**Chốt ở 3.7:** cột = KC có version `approved` hiện hành, liên kết `approved` tới YCCĐ của các module version đã giao cho offering; thứ tự tô-pô trên `effective_kc_edges` loại `prerequisite` (tie-break theo mã KC). Hàng = HS ghi danh `active`. Ô = `needs_current_kc` với `R0_MODEL_VERSION`; không có → `insufficient` (không phải 0). GV có phân công thấy `value` khi bật; HS không gọi được heatmap. Kèm `rootGaps` theo docs/06 mục 5 cho từng HS (nhóm theo gốc, `capped` → "Nên trao đổi trực tiếp"). `lastUpdatedAt` = `computed_at` lớn nhất trong các ô.
+
 
 `GET /offerings/{id}/heatmap`: hàng là HS đang ghi danh, cột là KC version đã duyệt thuộc các YCCĐ của module đã giao, sắp theo thứ tự tô-pô của đồ thị tiên quyết (tie-break theo mã). Ô = trạng thái `needs_current` với `model_version` hiện hành; không có ước lượng → `insufficient`. Có `lastUpdatedAt`.
