@@ -14,6 +14,16 @@
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": true,
   "sslRequired": "none",
+  "requiredActions": [
+    {
+      "alias": "VERIFY_PROFILE",
+      "name": "Verify Profile",
+      "providerId": "VERIFY_PROFILE",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 90
+    }
+  ],
   "bruteForceProtected": true,
   "permanentLockout": false,
   "maxFailureWaitSeconds": 900,
@@ -95,7 +105,10 @@
     {
       "id": "10000000-0000-4000-8000-000000000012",
       "username": "gv.lan",
-      "firstName": "GV Lan",
+      "firstName": "GV",
+      "lastName": "Lan",
+      "email": "gv.lan@example.test",
+      "emailVerified": true,
       "enabled": true,
       "credentials": [
         {

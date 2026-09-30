@@ -14,9 +14,7 @@ test('J01 đăng nhập, đổi ngữ cảnh GV sang PH, đăng xuất', async (
   await page.locator('#username').fill('gv.lan')
   await page.locator('#password').fill('Dev-12345')
   await page.locator('#kc-login').click()
-  await page.waitForURL((url) => url.origin === 'http://localhost:5173', { timeout: 20_000 })
-  const arrived = `${page.url()}\n${(await page.locator('body').innerText()).slice(0, 800)}`
-  await expect(page.getByRole('heading', { name: /Giáo viên/ }), arrived).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Giáo viên/ })).toBeVisible({ timeout: 20_000 })
   await expectNoSeriousAxe(page)
   await page.getByLabel('Ngữ cảnh').selectOption({ label: /Phụ huynh/ })
   await expect(page.getByRole('heading', { name: /Phụ huynh/ })).toBeVisible()
