@@ -1,0 +1,43 @@
+:root {
+  --c-accent: #5150df;
+  --c-accent-soft: #ececfd;
+  --c-on-accent: #ffffff;
+  --c-bg: #f6f7fb;
+  --c-surface: #ffffff;
+  --c-ink: #22263b;
+  --c-muted: #5e6280;
+  --c-line: #e3e5f0;
+  --font-ui: "Be Vietnam Pro", system-ui, sans-serif;
+  --fs-body: 16px;
+  --fs-small: 14px;
+  --fs-h1: 24px;
+  --radius: 10px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --sidebar: 245px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --c-accent: #8c8bff;
+    --c-accent-soft: #26264a;
+    --c-on-accent: #12131c;
+    --c-bg: #12131c;
+    --c-surface: #1b1d2a;
+    --c-ink: #e7e8f2;
+    --c-muted: #a2a6c0;
+    --c-line: #2c2f42;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  color: var(--c-ink);
+  background: var(--c-bg);
+}
+button, select { font: inherit; }

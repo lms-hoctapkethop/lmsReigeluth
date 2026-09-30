@@ -2,7 +2,7 @@ import { Kysely, PostgresDialect } from 'kysely'
 import pg from 'pg'
 import type { Database } from './schema.ts'
 
-export type { Database } from './schema.ts'
+export type { Database, Role, UserStatus, SessionContext } from './schema.ts'
 
 export function createDb(connectionString: string): Kysely<Database> {
   return new Kysely<Database>({

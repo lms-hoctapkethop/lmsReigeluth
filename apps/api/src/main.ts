@@ -1,15 +1,26 @@
 import { pathToFileURL } from 'node:url'
-import Fastify, { type FastifyInstance } from 'fastify'
+import { createDb } from '@hcn/db'
+import { ConfigError, loadConfig } from './config.ts'
+import { buildApp } from './server.ts'
 
-export function buildApp(): FastifyInstance {
-  const app = Fastify({ logger: false })
-  app.get('/health/live', async () => ({ status: 'live' }))
-  return app
+export { buildApp } from './server.ts'
+
+async function main(): Promise<void> {
+  try {
+    const config = loadConfig()
+    const db = createDb(config.databaseUrl)
+    const app = await buildApp({ config, db })
+    await app.listen({ port: config.port, host: '127.0.0.1' })
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      console.error(error.message)
+      process.exit(1)
+    }
+    throw error
+  }
 }
 
 const entry = process.argv[1]
 if (entry && import.meta.url === pathToFileURL(entry).href) {
-  const port = Number(process.env.PORT ?? 4319)
-  const app = buildApp()
-  await app.listen({ port, host: '127.0.0.1' })
+  await main()
 }

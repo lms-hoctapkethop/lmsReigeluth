@@ -17,12 +17,15 @@ const config: AppConfig = {
   port: 4319,
 }
 
-describe('health', () => {
-  it('GET /health/live returns live', async () => {
+describe('mặc định từ chối', () => {
+  it('route không public không trả 200 khi không có phiên', async () => {
     const app = await buildApp({ config, db: {} as Kysely<Database> })
-    const response = await app.inject({ method: 'GET', url: '/health/live' })
-    expect(response.statusCode).toBe(200)
-    expect(response.json()).toEqual({ status: 'live' })
+    const protectedRoutes = app.registeredRoutes.filter((route) => !route.isPublic)
+    expect(protectedRoutes.length).toBeGreaterThan(0)
+    for (const route of protectedRoutes) {
+      const response = await app.inject({ method: route.method as 'GET', url: route.url })
+      expect(response.statusCode, `${route.method} ${route.url}`).not.toBe(200)
+    }
     await app.close()
   })
 })

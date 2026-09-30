@@ -13,11 +13,11 @@
     "lint": "eslint .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "vitest run",
-    "test:e2e": "echo 'E2E chưa có ở mốc M0' && exit 1",
+    "test:e2e": "playwright test tests/e2e/j01.spec.ts --project=chromium",
+    "db:seed:test": "node --experimental-strip-types scripts/seed-test.ts",
     "db:migrate": "dbmate --migrations-dir db/migrations --no-dump-schema up",
     "db:types": "kysely-codegen --out-file packages/db/src/schema.ts --dialect postgres",
     "db:seed:curriculum": "node scripts/seed-not-yet.mjs curriculum",
-    "db:seed:test": "node scripts/seed-not-yet.mjs test",
     "openapi:check": "node scripts/openapi-check.mjs",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm openapi:check && pnpm build"
   },
@@ -27,7 +27,9 @@
     }
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@eslint/js": "^9.36.0",
+    "@playwright/test": "^1.55.0",
     "@types/node": "^22.15.0",
     "@vitest/coverage-v8": "^3.2.4",
     "eslint": "^9.36.0",

@@ -4,7 +4,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, m1-auth]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -80,7 +80,8 @@ jobs:
         run: |
           git fetch origin ${{ github.base_ref }} --depth=1
           git show origin/${{ github.base_ref }}:openapi/openapi.yaml > /tmp/base.yaml || exit 0
-          docker run --rm -v /tmp:/tmp -v $PWD:/w tufin/oasdiff breaking /tmp/base.yaml /w/openapi/openapi.yaml --fail-on ERR
+          # M1 chốt POST /auth/logout từ 204 sang 200 kèm LogoutResponse (docs/04 mục 6).
+          docker run --rm -v /tmp:/tmp -v $PWD:/w tufin/oasdiff breaking /tmp/base.yaml /w/openapi/openapi.yaml --fail-on ERR --err-ignore response-success-status-removed
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: unit-integration-reports, path: reports/ }
@@ -101,19 +102,33 @@ jobs:
   e2e:
     runs-on: ubuntu-24.04
     needs: [unit-integration, build, database]
-    # J01–J12 chưa có ở M0. hashFiles không dùng được ở if của job.
-    # Khi có hành trình, thêm lại: github.event_name == 'push' ||
-    if: contains(github.event.pull_request.labels.*.name, 'e2e')
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/hcn?sslmode=disable
+      OIDC_ISSUER: http://localhost:8081/realms/hcn
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: Install dbmate
+        run: curl -fsSL -o /usr/local/bin/dbmate https://github.com/amacneil/dbmate/releases/latest/download/dbmate-linux-amd64 && chmod +x /usr/local/bin/dbmate
       - run: docker compose -f deploy/compose.dev.yml up -d --wait
+      - name: Wait for Keycloak issuer
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8081/realms/hcn/.well-known/openid-configuration && exit 0
+            sleep 2
+          done
+          exit 1
       - run: pnpm db:migrate && pnpm db:seed:test
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e --project=chromium
+      - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: playwright-report, path: e2e/playwright-report/ }
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
