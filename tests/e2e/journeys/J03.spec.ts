@@ -56,7 +56,8 @@ test('J03 gv.lan soạn Tin 10, gỡ V01 rồi phát hành', async ({ page }) =>
     await page.getByLabel('Lỗi hiểu sai phương án B').nth(index).selectOption({ label: 'M-TIN10-CAULENH' })
   }
   await fillLabeled(page, 'Giải thích', 'Đáp án bí mật không hiện cho học sinh', 0)
-  await expect(page.getByRole('status')).toContainText('Đã lưu', { timeout: 12_000 })
+  const saveStatus = page.locator('p[role="status"]')
+  await expect(saveStatus).toContainText('Đã lưu', { timeout: 12_000 })
 
   await press(page, 'Thêm nhiệm vụ')
   await fillLabeled(page, 'Tiêu đề nhiệm vụ', 'Tiền điện')
@@ -71,7 +72,7 @@ test('J03 gv.lan soạn Tin 10, gỡ V01 rồi phát hành', async ({ page }) =>
   await press(page, 'Thêm tiêu chí')
   await fillLabeled(page, 'Tiêu đề tiêu chí', 'Kiểm thử', 3)
   await page.getByLabel('KC tiêu chí').nth(3).selectOption({ label: 'KC-TIN10-KIEMTHU' })
-  await expect(page.getByRole('status')).toContainText('Đã lưu', { timeout: 12_000 })
+  await expect(saveStatus).toContainText('Đã lưu', { timeout: 12_000 })
   await expect(page.getByRole('region', { name: 'Cảnh báo độ phủ' })).not.toContainText('V01', { timeout: 12_000 })
   await expect(page.getByRole('button', { name: 'Phát hành phiên bản' })).toBeEnabled()
   await press(page, 'Phát hành phiên bản')
