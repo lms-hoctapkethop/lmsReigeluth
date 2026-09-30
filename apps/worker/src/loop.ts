@@ -1,5 +1,7 @@
-import { sql, type Kysely } from 'kysely'
+import { sql, type Kysely, type Transaction } from 'kysely'
 import type { Database } from '@hcn/db'
+import { runDueSoon } from './due-soon.ts'
+import { notifyFromEvent } from './notify.ts'
 import { applyScan } from './scan.ts'
 
 export type WorkerOptions = {
@@ -13,42 +15,41 @@ type EventRow = {
   id: string
   event_id: string
   event_type: string
-  payload: { fileId?: string }
+  payload: Record<string, string>
   attempts: number
   school_id: string
 }
 
-/** Tên consumer theo loại sự kiện. Sự kiện không có tên thì đánh dấu done. */
 export const consumerByEvent: Record<string, string> = {
   FileUploaded: 'files.scan',
+  ReleaseCreated: 'notify',
+  ReviewPublished: 'notify',
+  DecisionSuperseded: 'notify',
 }
 
-export async function processOutbox(db: Kysely<Database>, options: WorkerOptions): Promise<number> {
-  return db.transaction().execute(async (trx) => {
-    const selected = await sql<EventRow>`
-      SELECT id::text, event_id::text, event_type, payload, attempts, school_id::text
-      FROM outbox_events
-      WHERE status = 'pending' AND available_at <= now()
-      ORDER BY id
-      LIMIT 20
-      FOR UPDATE SKIP LOCKED
-    `.execute(trx)
-    for (const event of selected.rows) await handleEvent(trx, event, options)
-    return selected.rows.length
-  })
+function pgCode(error: unknown): string | undefined {
+  if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string') return error.code
+  return undefined
 }
 
-async function handleEvent(db: Kysely<Database>, event: EventRow, options: WorkerOptions): Promise<void> {
+/** Tác dụng của consumer và processed_events trong một transaction. Outbox đánh dấu done sau commit. */
+export async function commitConsumer(db: Kysely<Database>, event: EventRow, options: WorkerOptions): Promise<void> {
   const consumer = consumerByEvent[event.event_type]
-  if (!consumer) {
-    await mark(db, event.id, 'done', event.attempts, null)
-    return
-  }
-  try {
+  if (!consumer) return
+  await db.transaction().execute(async (trx) => {
+    const seen = await trx
+      .selectFrom('processed_events')
+      .select('event_id')
+      .where('event_id', '=', event.event_id)
+      .where('consumer', '=', consumer)
+      .executeTakeFirst()
+    if (seen) return
     if (consumer === 'test.fail') throw new Error('TEST_FAIL')
-    if (consumer === 'files.scan' && event.payload.fileId) {
-      const result = await applyScan(db, {
-        fileId: event.payload.fileId,
+    if (consumer === 'files.scan') {
+      const fileId = event.payload.fileId
+      if (!fileId) return
+      const result = await applyScan(trx, {
+        fileId,
         storageDir: options.storageDir,
         host: options.clamdHost,
         port: options.clamdPort,
@@ -56,13 +57,46 @@ async function handleEvent(db: Kysely<Database>, event: EventRow, options: Worke
       })
       if (result === 'error') throw new Error('SCAN_ERROR')
     }
-    await db
-      .insertInto('processed_events')
-      .values({ event_id: event.event_id, consumer })
-      .onConflict((conflict) => conflict.columns(['event_id', 'consumer']).doNothing())
-      .execute()
-    await mark(db, event.id, 'done', event.attempts, null)
+    if (consumer === 'notify') await notifyFromEvent(trx, event)
+    await trx.insertInto('processed_events').values({ event_id: event.event_id, consumer }).execute()
+  })
+}
+
+type Executor = Kysely<Database> | Transaction<Database>
+
+export async function acknowledgeOutbox(db: Executor, id: string, attempts: number): Promise<void> {
+  await mark(db, id, 'done', attempts, null)
+}
+
+export async function processOutbox(db: Kysely<Database>, options: WorkerOptions): Promise<number> {
+  return db.transaction().execute(async (trx) => {
+    const rows = await sql<EventRow>`
+      SELECT id::text, event_id::text, event_type, payload, attempts, school_id::text
+      FROM outbox_events
+      WHERE status = 'pending' AND available_at <= now()
+      ORDER BY id
+      LIMIT 20
+      FOR UPDATE SKIP LOCKED
+    `.execute(trx)
+    for (const event of rows.rows) await handleEvent(db, trx, event, options)
+    return rows.rows.length
+  })
+}
+
+async function handleEvent(db: Kysely<Database>, locked: Executor, event: EventRow, options: WorkerOptions): Promise<void> {
+  const consumer = consumerByEvent[event.event_type]
+  if (!consumer) {
+    await mark(locked, event.id, 'done', event.attempts, null)
+    return
+  }
+  try {
+    await commitConsumer(db, event, options)
+    await acknowledgeOutbox(locked, event.id, event.attempts)
   } catch (error) {
+    if (pgCode(error) === '23505') {
+      await acknowledgeOutbox(locked, event.id, event.attempts)
+      return
+    }
     const next = event.attempts + 1
     const message = error instanceof Error ? error.message : 'error'
     if (consumer === 'files.scan' && next >= 3 && event.payload.fileId) {
@@ -72,11 +106,11 @@ async function handleEvent(db: Kysely<Database>, event: EventRow, options: Worke
         .where('id', '=', event.payload.fileId)
         .where('scan_status', '=', 'pending')
         .execute()
-      await mark(db, event.id, 'done', next, message)
+      await mark(locked, event.id, 'done', next, message)
       return
     }
     if (next >= 8) {
-      await mark(db, event.id, 'dead', next, message)
+      await mark(locked, event.id, 'dead', next, message)
       return
     }
     await sql`
@@ -85,11 +119,11 @@ async function handleEvent(db: Kysely<Database>, event: EventRow, options: Worke
           last_error = ${message},
           available_at = now() + make_interval(secs => least(power(2, ${next}), 3600))
       WHERE id = ${event.id}::bigint
-    `.execute(db)
+    `.execute(locked)
   }
 }
 
-async function mark(db: Kysely<Database>, id: string, status: 'done' | 'dead', attempts: number, lastError: string | null): Promise<void> {
+async function mark(db: Executor, id: string, status: 'done' | 'dead', attempts: number, lastError: string | null): Promise<void> {
   await db
     .updateTable('outbox_events')
     .set({
@@ -114,8 +148,12 @@ export function startWorker(db: Kysely<Database>, options: WorkerOptions): () =>
   const cleanup = setInterval(() => {
     void cleanupExpired(db)
   }, 60 * 60 * 1000)
+  const dueSoon = setInterval(() => {
+    void runDueSoon(db, new Date())
+  }, 60 * 60 * 1000)
   return () => {
     clearInterval(tick)
     clearInterval(cleanup)
+    clearInterval(dueSoon)
   }
 }

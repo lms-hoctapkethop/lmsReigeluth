@@ -29,24 +29,24 @@ AC03,Kiến trúc 1.0,Thu hồi liên kết PH có hiệu lực request tiếp t
 AC04,Kiến trúc 1.0,Tải lại/đổi thiết bị đọc đúng bản nháp server,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC04
 AC05,Kiến trúc 1.0,Hai request nộp đồng thời cùng key → một lần nộp,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC05
 AC06,Kiến trúc 1.0,Commit rồi mất kết nối → gửi lại không nhân đôi,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC06
-AC07,Kiến trúc 1.0,HS nộp v2 khi GV đang chấm v1 → xung đột,L3/L5/L6,,M7,todo,
+AC07,Kiến trúc 1.0,HS nộp v2 khi GV đang chấm v1 → xung đột,L3/L5/L6,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts AC07
 AC08,Kiến trúc 1.0,Sửa nội dung/rubric sau khi có bài nộp → bài cũ giữ phiên bản,L3/L5/L6,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 AC09,Kiến trúc 1.0,Quiz tối đa điểm không tự xác nhận mục tiêu,L3/L5/L6,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts P1a-10 AC09
-AC10,Kiến trúc 1.0,Công bố rồi sửa quyết định → lịch sử đủ,L3/L5/L6,,M7,todo,
-AC11,Kiến trúc 1.0,Worker ngừng rồi chạy lại → không trùng thông báo,L3/L5/L6,,M7,todo,
+AC10,Kiến trúc 1.0,Công bố rồi sửa quyết định → lịch sử đủ,L3/L5/L6,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts AC10
+AC11,Kiến trúc 1.0,Worker ngừng rồi chạy lại → không trùng thông báo,L3/L5/L6,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts AC11
 AC12,Kiến trúc 1.0,Upload sai loại/quá lớn/chưa quét → từ chối/cách ly,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC12
 AC13,Kiến trúc 1.0,Khôi phục sang máy trống,L3/L5/L6,,M9,todo,
 AC14,Kiến trúc 1.0,"Bàn phím, zoom 200%, 360 px",L3/L5/L6,,M9,todo,
 AC15,Kiến trúc 1.0,Kịch bản tải,L3/L5/L6,,M9,todo,
 AC16,Kiến trúc 1.0,Module dự án 6 hoạt động không ép 4 bước,L3/L5/L6,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 A01,2.1 tệp 07,GV Tin10A1/Tin10A2/Toán10A3 chỉ có ba scope,L3/L5,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
-A02,2.1 tệp 07,"PH chỉ xem đúng con, dữ liệu đã công bố",L3/L5,,M7,todo,
+A02,2.1 tệp 07,"PH chỉ xem đúng con, dữ liệu đã công bố",L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts A02
 A03,2.1 tệp 07,Chuyển lớp giữ lịch sử,L3/L5,apps/api/test/authz/matrix.test.ts,M2,pass,apps/api/test/authz/matrix.test.ts
 A04,2.1 tệp 07,"Đáp án riêng: JSON, HTML, cache, asset, AI context",L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts SEC-08 A04 C09
 A05,2.1 tệp 07,Autosave trước submit không nộp nhầm revision,L3/L5,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts A05
-A06,2.1 tệp 07,Review cạnh tranh tạo conflict đúng,L3/L5,,M7,todo,
+A06,2.1 tệp 07,Review cạnh tranh tạo conflict đúng,L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts A06
 A07,2.1 tệp 07,Dependency bất biến sau khi giao,L3/L5,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
-A08,2.1 tệp 07,Outbox an toàn khi crash sau commit,L3/L5,,M7,todo,
+A08,2.1 tệp 07,Outbox an toàn khi crash sau commit,L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts A08
 A09,2.1 tệp 07,"Restore đủ DB và tệp, đúng checksum",L3/L5,,M9,todo,
 A10,2.1 tệp 07,Migration bảo toàn nghĩa release_id,L3/L5,,M9,todo,
 A11,2.1 tệp 07,Route/waiver có lịch sử (P2),L3/L5,,M10,todo,
@@ -65,7 +65,7 @@ B05,2.2 tệp 08,'Em chưa học phần này' ghi thiếu dữ liệu,L1/L3/L5,a
 B06,2.2 tệp 08,Hổng gốc sâu hơn 3 bước dừng và gợi ý GV,L1/L3/L5,,M8,todo,
 B07,2.2 tệp 08,Nhiệm vụ thay thế cần duyệt,L1/L3/L5,,M10,todo,
 B08,2.2 tệp 08,PH gọi API needs bị từ chối,L1/L3/L5,,M8,todo,
-B09,2.2 tệp 08,PH gọi API tiến độ HS khác bị từ chối,L1/L3/L5,,M7,todo,
+B09,2.2 tệp 08,PH gọi API tiến độ HS khác bị từ chối,L1/L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts B09
 B10,2.2 tệp 08,Tắt LLM vẫn chạy,L1/L3/L5,,M8,todo,
 B11,2.2 tệp 08,"Đổi phiên bản mô hình tính lại, giữ lịch sử",L1/L3/L5,,M8,todo,
 B12,2.2 tệp 08,HS định hướng ICT không nhận YCCĐ chỉ CS,L1/L3/L5,,M10,todo,
@@ -76,7 +76,7 @@ C02,2.2 tệp 09,"Bloom 6 chỉ trắc nghiệm → V02, phát hành sau khi có
 C03,2.2 tệp 09,Lỗi hiểu sai 2 câu → signal,L1/L3/L5,,M8,todo,
 C04,2.2 tệp 09,"Gợi ý bậc 2 → hints_used=2, trọng số 0,3",L1/L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts C04
 C05,2.2 tệp 09,Mức 'chưa thể hiện' không tạo quan sát,L1/L3/L5,,M8,todo,
-C06,2.2 tệp 09,Công bố không chọn quyết định → không có decision,L1/L3/L5,,M7,todo,
+C06,2.2 tệp 09,Công bố không chọn quyết định → không có decision,L1/L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts C06
 C07,2.2 tệp 09,Câu AI chưa duyệt → V07,L1/L3/L5,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 C08,2.2 tệp 09,Body gửi correct=true bị bỏ qua,L1/L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts C08
 C09,2.2 tệp 09,Xem mã nguồn không thấy đáp án,L1/L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts SEC-08 A04 C09
@@ -162,17 +162,17 @@ J03,docs/09 mục 5.1,"Soạn, V01, publish",L5,tests/e2e/journeys/J03.spec.ts,M
 J04,docs/09 mục 5.1,Giao có lịch,L5,tests/e2e/journeys/J04.spec.ts,M5,pass,tests/e2e/journeys/J04.spec.ts
 J05,docs/09 mục 5.1,"Luyện tập, gợi ý, lỗi hiểu sai",L5,tests/e2e/journeys/J05.spec.ts,M6,pass,tests/e2e/journeys/J05.spec.ts J05
 J06,docs/09 mục 5.1,"Soạn bài, mất mạng, nộp",L5,tests/e2e/journeys/J06.spec.ts,M5,pass,tests/e2e/journeys/J06.spec.ts
-J07,docs/09 mục 5.1,"Chấm, công bố không quyết định",L5,e2e/journeys/J07.spec.ts,M7,todo,
-J08,docs/09 mục 5.1,Nộp v2 khi GV mở v1,L5,e2e/journeys/J08.spec.ts,M7,todo,
-J09,docs/09 mục 5.1,"Công bố có quyết định, hồ sơ",L5,e2e/journeys/J09.spec.ts,M7,todo,
-J10,docs/09 mục 5.1,"PH xem con, thử URL khác",L5,e2e/journeys/J10.spec.ts,M7,todo,
+J07,docs/09 mục 5.1,"Chấm, công bố không quyết định",L5,tests/e2e/journeys/J07.spec.ts,M7,pass,tests/e2e/journeys/J07.spec.ts
+J08,docs/09 mục 5.1,Nộp v2 khi GV mở v1,L5,tests/e2e/journeys/J08.spec.ts,M7,pass,tests/e2e/journeys/J08.spec.ts
+J09,docs/09 mục 5.1,"Công bố có quyết định, hồ sơ",L5,tests/e2e/journeys/J09.spec.ts,M7,pass,tests/e2e/journeys/J09.spec.ts
+J10,docs/09 mục 5.1,"PH xem con, thử URL khác",L5,tests/e2e/journeys/J10.spec.ts,M7,pass,tests/e2e/journeys/J10.spec.ts
 J11,docs/09 mục 5.1,"Toán 7 phiếu ra lớp, định dạng số",L5,tests/e2e/journeys/J11.spec.ts,M6,pass,tests/e2e/journeys/J11.spec.ts J11
 J12,docs/09 mục 5.1,Bản đồ nhiệt sau worker,L5,e2e/journeys/J12.spec.ts,M8,todo,
-DB30,db/tests,Tệp gắn bài nộp đúng chủ và đã quét,L2,db/tests/file_guards_invariants.sql,M7,todo,
-DB31,db/tests,Ảnh nội dung chỉ ảnh sạch,L2,db/tests/file_guards_invariants.sql,M7,todo,
-DB32,db/tests,content_files bất biến,L2,db/tests/file_guards_invariants.sql,M7,todo,
-DB33,db/tests,Kết quả tiêu chí đã công bố bất biến,L2,db/tests/review_guards_invariants.sql,M7,todo,
-DB34,db/tests,Quyết định đúng HS và offering của review,L2,db/tests/review_guards_invariants.sql,M7,todo,
-DB35,db/tests,Một quyết định gốc; chuỗi không đổi đối tượng,L2,db/tests/review_guards_invariants.sql,M7,todo,
-DB36,db/tests,Đồng hành gia đình chỉ committed → cancelled,L2,db/tests/review_guards_invariants.sql,M7,todo,
-DB37,db/tests,Thông báo chỉ đổi read_at,L2,db/tests/review_guards_invariants.sql,M7,todo,
+DB30,db/tests,Tệp gắn bài nộp đúng chủ và đã quét,L2,db/tests/file_guards_invariants.sql,M7,pass,db/tests/file_guards_invariants.sql
+DB31,db/tests,Ảnh nội dung chỉ ảnh sạch,L2,db/tests/file_guards_invariants.sql,M7,pass,db/tests/file_guards_invariants.sql
+DB32,db/tests,content_files bất biến,L2,db/tests/file_guards_invariants.sql,M7,pass,db/tests/file_guards_invariants.sql
+DB33,db/tests,Kết quả tiêu chí đã công bố bất biến,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
+DB34,db/tests,Quyết định đúng HS và offering của review,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
+DB35,db/tests,Một quyết định gốc; chuỗi không đổi đối tượng,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
+DB36,db/tests,Đồng hành gia đình chỉ committed → cancelled,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
+DB37,db/tests,Thông báo chỉ đổi read_at,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql

@@ -514,7 +514,11 @@ export function TeachHome() {
       {!offerings.loading && offerings.data?.length === 0 ? <p>Chưa có lớp được phân công.</p> : null}
       <ul>
         {offerings.data?.map((item) => (
-          <li key={item.id}><Link to={`/day/lop/${item.id}/giao`}>{item.title}</Link></li>
+          <li key={item.id}>
+            <Link to={`/day/lop/${item.id}/giao`}>{item.title}</Link>
+            {' · '}
+            <Link to={`/day/cham/${item.id}`}>Chấm bài</Link>
+          </li>
         ))}
       </ul>
     </section>

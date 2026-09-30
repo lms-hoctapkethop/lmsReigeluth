@@ -110,12 +110,21 @@ export function can(actor: Actor, action: Action, facts: Facts): Decision {
       if (!actor.roles.includes('student')) return { allow: false, reason: 'CAPABILITY_MISSING' }
       return facts.enrolled ? { allow: true } : { allow: false, reason: 'NOT_ENROLLED' }
     case 'review.*':
-    case 'review.read_published':
     case 'decision.supersede':
+      if (!actor.roles.includes('teacher')) return { allow: false, reason: 'CAPABILITY_MISSING' }
+      return facts.reviewAssigned ? { allow: true } : { allow: false, reason: 'NOT_ASSIGNED' }
+    case 'review.read_published':
+      if (actor.roles.includes('student')) return facts.enrolled ? { allow: true } : { allow: false, reason: 'NOT_ENROLLED' }
+      if (actor.roles.includes('teacher')) {
+        return facts.teacherAssigned ? { allow: true } : { allow: false, reason: 'NOT_ASSIGNED' }
+      }
+      if (actor.roles.includes('guardian')) return facts.guardianLinked ? { allow: true } : { allow: false, reason: 'NOT_LINKED' }
+      return { allow: false, reason: 'CAPABILITY_MISSING' }
+    case 'family_support.*':
+      if (!actor.roles.includes('guardian')) return { allow: false, reason: 'CAPABILITY_MISSING' }
+      return facts.guardianLinked ? { allow: true } : { allow: false, reason: 'NOT_LINKED' }
     case 'needs.read':
     case 'heatmap.read':
-    case 'family_support.*':
-      // TODO(M7)
       return { allow: false, reason: 'CAPABILITY_MISSING' }
     default: {
       const unreachable: never = action

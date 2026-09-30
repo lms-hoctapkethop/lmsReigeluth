@@ -1,12 +1,19 @@
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
+  readonly details: Record<string, unknown> | null
 
-  constructor(status: number, code: string) {
+  constructor(status: number, code: string, details: Record<string, unknown> | null = null) {
     super(code)
     this.status = status
     this.code = code
+    this.details = details
   }
+}
+
+export function retryUnlessDenied(failureCount: number, error: Error): boolean {
+  if (error instanceof ApiError && error.status >= 400 && error.status < 500) return false
+  return failureCount < 2
 }
 
 export async function apiJson<T>(path: string, csrf?: string, init: RequestInit = {}): Promise<T> {
@@ -14,10 +21,10 @@ export async function apiJson<T>(path: string, csrf?: string, init: RequestInit 
   if (csrf) headers.set('x-csrf-token', csrf)
   if (init.body && !(init.body instanceof FormData) && !headers.has('content-type')) headers.set('content-type', 'application/json')
   const response = await fetch(path, { ...init, headers, credentials: 'same-origin' })
-  const payload = (await response.json().catch(() => null)) as { error?: { code?: string } } | T | null
+  const payload = (await response.json().catch(() => null)) as { error?: { code?: string; details?: Record<string, unknown> } } | T | null
   if (!response.ok) {
-    const code = payload && typeof payload === 'object' && 'error' in payload ? payload.error?.code ?? 'INTERNAL' : 'INTERNAL'
-    throw new ApiError(response.status, code)
+    const error = payload && typeof payload === 'object' && 'error' in payload ? payload.error : undefined
+    throw new ApiError(response.status, error?.code ?? 'INTERNAL', error?.details ?? null)
   }
   return payload as T
 }

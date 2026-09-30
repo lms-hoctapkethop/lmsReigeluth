@@ -581,11 +581,48 @@ export interface AttainmentDecisionsTable {
 }
 
 export interface ReviewsTable {
-  id: string
+  id: Generated<string>
   school_id: string
   submission_id: string
-  status: 'draft' | 'published'
   submission_version_id: string
+  rubric_version_id: string | null
+  reviewer_id: string
+  status: Generated<'draft' | 'published'>
+  revision: Generated<number>
+  comment: string | null
+  outcome: 'reviewed' | 'changes_requested' | null
+  published_at: Date | null
+  created_at: Generated<Date>
+  updated_at: Generated<Date>
+}
+
+export interface ReviewCriterionResultsTable {
+  review_id: string
+  rubric_criterion_id: string
+  level: 'meets' | 'developing' | 'not_yet' | 'not_shown'
+  note: string | null
+}
+
+export interface FamilySupportsTable {
+  id: Generated<string>
+  school_id: string
+  guardian_link_id: string
+  offering_id: string | null
+  content: string
+  status: Generated<'committed' | 'cancelled'>
+  created_at: Generated<Date>
+  cancelled_at: Date | null
+}
+
+export interface NotificationsTable {
+  id: Generated<string>
+  school_id: string
+  recipient_id: string
+  kind: string
+  payload: Record<string, string>
+  source_event: string
+  created_at: Generated<Date>
+  read_at: Date | null
 }
 
 export interface ProcessedEventsTable {
@@ -643,9 +680,13 @@ export interface Database {
   question_responses: QuestionResponsesTable
   attempt_hint_usage: AttemptHintUsageTable
   attainment_decisions: AttainmentDecisionsTable
+  attainment_current: AttainmentDecisionsTable
   submissions: SubmissionsTable
   submission_versions: SubmissionVersionsTable
   submission_version_files: SubmissionVersionFilesTable
   reviews: ReviewsTable
+  review_criterion_results: ReviewCriterionResultsTable
+  family_supports: FamilySupportsTable
+  notifications: NotificationsTable
   processed_events: ProcessedEventsTable
 }

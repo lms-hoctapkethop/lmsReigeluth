@@ -966,11 +966,12 @@ paths:
   /api/v1/offerings/{offeringId}/review-queue:
     get:
       tags: [review]
-      x-milestone: M7
       operationId: getReviewQueue
       parameters:
         - { $ref: '#/components/parameters/OfferingId' }
         - { name: status, in: query, schema: { type: string, enum: [submitted, changes_requested, reviewed] } }
+        - { name: late, in: query, schema: { type: boolean } }
+        - { name: itemId, in: query, schema: { $ref: '#/components/schemas/Uuid' } }
         - { name: cursor, in: query, schema: { type: string } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
       responses:
@@ -986,7 +987,6 @@ paths:
   /api/v1/submission-versions/{submissionVersionId}/reviews:
     post:
       tags: [review]
-      x-milestone: M7
       operationId: openReview
       description: Tạo hoặc trả bản nháp review đang mở cho đúng phiên bản bài nộp.
       parameters:
@@ -997,7 +997,6 @@ paths:
   /api/v1/reviews/{reviewId}:
     put:
       tags: [review]
-      x-milestone: M7
       operationId: saveReviewDraft
       parameters: [ { $ref: '#/components/parameters/ReviewId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IfMatch' } ]
       requestBody:
@@ -1009,7 +1008,6 @@ paths:
   /api/v1/reviews/{reviewId}/publish:
     post:
       tags: [review]
-      x-milestone: M7
       operationId: publishReview
       parameters: [ { $ref: '#/components/parameters/ReviewId' }, { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       requestBody:
@@ -1039,7 +1037,6 @@ paths:
   /api/v1/attainment-decisions/{decisionId}/supersede:
     post:
       tags: [review]
-      x-milestone: M7
       operationId: supersedeDecision
       parameters:
         - { name: decisionId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
@@ -1063,7 +1060,6 @@ paths:
   /api/v1/learners/{learnerId}/records:
     get:
       tags: [records]
-      x-milestone: M7
       operationId: getLearnerRecords
       parameters: [ { $ref: '#/components/parameters/LearnerId' }, { name: offeringId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } } ]
       responses:
@@ -1105,7 +1101,6 @@ paths:
   /api/v1/family-supports:
     post:
       tags: [family]
-      x-milestone: M7
       operationId: commitFamilySupport
       parameters: [ { $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' } ]
       requestBody:
@@ -1124,7 +1119,6 @@ paths:
   /api/v1/family-supports/{supportId}/cancel:
     post:
       tags: [family]
-      x-milestone: M7
       operationId: cancelFamilySupport
       parameters:
         - { name: supportId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
@@ -1135,7 +1129,6 @@ paths:
   /api/v1/notifications:
     get:
       tags: [notifications]
-      x-milestone: M8
       operationId: listNotifications
       parameters:
         - { name: unread, in: query, schema: { type: boolean } }
@@ -1144,7 +1137,6 @@ paths:
   /api/v1/notifications/{notificationId}/read:
     post:
       tags: [notifications]
-      x-milestone: M8
       operationId: markNotificationRead
       parameters:
         - { name: notificationId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
@@ -1542,8 +1534,15 @@ components:
       properties:
         id: { $ref: '#/components/schemas/Uuid' }
         revision: { type: integer }
+        submissionId: { $ref: '#/components/schemas/Uuid' }
         submissionVersionId: { $ref: '#/components/schemas/Uuid' }
         isCurrentVersion: { type: boolean, description: false nếu HS đã nộp bản mới hơn }
+        currentVersionId: { $ref: '#/components/schemas/Uuid' }
+        currentSubmittedAt: { type: [string, 'null'], format: date-time }
+        learnerName: { type: string }
+        itemTitle: { type: string }
+        versionNo: { type: integer }
+        submittedAt: { type: string, format: date-time }
         comment: { type: [string, 'null'] }
         criteria: { type: array, items: { $ref: '#/components/schemas/CriterionResult' } }
         requirements: { type: array, items: { $ref: '#/components/schemas/Requirement' } }
@@ -1555,6 +1554,12 @@ components:
         title: { type: string }
         level: { type: [string, 'null'], enum: [meets, developing, not_yet, not_shown, null] }
         note: { type: [string, 'null'] }
+        levels:
+          type: object
+          properties:
+            meets: { type: string }
+            developing: { type: string }
+            notYet: { type: string }
     ReviewDraftInput:
       type: object
       properties:
@@ -1582,7 +1587,7 @@ components:
       type: object
       properties:
         offeringId: { $ref: '#/components/schemas/Uuid' }
-        activity: { type: object, properties: { completed: { type: integer }, required: { type: integer } } }
+        activity: { type: object, properties: { completed: { type: integer }, required: { type: integer }, updatedAt: { type: [string, 'null'], format: date-time } } }
         requirements:
           type: array
           items:
@@ -1631,6 +1636,14 @@ components:
               achievedRequirements: { type: integer }
               totalRequirements: { type: integer }
               publishedFeedback: { type: array, items: { $ref: '#/components/schemas/PublishedReview' } }
+              upcoming:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    title: { type: string }
+                    dueAt: { type: string, format: date-time }
+                    href: { type: string }
         supports: { type: array, items: { type: object, properties: { id: { $ref: '#/components/schemas/Uuid' }, content: { type: string }, status: { type: string }, createdAt: { type: string, format: date-time } } } }
     Notification:
       type: object

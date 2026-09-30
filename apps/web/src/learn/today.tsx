@@ -47,7 +47,11 @@ export function LearnToday() {
       {classes.data && classes.data.length === 0 ? <p>Chưa có lớp học phần nào được ghi danh.</p> : null}
       <ul>
         {classes.data?.map((item) => (
-          <li key={item.id}><Link to={`/hoc/lop/${item.id}`}>{item.title}</Link></li>
+          <li key={item.id}>
+            <Link to={`/hoc/lop/${item.id}`}>{item.title}</Link>
+            {' · '}
+            <Link to={`/hoc/ho-so/${item.id}`}>Hồ sơ</Link>
+          </li>
         ))}
       </ul>
       <ul>
