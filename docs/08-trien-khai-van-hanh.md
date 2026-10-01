@@ -384,6 +384,7 @@ Ràng buộc:
 | 11 | Thiếu tài nguyên theo mục 0.6 |
 | 12 | Cổng 443 do một container giữ (proxy của site trường chạy trong Docker). Thêm site vào đó là sửa cấu hình site trường, nên **dừng và hỏi người điều phối** |
 | 13 | Compose < 2.24 |
+| 14 | Subnet `172.30.18.0/24` trùng network Docker hoặc route của host (3.8.1, D06) |
 
   Ops chạy trước khi cài và dán kết quả vào báo cáo M9 (không có bí mật trong đầu ra).
 
@@ -417,6 +418,51 @@ Ràng buộc:
 - mở 22/tcp (giữ khóa SSH bắt buộc, fail2ban, và khóa `restrict` ở mục 0.3);
 - dùng self-hosted runner trong mạng trường (để M10);
 - giữ chặn và deploy bằng `workflow_dispatch` từ máy ops (không khuyến nghị).
+
+### 0.15 Chốt ở 3.8.1 (sau review PR #7)
+
+Mục này bổ sung cho 0.2–0.12; ở điểm nào khác nhau thì mục này thắng. Mỗi dòng có một test tự động (`deploy/staging/test/*.sh` hoặc job CI), trừ các dòng ghi "ops".
+
+**Entry và quyền root**
+
+| Mã | Yêu cầu | Lý do |
+|---|---|---|
+| D01 | `/etc/sudoers.d/hcn-staging` có thêm `Defaults!/opt/hcn-staging/bin/hcn-staging env_keep += "SSH_ORIGINAL_COMMAND"` (vẫn kiểm bằng `visudo -cf`). `entry.test.sh` chạy entry qua `sudo` thật trong container test (hoặc giả lập `env -i`) để chứng minh lệnh còn tới được entry | Mặc định `sudo` (`env_reset`) xóa `SSH_ORIGINAL_COMMAND`, nên mọi lệnh qua SSH đều thoát 64 |
+| D02 | Entry **không bao giờ** chạy tệp lấy từ `releases/`. Ba thứ dùng bản đã cài trong `/opt/hcn-staging/bin/`: `preflight.sh`, `policy-check.sh` và `images.lock`. Release chỉ cung cấp compose, Caddyfile, `db/`, `perf/`. Đổi `images.lock` = ops chạy lại `install.sh` | Release do CI tạo; chạy script của release bằng root là cho CI quyền root. Lấy `images.lock` từ release cũng cho CI tự mở danh sách image |
+| D03 | `receive` đọc `manifest.json` trong tar của `docker save` **trước** `docker load` (`zstd -dc … \| tar -xO manifest.json`). Tập `RepoTags` phải đúng bằng `{hcn/api:<sha>, hcn/web:<sha>, hcn/postgres:18-<sha>}`; khác thì từ chối, không load | `docker load` ghi đè bất kỳ tag nào có trong tar, kể cả image mà site trường đang dùng |
+| D04 | `policy-check` từ chối thêm các trường hợp: `pid`, `ipc`, `network_mode` có bất kỳ giá trị nào (kể cả `container:…`); `volumes_from`; `userns_mode`; `cgroup_parent`; `build`. Volume top-level có `external`, có `driver_opts`, hoặc có `name` không bắt đầu bằng `<project>_`. Network top-level có `external` hoặc driver khác `bridge`. `secrets`/`configs` top-level có `file` nằm ngoài `/opt/hcn-staging/secrets/` hoặc ngoài thư mục release | Các đường này vẫn gắn được volume, network hay namespace của site trường, hoặc bind `/` qua `driver_opts` |
+| D05 | `compose.staging.yml` khai báo lại **mọi** `secrets` top-level, trỏ tới `/opt/hcn-staging/secrets/<tên>.txt` | Compose gốc trỏ `./secrets/…` trong release, thư mục này không tồn tại nên deploy đầu tiên sẽ lỗi |
+| D06 | `preflight.sh` kiểm subnet `172.30.18.0/24` không trùng network Docker nào (`docker network inspect`) và không trùng route của host; trùng thì thoát **14** (bổ sung bảng mã ở 0.13) | `compose up` báo "Pool overlaps" nếu site trường đã dùng dải này |
+
+**Workflow**
+
+| Mã | Yêu cầu |
+|---|---|
+| W01 | Job deploy khi kích hoạt bằng `workflow_run` thêm điều kiện `github.event.workflow_run.event == 'push'` và `github.event.workflow_run.head_repository.full_name == github.repository`. Lý do: một fork có nhánh tên `main` cũng khớp bộ lọc `branches`, và job `workflow_run` chạy trong ngữ cảnh nhánh mặc định nên vượt qua được bảo vệ Environment |
+| W02 | `workflow_dispatch` với `sha` tùy chọn: sau checkout, bắt buộc `git merge-base --is-ancestor "$sha" origin/main` hoặc `sha` là commit của một tag `v*`; không thỏa thì fail trước khi build |
+| W03 | Secret đưa vào bước qua `env:` rồi dùng `"$VAR"`, không chèn `${{ secrets.* }}` thẳng vào thân script |
+
+**Host proxy (ops áp dụng, Cursor sinh mẫu)**
+
+| Mã | Yêu cầu |
+|---|---|
+| H01 | Mẫu nginx không được để trống `set_real_ip_from`. Thêm `deploy/staging/host-proxy/render.sh`: tải `ips-v4` và `ips-v6` của Cloudflare lúc chạy, sinh tệp hoàn chỉnh vào stdout để ops xem rồi mới chép. Thiếu danh sách thì `$remote_addr` là IP của Cloudflare, và giới hạn tần suất (SEC-12) sẽ gộp mọi người dùng vào vài IP |
+| H02 | Mẫu thêm `listen [::]:443 ssl;` và `http2 on;`, cùng các header `X-Forwarded-Proto`, `X-Forwarded-For` (ghi đè), `Host` như mục 0.2 |
+
+**Sao lưu, hiệu năng, diễn tập**
+
+| Mã | Yêu cầu |
+|---|---|
+| B01 | Thêm timer cho restic: `forget --keep-daily 14 --keep-weekly 8 --keep-monthly 12 --prune` vào chủ nhật 19:00 UTC; `check --read-data-subset=5%` vào ngày 1 hằng tháng, 19:30 UTC. Thêm lệnh entry `backup files-maintain` (vào danh sách cho phép ở 0.4) |
+| P01 | `perf`: kết quả không được mất. Gồm `--summary-export` ra thư mục mount từ `releases/<sha>/perf-out/`, cùng `docker logs` trước khi `rm`. Entry in tóm tắt JSON ra stdout |
+| P02 | Mỗi VU đăng nhập **một lần** (trong `setup` hoặc lần lặp đầu của VU), bằng tài khoản `stg.hs%04d` theo `__VU` và mật khẩu `synthetic_user_password`, truyền qua tệp mount chỉ đọc, không qua `-e`. Login phải submit theo `action` của form Keycloak (đọc từ HTML), không post vào URL trang. Kiểm có cookie phiên trước khi chạy tải |
+| P03 | Kịch bản gọi **API** theo docs/09 mục 7 (ví dụ PERF-01: `/api/v1/me`, Hôm nay, mở bài, mở mục). Không đo HTML SPA tĩnh. `check` yêu cầu 2xx. PERF-03 đối soát bằng `hcn_readonly`: đúng 200 phiên bản, 0 trùng. PERF-04 chờ `hcn_outbox_pending` về 0 |
+| P04 | Ánh xạ tên miền về `127.0.0.1` bằng `options.hosts` trong script (không giả định có cờ CLI; kiểm bằng `k6 run --help` của đúng image trong `images.lock`) |
+| S01 | `seed-staging` sinh lịch sử ~10 000 bài nộp và ~200 000 quan sát **qua use case** (docs/08 mục 0.10). Không có lịch sử thì PERF-05 (bản đồ nhiệt) không có ý nghĩa |
+| R01 | `drill restore` và `drill rel06` phải **cài thật** theo 0.12. Mã 75 chỉ dùng khi thiếu tệp `--escrow`. Một lệnh in thông báo rồi thoát không được coi là đã có diễn tập |
+| R02 | REL-01…04 là test chạy được trong `nightly.yml` và job `resilience`, không phải tệp ghi chú |
+
+PR M9 chỉ được coi là xong khi D01–D06, W01–W03, H01–H02 đã có test. Các mục B, P, S, R là điều kiện của cổng G3 (mục "Hoàn thành khi" của M9 ở docs/10).
 
 ## 1 Thành phần
 
