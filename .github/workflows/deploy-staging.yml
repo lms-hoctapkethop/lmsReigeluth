@@ -18,16 +18,32 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+      || (github.event_name == 'workflow_run'
+          && github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.event == 'push'
+          && github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     environment: staging
     env:
       DEPLOY_SHA: ${{ inputs.sha || github.event.workflow_run.head_sha || github.sha }}
+      STAGING_SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+      STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+      STAGING_SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+      STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+      STAGING_SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+      APP_DOMAIN: ${{ vars.STAGING_APP_DOMAIN }}
+      ID_DOMAIN: ${{ vars.STAGING_ID_DOMAIN }}
+      STAGING_PROBE_TOKEN: ${{ secrets.STAGING_PROBE_TOKEN }}
+      STAGING_SMOKE_HS_PASSWORD: ${{ secrets.STAGING_SMOKE_HS_PASSWORD }}
+      STAGING_SMOKE_GV_PASSWORD: ${{ secrets.STAGING_SMOKE_GV_PASSWORD }}
     steps:
       - name: Bỏ qua khi ops chưa cấu hình SSH
         id: gate
         run: |
-          if [[ -z "${{ secrets.STAGING_SSH_HOST }}" ]]; then
+          if [[ -z "${STAGING_SSH_HOST}" ]]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Environment staging chưa có STAGING_SSH_HOST. Xem docs/ops/staging-runbook.md."
           else
@@ -37,6 +53,21 @@ jobs:
         if: steps.gate.outputs.ready == 'true'
         with:
           ref: ${{ env.DEPLOY_SHA }}
+      - name: SHA phải nằm trên main hoặc tag v*
+        if: steps.gate.outputs.ready == 'true' && github.event_name == 'workflow_dispatch'
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git fetch origin 'refs/tags/v*:refs/tags/v*'
+          sha="$DEPLOY_SHA"
+          if git merge-base --is-ancestor "$sha" origin/main; then
+            exit 0
+          fi
+          if git tag --points-at "$sha" | grep -Eq '^v'; then
+            exit 0
+          fi
+          echo "sha không thuộc main và không phải commit của tag v*" >&2
+          exit 1
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
         if: steps.gate.outputs.ready == 'true'
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -88,9 +119,9 @@ jobs:
         run: |
           set -euo pipefail
           install -d -m 700 "$RUNNER_TEMP/ssh"
-          printf '%s\n' "${{ secrets.STAGING_SSH_KNOWN_HOSTS }}" > "$RUNNER_TEMP/ssh/known_hosts"
+          printf '%s\n' "$STAGING_SSH_KNOWN_HOSTS" > "$RUNNER_TEMP/ssh/known_hosts"
           umask 077
-          printf '%s\n' "${{ secrets.STAGING_SSH_KEY }}" > "$RUNNER_TEMP/ssh/id"
+          printf '%s\n' "$STAGING_SSH_KEY" > "$RUNNER_TEMP/ssh/id"
           chmod 600 "$RUNNER_TEMP/ssh/id"
       - name: receive
         if: steps.gate.outputs.ready == 'true'
@@ -100,8 +131,8 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
             -o BatchMode=yes \
-            -p "${{ secrets.STAGING_SSH_PORT }}" \
-            "${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }}" \
+            -p "$STAGING_SSH_PORT" \
+            "${STAGING_SSH_USER}@${STAGING_SSH_HOST}" \
             "receive ${DEPLOY_SHA}" < release.tar
       - name: deploy
         if: steps.gate.outputs.ready == 'true'
@@ -111,18 +142,12 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
             -o BatchMode=yes \
-            -p "${{ secrets.STAGING_SSH_PORT }}" \
-            "${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }}" \
+            -p "$STAGING_SSH_PORT" \
+            "${STAGING_SSH_USER}@${STAGING_SSH_HOST}" \
             "deploy ${DEPLOY_SHA}"
       - name: Khói qua Cloudflare
         id: smoke
         if: steps.gate.outputs.ready == 'true'
-        env:
-          APP_DOMAIN: ${{ vars.STAGING_APP_DOMAIN }}
-          ID_DOMAIN: ${{ vars.STAGING_ID_DOMAIN }}
-          STAGING_PROBE_TOKEN: ${{ secrets.STAGING_PROBE_TOKEN }}
-          STAGING_SMOKE_HS_PASSWORD: ${{ secrets.STAGING_SMOKE_HS_PASSWORD }}
-          STAGING_SMOKE_GV_PASSWORD: ${{ secrets.STAGING_SMOKE_GV_PASSWORD }}
         run: |
           set -euo pipefail
           bash deploy/staging/smoke-remote.sh
@@ -141,8 +166,8 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
             -o BatchMode=yes \
-            -p "${{ secrets.STAGING_SSH_PORT }}" \
-            "${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }}" \
+            -p "$STAGING_SSH_PORT" \
+            "${STAGING_SSH_USER}@${STAGING_SSH_HOST}" \
             rollback
           exit 1
       - name: Xóa khóa SSH

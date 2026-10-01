@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { bootstrapSchool, grantReviewer, revokeReviewer, seedCurriculum, systemClock } from '@hcn/domain'
 import { KeycloakAdmin } from './adapters/keycloak-admin.ts'
 import { loadConfig } from './config.ts'
-import { seedStaging, stagingObservations, stagingSubmissions } from './seed-staging.ts'
+import { seedStaging } from './seed-staging.ts'
 
 const [command, ...rest] = process.argv.slice(2)
 
@@ -83,8 +83,8 @@ try {
       clientId: config.keycloakProvisionerClientId ?? 'hcn-provisioner',
       clientSecret: config.keycloakProvisionerSecret,
     })
-    await seedStaging(db, idp, config)
-    console.log(`history_plan submissions=${stagingSubmissions} observations=${stagingObservations}`)
+    const history = await seedStaging(db, idp, config)
+    console.log(`submissions=${history.submissions} observations=${history.observations}`)
   } else if (command === 'verify-files') {
     const rows = await db.selectFrom('files').select(['id', 'storage_key', 'sha256']).execute()
     let missing = 0

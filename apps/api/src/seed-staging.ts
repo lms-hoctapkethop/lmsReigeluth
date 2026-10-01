@@ -17,6 +17,7 @@ import {
 } from '@hcn/domain'
 import { ConfigError } from './config.ts'
 import type { AppConfig } from './config.ts'
+import { writeStagingHistory } from './seed-staging-history.ts'
 
 export const stagingStudents = 27 * 45
 export const stagingTeachers = 60
@@ -89,7 +90,7 @@ export async function seedStaging(
   db: Kysely<Database>,
   idp: IdpAdmin,
   config: AppConfig,
-): Promise<void> {
+): Promise<{ submissions: number; observations: number }> {
   assertStagingEnv()
   const sharedFile = process.env.SYNTHETIC_USER_PASSWORD_FILE
   if (!sharedFile && !process.env.SYNTHETIC_USER_PASSWORD) throw new ConfigError(['SYNTHETIC_USER_PASSWORD'])
@@ -146,6 +147,15 @@ export async function seedStaging(
     })
     await assignTeacher(db, meta, { offeringId: offering.id, teacherId: smokeTeacher.id })
     await enrollLearners(db, meta, { offeringId: offering.id, learnerIds: [smokeStudent.id] })
+    const history = await writeStagingHistory(db, idp, {
+      schoolId: school.schoolId,
+      adminId: school.userId,
+      teacherId: smokeTeacher.id,
+      offeringId: offering.id,
+      courseId,
+    })
+    console.log(`students=${stagingStudents} teachers=${stagingTeachers} guardians=${stagingGuardians} submissions=${history.submissions} observations=${history.observations}`)
+    return history
   }
-  console.log(`students=${stagingStudents} teachers=${stagingTeachers} guardians=${stagingGuardians} submissions_plan=${stagingSubmissions} observations_plan=${stagingObservations}`)
+  throw new Error('seed-staging thiếu giáo viên khói, học sinh khói hoặc khóa học')
 }

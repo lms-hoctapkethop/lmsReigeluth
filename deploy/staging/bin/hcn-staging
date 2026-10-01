@@ -3,8 +3,12 @@
 set -euo pipefail
 
 log() {
-  mkdir -p /var/log/hcn-staging 2>/dev/null || return 0
-  printf '%s %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" "${result:-start}" >> /var/log/hcn-staging/entry.log || true
+  local dir=/var/log/hcn-staging
+  if [[ -e "$dir" && ! -w "$dir" ]]; then
+    return 0
+  fi
+  mkdir -p "$dir" 2>/dev/null || return 0
+  printf '%s %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" "${result:-start}" >> "$dir/entry.log" 2>/dev/null || true
 }
 
 cmd="${SSH_ORIGINAL_COMMAND:-${1:-}}"
@@ -48,7 +52,7 @@ case "$action" in
     fi
     ;;
   backup)
-    [[ "$arg" == "full" || "$arg" == "diff" || "$arg" == "files" ]] || exit 64
+    [[ "$arg" == "full" || "$arg" == "diff" || "$arg" == "files" || "$arg" == "files-maintain" || "$arg" == "files-check" ]] || exit 64
     ;;
   *)
     exit 64
@@ -91,7 +95,7 @@ use_current() {
 
 image_ref() {
   local name="$1"
-  local lock="$release_dir/deploy/staging/images.lock"
+  local lock="${HCN_IMAGES_LOCK:-$root/bin/images.lock}"
   grep -E "^${name}[:@]" "$lock" | head -n 1
 }
 
@@ -164,6 +168,24 @@ receive_release() {
   images="$workdir/images.tar.zst"
   bundle="$workdir/bundle.tar"
   [[ -f "$images" && -f "$bundle" ]] || exit 1
+  zstd -dc "$images" | tar -xO manifest.json > "$workdir/manifest.json"
+  python3 - "$arg" "$workdir/manifest.json" <<'PY'
+import json, sys
+sha, path = sys.argv[1], sys.argv[2]
+with open(path, encoding="utf-8") as handle:
+    doc = json.load(handle)
+found = []
+rows = doc if isinstance(doc, list) else []
+for row in rows:
+    tags = row.get("RepoTags") or []
+    if isinstance(tags, str):
+        tags = [tags]
+    found.extend(tags)
+expected = {f"hcn/api:{sha}", f"hcn/web:{sha}", f"hcn/postgres:18-{sha}"}
+if set(found) != expected:
+    print("RepoTags không đúng: " + ", ".join(sorted(found)), file=sys.stderr)
+    raise SystemExit(1)
+PY
   zstd -dc "$images" | docker load
   docker image inspect "hcn/api:${arg}" "hcn/web:${arg}" "hcn/postgres:18-${arg}" >/dev/null
   mkdir -p "$root/releases"
@@ -218,7 +240,8 @@ deploy_release() {
   export APP_VERSION="$arg"
   export HCN_RELEASE_ROOT="$new"
   load_env
-  "$new/deploy/staging/preflight.sh" --quick
+  export HCN_IMAGES_LOCK="$root/bin/images.lock"
+  "$root/bin/preflight.sh" --quick
   "$root/bin/policy-check.sh" hcn-staging -f "$new/deploy/compose.yml" -f "$new/deploy/compose.staging.yml"
   if [[ -n "$old" && -d "$old" ]]; then
     release_dir="$old"
@@ -337,18 +360,21 @@ run_perf() {
   fi
   use_current
   load_env
-  local k6 number script password
+  local k6 number script out started_at
   k6="$(image_ref 'grafana/k6')"
   number="${arg#PERF-0}"
   script="/scripts/perf-0${number}.js"
-  password="$(tr -d '\n' < "$root/secrets/smoke_hs_password.txt")"
+  out="$release_dir/perf-out"
+  mkdir -p "$out"
+  started_at="$(date +%s)"
   cid="$(docker run -d --cpus 1 --memory 512m --network host \
     -v "$release_dir/perf:/scripts:ro" \
+    -v "$root/secrets/synthetic_user_password.txt:/secrets/synthetic_user_password:ro" \
+    -v "$out:/out" \
     -e BASE_URL="https://${APP_DOMAIN}" \
-    -e USERNAME="${PERF_USERNAME:-stg.smoke.hs}" \
-    -e PASSWORD="$password" \
-    "$k6" run --insecure-skip-tls-verify \
-    --host "${APP_DOMAIN}:127.0.0.1" --host "${ID_DOMAIN}:127.0.0.1" \
+    -e APP_DOMAIN="${APP_DOMAIN}" \
+    -e ID_DOMAIN="${ID_DOMAIN}" \
+    "$k6" run --summary-export "/out/${arg}.json" \
     "$script")"
   while docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null | grep -q true; do
     if [[ -n "${GUARD_URL:-}" ]]; then
@@ -368,10 +394,101 @@ run_perf() {
     fi
     sleep 5
   done
+  docker logs "$cid" > "$out/${arg}.log" 2>&1 || true
   docker rm "$cid" >/dev/null 2>&1 || true
   if (( guard_fail == 1 )); then
     echo '{"result":"aborted_guard"}'
     exit 75
+  fi
+  if [[ "$arg" == "PERF-03" ]]; then
+    local versions distinct_versions
+    versions="$(compose exec -T db psql -U postgres -d hcn -tAc "SET ROLE hcn_readonly; SELECT count(*) FROM submission_versions WHERE submitted_at >= to_timestamp(${started_at})" | tail -n 1 | tr -d '[:space:]')"
+    distinct_versions="$(compose exec -T db psql -U postgres -d hcn -tAc "SET ROLE hcn_readonly; SELECT count(DISTINCT submission_id::text || ':' || version_no::text) FROM submission_versions WHERE submitted_at >= to_timestamp(${started_at})" | tail -n 1 | tr -d '[:space:]')"
+    [[ "$versions" == "200" && "$distinct_versions" == "200" ]]
+  fi
+  if [[ "$arg" == "PERF-04" ]]; then
+    local pending deadline
+    deadline="$((SECONDS + 120))"
+    pending=1
+    while (( SECONDS < deadline )); do
+      pending="$(compose exec -T api node --input-type=module -e 'const r=await fetch("http://127.0.0.1:9464/metrics"); const t=await r.text(); const m=t.match(/^hcn_outbox_pending (\\d+)/m); process.stdout.write(m?m[1]:"")' || true)"
+      if [[ "$pending" == "0" ]]; then
+        break
+      fi
+      sleep 5
+    done
+    [[ "$pending" == "0" ]]
+  fi
+  if [[ -f "$out/${arg}.json" ]]; then
+    cat "$out/${arg}.json"
+  else
+    echo "{\"scenario\":\"${arg}\",\"summary\":\"missing\"}"
+    exit 1
+  fi
+}
+
+drill_compose() {
+  docker compose -p hcn-drill \
+    -f "$release_dir/deploy/compose.yml" \
+    -f "$release_dir/deploy/compose.staging.yml" \
+    --env-file "$root/env/staging.env" \
+    "$@"
+}
+
+drill_restore() {
+  local started rto
+  [[ -n "${RESTORE_TARGET:-}" ]] || {
+    echo "escrow thiếu RESTORE_TARGET" >&2
+    exit 1
+  }
+  started="$(date +%s)"
+  drill_compose up -d --no-build db
+  drill_compose exec -T db pgbackrest --stanza=hcn --repo=2 --type=time --target="$RESTORE_TARGET" restore
+  docker run --rm --env-file "$root/secrets/restic.env" \
+    -v hcn-drill_files:/data \
+    "$(image_ref 'restic/restic')" restore latest --target /data
+  drill_compose up -d --no-build
+  drill_compose exec -T caddy wget -q -O - http://127.0.0.1/health/ready
+  drill_compose exec -T api node apps/api/src/cli.ts verify-files
+  rto="$(( $(date +%s) - started ))"
+  printf '{"drill":"restore","rto_seconds":%s,"rpo_target":"%s"}\n' "$rto" "$RESTORE_TARGET"
+  drill_compose down -v
+}
+
+drill_rel06() {
+  local old="$extra"
+  drill_compose up -d --no-build db
+  drill_compose exec -T db pgbackrest --stanza=hcn --repo=2 --type=latest restore
+  drill_compose --profile ops run --rm migrate up
+  APP_VERSION="$old" drill_compose up -d --no-build api worker
+  drill_compose exec -T api node apps/api/src/cli.ts verify-files
+  drill_compose exec -T db psql -U postgres -d hcn -v ON_ERROR_STOP=1 -f /dev/stdin < "$release_dir/db/checks/release_id_semantics.sql"
+  printf '{"drill":"rel06","old_sha":"%s"}\n' "$old"
+  drill_compose down -v
+}
+
+drill_run() {
+  local escrow="" i
+  for ((i = 0; i < ${#parts[@]}; i++)); do
+    if [[ "${parts[$i]}" == "--escrow" ]]; then
+      escrow="${parts[$((i + 1))]:-}"
+    fi
+  done
+  if [[ -z "$escrow" || ! -f "$escrow" ]]; then
+    echo "drill thiếu tệp --escrow" >&2
+    exit 75
+  fi
+  set -a
+  # shellcheck disable=SC1090
+  . "$escrow"
+  set +a
+  use_current
+  load_env
+  export HCN_IMAGES_LOCK="$root/bin/images.lock"
+  if [[ "$arg" == "restore" ]]; then
+    drill_restore
+  else
+    drill_rel06
   fi
 }
 
@@ -399,8 +516,7 @@ case "$action" in
     run_perf
     ;;
   drill)
-    echo "drill cần bí mật ký gửi trên VPS. Xem docs/ops/staging-runbook.md" >&2
-    exit 75
+    drill_run
     ;;
   backup)
     use_current
@@ -419,6 +535,14 @@ case "$action" in
           -v hcn-staging_files:/data:ro \
           "$(image_ref 'restic/restic')" backup /data --tag files
         write_backup_metric files
+        ;;
+      files-maintain)
+        docker run --rm --env-file "$root/secrets/restic.env" \
+          "$(image_ref 'restic/restic')" forget --keep-daily 14 --keep-weekly 8 --keep-monthly 12 --prune
+        ;;
+      files-check)
+        docker run --rm --env-file "$root/secrets/restic.env" \
+          "$(image_ref 'restic/restic')" check --read-data-subset=5%
         ;;
     esac
     ;;

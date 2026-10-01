@@ -8,6 +8,16 @@ import { authorizationRedirect, endSessionUrl, newOidcSecrets, redeemCode } from
 import { authRateLimit } from '../plugins/rate-limit.ts'
 import { createHash } from 'node:crypto'
 
+function loginUnavailablePage(): string {
+  return `<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><title>Đăng nhập tạm thời không dùng được</title></head>
+<body>
+  <p>Đăng nhập tạm thời không dùng được. Phiên đã mở vẫn vào được. Thử lại sau.</p>
+</body>
+</html>`
+}
+
 function deniedPage(logoutUrl: string): string {
   const href = logoutUrl.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
   return `<!doctype html>
@@ -22,15 +32,20 @@ function deniedPage(logoutUrl: string): string {
 
 export function registerAuthRoutes(app: FastifyInstance, db: Kysely<Database>, config: AppConfig): void {
   app.get('/auth/login', { config: { public: true, rateLimit: authRateLimit } }, async (request, reply) => {
-    const secrets = newOidcSecrets()
-    const returnTo = safeReturnTo(request.query && typeof request.query === 'object' && 'returnTo' in request.query ? request.query.returnTo : undefined)
-    const location = await authorizationRedirect(config, secrets)
-    reply.setCookie(
-      'hcn_oidc',
-      signOidcTicket({ ...secrets, returnTo, exp: Date.now() + 600_000 }, config.cookieSecret),
-      oidcCookie,
-    )
-    return reply.redirect(location.href)
+    try {
+      const secrets = newOidcSecrets()
+      const returnTo = safeReturnTo(request.query && typeof request.query === 'object' && 'returnTo' in request.query ? request.query.returnTo : undefined)
+      const location = await authorizationRedirect(config, secrets)
+      reply.setCookie(
+        'hcn_oidc',
+        signOidcTicket({ ...secrets, returnTo, exp: Date.now() + 600_000 }, config.cookieSecret),
+        oidcCookie,
+      )
+      return reply.redirect(location.href)
+    } catch (error) {
+      if (error instanceof DomainError) throw error
+      return reply.status(503).type('text/html; charset=utf-8').send(loginUnavailablePage())
+    }
   })
 
   app.get('/auth/callback', { config: { public: true, rateLimit: authRateLimit } }, async (request, reply) => {

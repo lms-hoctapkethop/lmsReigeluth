@@ -11,6 +11,7 @@ import {
   stagingSubmissions,
   stagingTeachers,
 } from '../src/seed-staging.ts'
+import { fillStagingHistory, historyAssignmentItems, requireApprovedLink, submissionSlot } from '../src/seed-staging-history.ts'
 
 describe('seed-staging', () => {
   it('từ chối khi không phải staging', () => {
@@ -31,5 +32,42 @@ describe('seed-staging', () => {
     const again = stagingRoster()
     expect(again[0]).toEqual(roster[0])
     expect(stagingCsv(roster.slice(0, 1))).toContain('stg.hs0001,student')
+  })
+
+  it('lịch sử gọi đủ use case và từ chối khi chưa có KC đã duyệt', async () => {
+    expect(() => requireApprovedLink(undefined)).toThrow(/seed-curriculum/)
+    expect(submissionSlot(9999, stagingStudents, historyAssignmentItems)).toEqual({ student: 9999 % stagingStudents, item: 8 })
+    expect(() => submissionSlot(stagingStudents * historyAssignmentItems, stagingStudents, historyAssignmentItems)).toThrow(/không đủ/)
+    let submissions = 0
+    let observations = 0
+    const filled = await fillStagingHistory({
+      submissions: stagingSubmissions,
+      observations: stagingObservations,
+      existingSubmissions: 0,
+      existingObservations: 0,
+      submit: async () => {
+        submissions += 1
+      },
+      observe: async () => {
+        observations += 1
+      },
+    })
+    expect(filled).toEqual({ submissions: stagingSubmissions, observations: stagingObservations })
+    expect(submissions).toBe(stagingSubmissions)
+    expect(observations).toBe(stagingObservations)
+    let again = 0
+    await fillStagingHistory({
+      submissions: stagingSubmissions,
+      observations: 3,
+      existingSubmissions: stagingSubmissions,
+      existingObservations: 3,
+      submit: async () => {
+        again += 1
+      },
+      observe: async () => {
+        again += 1
+      },
+    })
+    expect(again).toBe(0)
   })
 })

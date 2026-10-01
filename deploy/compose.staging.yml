@@ -4,6 +4,7 @@ name: hcn-staging
 
 services:
   caddy:
+    build: !reset null
     image: hcn/web:${APP_VERSION}
     pull_policy: never
     ports: !override
@@ -15,6 +16,7 @@ services:
       resources: { limits: { cpus: "0.25", memory: 128M } }
 
   api:
+    build: !reset null
     image: hcn/api:${APP_VERSION}
     pull_policy: never
     environment:
@@ -40,6 +42,7 @@ services:
     image: ghcr.io/amacneil/dbmate:2@sha256:520c740c6e0ad73fde2cd1ea7e2b779aaf789d22aca8858f87a478e7094535fb
 
   db:
+    build: !reset null
     image: hcn/postgres:18-${APP_VERSION}
     pull_policy: never
     env_file: /opt/hcn-staging/secrets/pgbackrest.env
@@ -91,6 +94,22 @@ services:
 
 networks:
   edge:
+    driver: bridge
     ipam:
       config:
         - subnet: 172.30.18.0/24
+
+secrets:
+  oidc_client_secret: { file: /opt/hcn-staging/secrets/oidc_client_secret.txt }
+  kc_provisioner_secret: { file: /opt/hcn-staging/secrets/kc_provisioner_secret.txt }
+  kc_admin_password: { file: /opt/hcn-staging/secrets/kc_admin_password.txt }
+  cookie_secret: { file: /opt/hcn-staging/secrets/cookie_secret.txt }
+  database_url_api: { file: /opt/hcn-staging/secrets/database_url_api.txt }
+  database_url_worker: { file: /opt/hcn-staging/secrets/database_url_worker.txt }
+  database_url_owner: { file: /opt/hcn-staging/secrets/database_url_owner.txt }
+  pg_superuser_password: { file: /opt/hcn-staging/secrets/pg_superuser_password.txt }
+  pg_api_password: { file: /opt/hcn-staging/secrets/pg_api_password.txt }
+  pg_worker_password: { file: /opt/hcn-staging/secrets/pg_worker_password.txt }
+  pg_owner_password: { file: /opt/hcn-staging/secrets/pg_owner_password.txt }
+  pg_report_password: { file: /opt/hcn-staging/secrets/pg_report_password.txt }
+  pg_keycloak_password: { file: /opt/hcn-staging/secrets/pg_keycloak_password.txt }

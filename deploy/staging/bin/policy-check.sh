@@ -46,8 +46,16 @@ for name, service in (doc.get("services") or {}).items():
     if service.get("devices"):
         errors.append(f"{name}: devices")
     for key in ("pid", "ipc", "network_mode"):
-        if service.get(key) == "host":
-            errors.append(f"{name}: {key}=host")
+        if service.get(key):
+            errors.append(f"{name}: {key}={service.get(key)}")
+    if service.get("volumes_from"):
+        errors.append(f"{name}: volumes_from")
+    if service.get("userns_mode"):
+        errors.append(f"{name}: userns_mode")
+    if service.get("cgroup_parent"):
+        errors.append(f"{name}: cgroup_parent")
+    if service.get("build"):
+        errors.append(f"{name}: build")
     for opt in service.get("security_opt") or []:
         if "unconfined" in opt:
             errors.append(f"{name}: security_opt unconfined")
@@ -76,6 +84,30 @@ for name, service in (doc.get("services") or {}).items():
         allowed = allowed or source.startswith(release_root.rstrip("/") + "/") or source == release_root
         if not allowed:
             errors.append(f"{name}: bind {source}")
+prefix = f"{project}_"
+for name, volume in (doc.get("volumes") or {}).items():
+    if volume.get("external"):
+        errors.append(f"volume {name}: external")
+    if volume.get("driver_opts"):
+        errors.append(f"volume {name}: driver_opts")
+    vol_name = volume.get("name") or ""
+    if vol_name and not vol_name.startswith(prefix):
+        errors.append(f"volume {name}: name {vol_name}")
+for name, network in (doc.get("networks") or {}).items():
+    if network.get("external"):
+        errors.append(f"network {name}: external")
+    driver = network.get("driver")
+    if driver and driver != "bridge":
+        errors.append(f"network {name}: driver {driver}")
+allowed_secret_roots = ("/opt/hcn-staging/secrets/", release_root.rstrip("/") + "/")
+for kind in ("secrets", "configs"):
+    for name, item in (doc.get(kind) or {}).items():
+        source = item.get("file") or ""
+        if not source:
+            continue
+        if source.startswith(allowed_secret_roots):
+            continue
+        errors.append(f"{kind} {name}: file {source}")
 if errors:
     print("\n".join(errors), file=sys.stderr)
     sys.exit(1)

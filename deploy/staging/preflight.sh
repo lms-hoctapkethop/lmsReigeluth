@@ -48,6 +48,35 @@ if (parts[0], parts[1]) < (2, 24):
     raise SystemExit(13)
 PY
 
+python3 - <<'PY'
+import ipaddress, json, subprocess, sys
+target = ipaddress.ip_network("172.30.18.0/24")
+
+def overlaps(subnet: str) -> bool:
+    try:
+        return target.overlaps(ipaddress.ip_network(subnet, strict=False))
+    except ValueError:
+        return False
+
+ids = subprocess.check_output(["docker", "network", "ls", "-q"], text=True).split()
+if ids:
+    raw = subprocess.check_output(["docker", "network", "inspect", *ids], text=True)
+    for net in json.loads(raw):
+        for cfg in (net.get("IPAM") or {}).get("Config") or []:
+            if cfg.get("Subnet") and overlaps(cfg["Subnet"]):
+                print(f"subnet trùng network {net.get('Name')}", file=sys.stderr)
+                raise SystemExit(14)
+try:
+    routes = subprocess.check_output(["ip", "-j", "route"], text=True)
+    for route in json.loads(routes):
+        dst = route.get("dst")
+        if dst and dst != "default" and overlaps(dst):
+            print(f"subnet trùng route {dst}", file=sys.stderr)
+            raise SystemExit(14)
+except (FileNotFoundError, subprocess.CalledProcessError, json.JSONDecodeError):
+    pass
+PY
+
 if command -v ss >/dev/null 2>&1; then
   busy=0
   for port in 18080 19090; do

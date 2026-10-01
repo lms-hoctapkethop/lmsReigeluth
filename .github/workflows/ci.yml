@@ -186,7 +186,50 @@ jobs:
           curl -fsSL -o /tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
           echo "56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010  /tmp/hadolint" | sha256sum -c -
           sudo install -m 755 /tmp/hadolint /usr/local/bin/hadolint
-          shellcheck deploy/staging/bin/hcn-staging deploy/staging/bin/*.sh deploy/staging/*.sh deploy/staging/test/*.sh deploy/keycloak/kc-entrypoint.sh
+          shellcheck deploy/staging/bin/hcn-staging deploy/staging/bin/*.sh deploy/staging/*.sh deploy/staging/test/*.sh deploy/staging/host-proxy/*.sh deploy/keycloak/kc-entrypoint.sh tests/resilience/*.sh
           hadolint deploy/api/Dockerfile deploy/web/Dockerfile
           bash deploy/staging/test/entry.test.sh
           bash deploy/staging/test/policy-check.test.sh
+          bash deploy/staging/test/preflight.test.sh
+          bash deploy/staging/test/workflow.test.sh
+          bash deploy/staging/test/render.test.sh
+          bash deploy/staging/test/perf-scripts.test.sh
+
+  resilience:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Chỉ chạy khi đổi deploy, worker hoặc plugin
+        id: gate
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          if git diff --name-only "origin/${{ github.base_ref }}"...HEAD | grep -Eq '^(deploy/|apps/worker/|apps/api/src/plugins/)'; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: pnpm/action-setup@v4
+        if: steps.gate.outputs.run == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with: { node-version: 22, cache: pnpm }
+      - name: Install dbmate 2.28.0
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          curl -fsSL -o /tmp/dbmate-linux-amd64 https://github.com/amacneil/dbmate/releases/download/v2.28.0/dbmate-linux-amd64
+          echo "4a3814fdb7253348d6b3cd60a2e315fba69e1a3a794a31ec75af2ca6019c835c  /tmp/dbmate-linux-amd64" | sha256sum -c -
+          install -m 755 /tmp/dbmate-linux-amd64 /usr/local/bin/dbmate
+      - name: Cài phụ thuộc
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: REL-02
+        if: steps.gate.outputs.run == 'true'
+        run: bash tests/resilience/rel-02.sh
+      - name: REL-01 REL-03 REL-04
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm exec vitest run apps/api/test/resilience.test.ts
+        env:
+          HCN_RESILIENCE: "1"
+          HCN_REL01_SECONDS: "600"
