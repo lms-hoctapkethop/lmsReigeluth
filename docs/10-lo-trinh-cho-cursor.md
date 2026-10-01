@@ -158,6 +158,7 @@ Trong apps/web: khung Vite + React Router 7, trang /login-required, layout có s
 ```text
 ĐIỀU KIỆN TRƯỚC: main có commit "docs(spec): 3.8 cho M9". Không có thì dừng.
 Đọc AGENTS.md, docs/08 mục 0 (toàn bộ) rồi mục 1–11, docs/09 mục 6–10, docs/02 mục 9.
+Mục 0.15 (3.8.1) thắng các mục 0.2–0.12; mỗi dòng D/W/H/B/P/S/R cần test.
 Không SSH vào VPS, không giữ khóa hay mật khẩu nào. Không đụng site lms.hoctapkethop.edu.vn.
 Không sửa tệp trong db/SPEC_SHA256SUMS (có thêm db/tests/ops_invariants.sql, DB42–DB46).
 1. Ảnh và compose: deploy/api/Dockerfile, deploy/web/Dockerfile, compose gốc khớp hợp đồng chạy

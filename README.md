@@ -177,6 +177,22 @@ Nền dữ liệu chẩn đoán: quan sát, R0, bản đồ nhiệt. Worker ch�
 - Web: `/day/lop/:id` tab Bản đồ nhiệt (HS × KC theo thứ tự tô-pô, bốn trạng thái có chữ và màu, công tắc "Hiện giá trị số", nhóm hổng gốc, "Nên trao đổi trực tiếp" khi `capped`, "cập nhật lúc…"). Hồ sơ HS có mục "Nhu cầu" tách khỏi "Kết luận của GV".
 - Chạy worker: `WORKER_DATABASE_URL=... pnpm worker`. `WORKER_HEALTH_PORT` (ví dụ 4391) chỉ bật khi cần kiểm tra sống, phục vụ E2E.
 
+## Thay đổi 3.8.1
+
+Sau khi review PR #7 (M9), thêm `docs/08` mục 0.15. Các điểm chính:
+
+- Giữ `SSH_ORIGINAL_COMMAND` qua `sudo`.
+- Entry không chạy script và không đọc `images.lock` của release.
+- Kiểm `RepoTags` trước `docker load`.
+- `policy-check` chặn thêm volume, network và namespace dùng chung với site trường.
+- Compose staging trỏ secret về `/opt/hcn-staging/secrets`.
+- Preflight kiểm trùng subnet.
+- Workflow chặn `workflow_run` từ fork và `sha` ngoài `main`.
+- Mẫu nginx sinh đủ dải IP Cloudflare.
+- Bảo trì restic.
+- Perf giữ kết quả, mỗi VU đăng nhập một lần, gọi API thật.
+- Seed có lịch sử; drill và REL-01…04 phải cài thật.
+
 ## Thay đổi 3.8
 
 Đặc tả cho M9 (sẵn sàng vận hành), viết trên `main` cdaff8c.
