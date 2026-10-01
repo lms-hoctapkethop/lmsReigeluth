@@ -177,6 +177,19 @@ Nền dữ liệu chẩn đoán: quan sát, R0, bản đồ nhiệt. Worker ch�
 - Web: `/day/lop/:id` tab Bản đồ nhiệt (HS × KC theo thứ tự tô-pô, bốn trạng thái có chữ và màu, công tắc "Hiện giá trị số", nhóm hổng gốc, "Nên trao đổi trực tiếp" khi `capped`, "cập nhật lúc…"). Hồ sơ HS có mục "Nhu cầu" tách khỏi "Kết luận của GV".
 - Chạy worker: `WORKER_DATABASE_URL=... pnpm worker`. `WORKER_HEALTH_PORT` (ví dụ 4391) chỉ bật khi cần kiểm tra sống, phục vụ E2E.
 
+## Thay đổi 3.8.2
+
+Thêm `docs/08` mục 0.16 (X01–X08) sau lần review thứ hai PR #7:
+
+- entry export `APP_VERSION` khi gọi compose;
+- override riêng cho diễn tập: không publish cổng, tắt `archive_mode` để không đẩy WAL vào kho S3 của staging;
+- diễn tập dùng bí mật ký gửi;
+- pgBackRest restore chạy trước khi khởi động DB;
+- sửa đường dẫn restore của restic;
+- đo RPO;
+- REL-06 tạo snapshot trước migrate;
+- job `drill-e2e` chạy với MinIO trên runner.
+
 ## Thay đổi 3.8.1
 
 Sau khi review PR #7 (M9), thêm `docs/08` mục 0.15. Các điểm chính:
