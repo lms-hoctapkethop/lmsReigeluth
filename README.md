@@ -177,6 +177,23 @@ Nền dữ liệu chẩn đoán: quan sát, R0, bản đồ nhiệt. Worker ch�
 - Web: `/day/lop/:id` tab Bản đồ nhiệt (HS × KC theo thứ tự tô-pô, bốn trạng thái có chữ và màu, công tắc "Hiện giá trị số", nhóm hổng gốc, "Nên trao đổi trực tiếp" khi `capped`, "cập nhật lúc…"). Hồ sơ HS có mục "Nhu cầu" tách khỏi "Kết luận của GV".
 - Chạy worker: `WORKER_DATABASE_URL=... pnpm worker`. `WORKER_HEALTH_PORT` (ví dụ 4391) chỉ bật khi cần kiểm tra sống, phục vụ E2E.
 
+## Thay đổi 3.8
+
+Đặc tả cho M9 (sẵn sàng vận hành), viết trên `main` cdaff8c.
+
+- `docs/08` mục 0 (mới): staging trên VPS đang chạy site trường.
+  - Tên miền `staging-lms.hoctapkethop.edu.vn` và `id-staging-lms.hoctapkethop.edu.vn`, đi qua Cloudflare proxy rồi reverse proxy của host (chứng chỉ Origin CA, khóa sinh trên VPS) tới `127.0.0.1:18080`.
+  - Deploy: GitHub Actions qua SSH, dùng khóa `restrict,command=` tới một entry chạy bằng root, có danh sách lệnh và kiểm chính sách compose.
+  - Sao lưu: pgBackRest repo2 và restic ra kho S3 đặt tại Việt Nam; bí mật được ký gửi ngoài máy.
+  - `/metrics` trên listener riêng.
+  - Dữ liệu tổng hợp 1 215 HS; k6 chạy trong khung đêm, có vòng bảo vệ site trường.
+  - Diễn tập khôi phục và REL-06 chạy trong project `hcn-drill`.
+- `db/tests/ops_invariants.sql` (DB42–DB46): worker INSERT được `outbox_events`; bề mặt ghi của worker theo danh sách cho phép; worker không đọc `question_keys`; `hcn_readonly` không ghi; không role nào được TRUNCATE. CI yêu cầu ≥ 116 PASS và chạy bước này với `pipefail`. Thêm tệp này cùng migration `20261008000100_worker_outbox_insert.sql` (M8) vào `db/SPEC_SHA256SUMS`.
+- Đồng bộ với M8: payload `ObservationsAdded` là `kcIds`, và consumer duy nhất là `recomputeNeeds`; `updateMisconceptionSignals` nghe `QuestionAnswered` và không cần KC observable (`docs/05` mục 1 và 11.0, `docs/06` mục 3.0).
+- `openapi.yaml` 3.8.0: `healthReady` có schema `{status, checks}`, `x-milestone: M9`.
+- `docs/09`: ghi chú PERF/REL cho staging dùng chung máy; G4 thêm hai điều kiện: quyết định về Cloudflare proxy cho production và bucket sao lưu production đặt tại Việt Nam.
+- `docs/10` M9 viết lại; `AGENTS.md` duyệt các công cụ vận hành.
+
 ## Chạy
 
 ```bash

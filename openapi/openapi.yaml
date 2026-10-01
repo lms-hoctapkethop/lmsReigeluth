@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Học cùng nhau API
-  version: 3.7.0
+  version: 3.8.0
   description: |
     Hợp đồng API lõi của LMS Học cùng nhau. Mọi endpoint dưới /api/v1 yêu cầu cookie phiên `hcn_sid`.
     Request không an toàn (POST/PUT/PATCH/DELETE) yêu cầu header `X-CSRF-Token` và `Origin` hợp lệ.
@@ -37,11 +37,40 @@ paths:
     get:
       tags: [ops]
       security: []
-      x-milestone: M8
+      x-milestone: M9
       operationId: healthReady
+      description: |
+        Kiểm DB (`SELECT 1`, timeout 1 giây) và issuer OIDC đã cache (docs/08 mục 0.9). Không lộ chi tiết lỗi.
+        Healthcheck của compose và deploy staging gọi endpoint này. M9 gỡ `x-milestone` khi cài route.
       responses:
-        '200': { description: Kết nối DB sẵn sàng }
-        '503': { description: Chưa sẵn sàng }
+        '200':
+          description: Sẵn sàng
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, checks]
+                properties:
+                  status: { type: string, enum: [ready] }
+                  checks:
+                    type: object
+                    properties:
+                      db: { type: string, enum: [ok, fail] }
+                      oidc: { type: string, enum: [ok, fail] }
+        '503':
+          description: Chưa sẵn sàng
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, checks]
+                properties:
+                  status: { type: string, enum: [not_ready] }
+                  checks:
+                    type: object
+                    properties:
+                      db: { type: string, enum: [ok, fail] }
+                      oidc: { type: string, enum: [ok, fail] }
 
   /auth/login:
     get:

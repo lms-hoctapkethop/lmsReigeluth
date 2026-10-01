@@ -10,11 +10,11 @@ Ký hiệu: **Khóa** = `SELECT … FOR UPDATE`; **Audit** = ghi `audit_log`; **
 |---|---|---|---|
 | `ReleaseCreated` | releaseModules | pathReleaseId, moduleReleaseIds, offeringId | notify (HS trong offering) |
 | `SubmissionSubmitted` | submitAssignment | submissionId, submissionVersionId, learnerId, moduleReleaseId | notify (GV phân công, gộp theo giờ) |
-| `QuestionAnswered` | answerQuestion, submitAttempt | responseIds, attemptId, learnerId, offeringId, purpose | insight.deriveObservations |
+| `QuestionAnswered` | answerQuestion, submitAttempt | responseIds, attemptId, learnerId, offeringId, purpose | insight.deriveObservations, insight.updateMisconceptionSignals |
 | `ReviewPublished` | publishReview | reviewId, submissionId, learnerId, offeringId, decisionIds | notify (HS, PH đã xác minh); insight.deriveObservations |
 | `DecisionSuperseded` | supersedeDecision | decisionId, learnerId, offeringId | notify (HS) |
 | `FileUploaded` | uploadFile | fileId | files.scan |
-| `ObservationsAdded` | insight.deriveObservations (worker) | learnerId, offeringId, kcVersionIds | insight.recomputeNeeds, insight.updateMisconceptionSignals |
+| `ObservationsAdded` | insight.deriveObservations (worker, cùng transaction với quan sát; quyền INSERT ở migration `20261008000100`) | learnerId, offeringId, kcIds (id `knowledge_components`, không phải version) | insight.recomputeNeeds |
 | `GuardianLinkRevoked` | revokeGuardianLink | linkId | platform.revokeGuardianSessionsCache (không có cache ở pilot: no-op) |
 
 Consumer đánh dấu `processed_events(event_id, consumer)` trong cùng transaction với tác dụng của nó.
@@ -373,7 +373,8 @@ Quy tắc chấm, chuẩn hóa số, trọng số ở docs/06.
 ### 11.0 Chốt ở 3.7 (M8)
 
 - Worker kết nối bằng `WORKER_DATABASE_URL` của login role thuộc nhóm `hcn_worker`; API không bao giờ ghi `observations`, `needs_estimates`, `misconception_signals` (0009 thu hồi quyền của `hcn_app`, DB39).
-- `insight.updateMisconceptionSignals`: với mỗi hàng `question_responses` có `misconception_id`, đếm số **câu khác nhau** (`question_item_id`) của cùng (HS, offering, lỗi hiểu sai): 1 → `seen_once`, ≥ 2 → `signal` (C03); `evidence_response_ids` là các hàng đó. Trạng thái `resolved` chỉ do GV đặt (M10); M8 không tự chuyển.
+- Worker phát sự kiện dẫn xuất (`ObservationsAdded`) nên có quyền INSERT `outbox_events` (migration `20261008000100_worker_outbox_insert.sql`, M8). Toàn bộ quyền ghi của worker bị khóa theo danh sách ở `db/tests/ops_invariants.sql` (DB42–DB46, 3.8); mở thêm quyền cho worker phải qua đặc tả mới.
+- `insight.updateMisconceptionSignals` (chốt 3.8 theo code M8): consumer của `QuestionAnswered`, **không** phụ thuộc KC observable của câu. Lỗi hiểu sai gắn ở phương án, nên câu chưa gắn KC observable vẫn tạo tín hiệu. Với mỗi hàng `question_responses` có `misconception_id`, đếm số **câu khác nhau** (`question_item_id`) của cùng (HS, offering, lỗi hiểu sai): 1 → `seen_once`, ≥ 2 → `signal` (C03); `evidence_response_ids` là các hàng đó. Trạng thái `resolved` chỉ do GV đặt (M10); M8 không tự chuyển.
 - Tắt AI (`FEATURE_AI=false`, mặc định ở pilot): không có đường mã nào gọi LLM; luồng học, chấm, R0 chạy bình thường (A18, B10). R0 là quy tắc xác định, không phải AI sinh.
 - `getLearnerNeeds`: GV có phân công thấy `status`, `value`, `nObservations`, `computedAt`; HS thấy của mình chỉ nhãn chữ (không `value`); PH và người khác → 404 (B08). Ước lượng không bao giờ tạo hay đổi `attainment_decisions` (B03).
 

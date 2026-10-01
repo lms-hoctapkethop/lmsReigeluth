@@ -29,7 +29,7 @@ Theo các đặc tính của ISO/IEC 25010, ánh xạ sang kiểm tra cụ thể
 |---|---|---|---|---|
 | L0 Tĩnh | `tsc --noEmit`, ESLint (typescript-eslint strict, import/no-restricted-paths), Prettier, gitleaks, `pnpm audit` | Mọi PR | Kiểu, quy tắc phụ thuộc domain ← db, bí mật lọt, lỗ hổng | 0 lỗi |
 | L1 Unit | Vitest | Mọi PR | Hàm thuần (docs/06, 39 vector), policies, chuẩn hóa, parse mã 791 | Domain pure + policies: ≥ 90% dòng, ≥ 85% nhánh |
-| L2 Cơ sở dữ liệu | psql + các tệp `db/tests/*_invariants.sql`; migration up → down → up; seed chạy hai lần | Mọi PR có đổi `db/` + mỗi ngày | DB01–DB41 (111 dòng PASS) và các ca thêm | 100% PASS |
+| L2 Cơ sở dữ liệu | psql + các tệp `db/tests/*_invariants.sql`; migration up → down → up; seed chạy hai lần | Mọi PR có đổi `db/` + mỗi ngày | DB01–DB46 (116 dòng PASS) và các ca thêm | 100% PASS |
 | L3 Integration | Vitest + `@testcontainers/postgresql` (postgres:18), Fastify `inject()` | Mọi PR | Use case qua HTTP thật tới DB thật: quyền, idempotency, đồng thời, outbox, DTO | Mọi lệnh ghi ở docs/05 có ≥ 1 ca thành công, ≥ 1 ca từ chối quyền, các ca lỗi liệt kê |
 | L4 Hợp đồng | Schemathesis (từ `openapi.yaml`), snapshot DTO, `oasdiff` | PR đổi API + hằng đêm | Phản hồi đúng schema; không 500 với input fuzz; không thay đổi phá vỡ ngoài ý muốn | 0 lỗi 5xx; 0 vi phạm schema |
 | L5 E2E | Playwright (Chromium, Firefox, WebKit, Pixel 7, iPhone 14) + `@axe-core/playwright` | PR vào `main` (Chromium), hằng đêm (tất cả) | Hành trình J01–J12 | 100% PASS; 0 lỗi axe serious/critical |
@@ -154,6 +154,8 @@ Trước pilot: kiểm thử xâm nhập độc lập (nội bộ trường ho�
 
 Dữ liệu: 1 trường, 1 200 HS, 60 GV, 40 offering, 30 module/offering, 10 000 bài nộp lịch sử, 200 000 quan sát. Máy staging cùng cấu hình production.
 
+**Chốt ở 3.8 (M9):** staging chạy chung VPS với site trường, có giới hạn tài nguyên (docs/08 mục 0.6). k6 chạy trên VPS trong khung 22:00–05:00, đo qua host proxy (không qua Cloudflare), có vòng bảo vệ site trường (docs/08 mục 0.11). Dữ liệu sinh bằng `seed-staging` (docs/08 mục 0.10). Kết quả `aborted_guard` không tính đạt hay trượt; phải chạy lại.
+
 | Mã | Kịch bản | Tải | Ngưỡng |
 |---|---|---|---|
 | PERF-01 | Đọc: HS mở Hôm nay → bài → mục | 200 người dùng ảo, 10 phút | p95 < 800 ms, lỗi < 0,5% |
@@ -194,6 +196,8 @@ Kết quả tự động không đủ để tuyên bố "đạt WCAG"; chỉ ghi
 | REL-05 | Diễn tập khôi phục sang máy trống (docs/08 mục 6) | RPO ≤ 1 giờ, RTO ≤ 4 giờ, AC13 đạt |
 | REL-06 | Migration trên bản sao dữ liệu staging: up, chạy test, hoàn tác app về bản cũ | App cũ chạy được với schema mới |
 
+**Chốt ở 3.8 (M9):** REL-01…04 chạy trên runner với stack compose (không trên VPS); REL-02 dùng `HCN_FAULT_AFTER_COMMIT`, chỉ hợp lệ khi `HCN_ENV=test`. REL-05 ở M9 là `drill restore` sang project `hcn-drill` trên cùng VPS, dùng bí mật ký gửi; G4 phải lặp lại trên máy trống thật. REL-06 là `drill rel06 <old_sha>` kèm kiểm A10 (docs/08 mục 0.12).
+
 ## 10 Cổng chất lượng
 
 | Cổng | Khi | Bắt buộc |
@@ -201,7 +205,7 @@ Kết quả tự động không đủ để tuyên bố "đạt WCAG"; chỉ ghi
 | G1 PR | Mọi PR | L0, L1, L2 (nếu đổi db), L3, snapshot DTO, `openapi:check`, build web; 0 test bị skip mới; PR mô tả mốc, ca đã thêm; 1 người duyệt (người hoặc checklist review bởi AI thứ hai + người) |
 | G2 Main | Merge vào main | G1 + E2E Chromium J01–J12 + axe; coverage không giảm quá 1 điểm |
 | G3 Release | Tag vX.Y.Z | G2 + E2E đủ trình duyệt + Schemathesis + ZAP baseline + Trivy + PERF-01…05 trên staging + REL-01, REL-02, REL-06 + A11Y kiểm tay (phát hành lớn) + CHANGELOG |
-| G4 Pilot | Trước khi nhập dữ liệu HS thật | G3 + REL-05 diễn tập khôi phục + kiểm thử xâm nhập không còn lỗi high + UAT đạt (mục 11) + thẩm định YCCĐ/KC/câu hỏi cho các module dùng trong pilot (mục 12) + hồ sơ bảo vệ dữ liệu cá nhân được nhà trường duyệt |
+| G4 Pilot | Trước khi nhập dữ liệu HS thật | G3 + REL-05 diễn tập khôi phục + kiểm thử xâm nhập không còn lỗi high + UAT đạt (mục 11) + thẩm định YCCĐ/KC/câu hỏi cho các module dùng trong pilot (mục 12) + hồ sơ bảo vệ dữ liệu cá nhân được nhà trường duyệt + quyết định bằng văn bản về proxy Cloudflare cho production (docs/08 mục 0.2) + bucket sao lưu production riêng, đặt tại Việt Nam |
 | G5 Mở rộng | Sau pilot, trước khi dùng cho nhiều lớp | Báo cáo pilot (mục 13) + số liệu vận hành 4 tuần không có sự cố S1 |
 
 ## 11 UAT (kiểm thử chấp nhận người dùng)

@@ -181,7 +181,7 @@ Body: `{"error":{"code":"…","message":"thông điệp tiếng Việt cho ngư�
 
 - `pino` JSON một dòng; trường bắt buộc: `time`, `level`, `request_id`, `route`, `status`, `duration_ms`, `actor_id` (uuid, không tên), `school_id`.
 - Redact: `req.headers.cookie`, `authorization`, `x-csrf-token`, mọi trường `body`, `text`, `comment`, `reflection`.
-- Metrics Prometheus tại `/metrics` chỉ nghe trên mạng nội bộ: HTTP histogram, pool DB, `outbox_pending`, `outbox_dead`, `files_pending_scan`, `last_backup_age_seconds` (do script backup ghi).
+- Metrics Prometheus tại `/metrics` trên listener riêng `METRICS_PORT` (mặc định 9464), chỉ trong mạng nội bộ: HTTP histogram, pool DB, `hcn_outbox_pending`, `hcn_outbox_dead`, `hcn_files_pending_scan`, `hcn_last_backup_age_seconds{kind}` (tính từ textfile do script backup ghi). Tên và nhãn chốt ở docs/08 mục 0.9.
 - Audit: mọi use case ghi gọi `audit(trx, {action, objectType, objectId, details})`. `details` chỉ chứa ID và trạng thái, không nội dung bài.
 
 ## 10 Cấu hình (biến môi trường)

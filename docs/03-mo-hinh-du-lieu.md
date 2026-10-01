@@ -52,7 +52,7 @@ erDiagram
 
 ## 2 Bất biến được DB cưỡng chế
 
-Ca kiểm thử chạy trong CI: `schema_invariants.sql` (DB01–DB16), `curriculum_review_invariants.sql` (DB17–DB21, 0005), `learning_invariants.sql` (DB22–DB26, 0006), `quiz_invariants.sql` (DB27–DB29, M6), `file_guards_invariants.sql` (DB30–DB32, 0007), `review_guards_invariants.sql` (DB33–DB37, 0008), `insight_guards_invariants.sql` (DB38–DB41, 0009). Tổng 111 dòng PASS.
+Ca kiểm thử chạy trong CI: `schema_invariants.sql` (DB01–DB16), `curriculum_review_invariants.sql` (DB17–DB21, 0005), `learning_invariants.sql` (DB22–DB26, 0006), `quiz_invariants.sql` (DB27–DB29, M6), `file_guards_invariants.sql` (DB30–DB32, 0007), `review_guards_invariants.sql` (DB33–DB37, 0008), `insight_guards_invariants.sql` (DB38–DB41, 0009), `ops_invariants.sql` (DB42–DB46, 3.8: quyền của role). Tổng 116 dòng PASS.
 
 | Bất biến | Cơ chế | Ca |
 |---|---|---|
@@ -85,6 +85,11 @@ Ca kiểm thử chạy trong CI: `schema_invariants.sql` (DB01–DB16), `curricu
 | Chỉ worker ghi `observations`, `needs_estimates`, `misconception_signals`; API chỉ đọc | GRANT (0009) | DB39 |
 | `needs_estimates` chỉ thêm | trigger (0009) | DB40 |
 | Ước lượng hiện hành theo KC, gộp mọi version | view `needs_current_kc` (0009) | DB41 |
+| Worker phát được sự kiện dẫn xuất | GRANT INSERT `outbox_events` (`20261008000100`) | DB42 |
+| Bề mặt ghi của worker đúng danh sách cho phép (không ghi review, quyết định, phát hành, bài nộp, câu trả lời) | GRANT/REVOKE các migration | DB43 |
+| Worker không đọc `question_keys` | không GRANT | DB44 |
+| `hcn_readonly` không có quyền ghi nào, kể cả mức cột | GRANT SELECT | DB45 |
+| Không role ứng dụng nào được TRUNCATE (bỏ qua trigger append-only) | không GRANT | DB46 |
 
 Bất biến **không** thể cưỡng chế bằng DB, phải có test use case: phân quyền theo quan hệ (INV-02, INV-03), DTO không chứa khóa (INV-06), idempotency theo body (INV-07), revision (INV-09).
 

@@ -151,20 +151,45 @@ Trong apps/web: khung Vite + React Router 7, trang /login-required, layout có s
 
 ---
 
-## M9 · Sẵn sàng vận hành (5–7 ngày)
+## M9 · Sẵn sàng vận hành (7–10 ngày)
+
+Đặc tả 3.8: staging **chạy chung VPS với site trường**, deploy bằng GitHub Actions qua SSH, sao lưu ra kho S3 trong nước. Ràng buộc và thiết kế ở docs/08 mục 0; phần này thắng docs/08 mục 1–10 khi khác nhau.
 
 ```text
-Đọc docs/08 toàn bộ, docs/09 mục 6–10.
-- deploy/api/Dockerfile (multi-stage, user không root), deploy/caddy/Dockerfile (build web + caddy).
-- /metrics Prometheus nội bộ; các metric ở docs/02 mục 9 và docs/08 mục 7.
-- perf/*.js k6 PERF-01…05 và script sinh dữ liệu 1 200 HS.
-- e2e: đủ project trình duyệt; checkA11y trên mọi route chính.
-- Schemathesis job hằng đêm; ZAP baseline; Trivy.
-- Script backup (pgBackRest, restic) và ghi metric textfile; tài liệu diễn tập khôi phục.
-- Dựng staging theo docs/08, chạy kiểm tra khói.
+ĐIỀU KIỆN TRƯỚC: main có commit "docs(spec): 3.8 cho M9". Không có thì dừng.
+Đọc AGENTS.md, docs/08 mục 0 (toàn bộ) rồi mục 1–11, docs/09 mục 6–10, docs/02 mục 9.
+Không SSH vào VPS, không giữ khóa hay mật khẩu nào. Không đụng site lms.hoctapkethop.edu.vn.
+Không sửa tệp trong db/SPEC_SHA256SUMS (có thêm db/tests/ops_invariants.sql, DB42–DB46).
+1. Ảnh và compose: deploy/api/Dockerfile, deploy/web/Dockerfile, compose gốc khớp hợp đồng chạy
+   (PORT=3000, CLAMD_*, *_FILE, lệnh chạy), deploy/compose.staging.yml, Caddyfile tham số hóa,
+   kc-entrypoint render realm. Job ci "deploy-lint": shellcheck, hadolint, docker compose config.
+2. API: /health/ready (gỡ x-milestone), listener metrics METRICS_PORT với các metric docs/08 mục 0.9,
+   đọc backup.prom (thiếu tệp không xuất 0), TRUST_PROXY và test không tin X-Forwarded-For giả,
+   HCN_ENV + băng "MÔI TRƯỜNG THỬ", HCN_FAULT_AFTER_COMMIT chỉ khi HCN_ENV=test.
+3. deploy/staging/*: preflight, install, init-secrets, bin/hcn-staging (danh sách lệnh docs/08 mục 0.4),
+   policy-check + test, systemd timer sao lưu, mẫu host proxy, images.lock.
+4. Workflow: deploy-staging.yml, ops-staging-nightly.yml, perf-staging.yml, nightly.yml
+   (action ghim SHA, Trivy, khói, rollback khi khói lỗi).
+5. CLI seed-staging (1 215 HS tổng hợp, qua use case), verify-files; perf/*.js PERF-01…05;
+   tests/resilience REL-01…04; db/checks/release_id_semantics.sql.
+6. E2E: thêm project firefox, webkit, và viewport 360×740; checkA11y mọi route chính.
+   Mẫu biên bản docs/qa/a11y-manual.md cho A11Y-01…08 (người kiểm tay).
+7. docs/ops/staging-runbook.md. Không tự tạo DNS, chứng chỉ, bucket, secret GitHub: liệt kê việc ops cần làm.
+Khi ops báo đã cài xong (preflight đạt, host proxy, secret): chạy deploy-staging, seed, khói,
+perf trong khung giờ, drill restore, drill rel06; ghi báo cáo.
 ```
 
-**Hoàn thành khi**: cổng G3 đạt trên staging: PERF-01…05; SEC-12…15, SEC-21; A11Y-01…08 (biên bản); REL-01…06; AC13, AC14, AC15; A09, A10, A15.
+**Hoàn thành khi**:
+
+- CI: `pnpm verify` xanh; DB01–DB46 (116 PASS); `deploy-lint`; Trivy không có HIGH/CRITICAL có bản sửa; `nightly.yml` xanh (Schemathesis SEC-14, E2E đủ trình duyệt + axe, REL-01…04).
+- Staging `https://staging-lms.hoctapkethop.edu.vn` chạy bản `main` qua `deploy-staging.yml`; khói đạt; SEC-15 (curl + ZAP baseline), SEC-21 (`/metrics`, `/admin`, `/realms/master` trả 404 từ ngoài); SEC-12, SEC-13 có bằng chứng.
+- PERF-01…05 đạt trên staging (không tính lần `aborted_guard`); báo cáo `docs/qa/releases/<ver>/perf.md`.
+- `drill restore` đạt (RPO ≤ 1 giờ, RTO ≤ 4 giờ, `verify-files` 0 thiếu 0 lệch: AC13, A09); `drill rel06` đạt (REL-06, A10); báo cáo `docs/ops/restore-drill-<ngày>.md`.
+- `ops-staging-nightly.yml` xanh hai đêm liên tiếp (tuổi sao lưu, `outbox_dead`, đĩa).
+- A11Y-01…08 (AC14, A15): axe tự động đạt; biên bản kiểm tay do người kiểm điền.
+- Site trường không bị ảnh hưởng: `preflight.sh` trước và sau giống nhau ở phần site trường (`docker compose ls`, cổng 443, 4319).
+
+**Tự kiểm**: `grep -rn "prune\|down -v" deploy/staging` chỉ ra lệnh có `-p hcn-drill`? Khóa SSH trong `authorized_keys` có `restrict,command=`?
 
 ---
 
