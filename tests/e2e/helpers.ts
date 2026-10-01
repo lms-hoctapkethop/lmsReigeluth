@@ -21,6 +21,7 @@ export async function expectNoSeriousAxe(page: Page): Promise<void> {
 export async function login(page: Page, username: string): Promise<void> {
   await page.goto('/login-required?returnTo=/')
   await page.getByRole('button', { name: 'Đăng nhập' }).click()
+  await page.waitForURL(/\/realms\/hcn\/protocol\/openid-connect\/auth/, { timeout: 20_000 })
   await page.locator('#username').fill(username)
   await page.locator('#password').fill('Dev-12345')
   await page.locator('#kc-login').click()
