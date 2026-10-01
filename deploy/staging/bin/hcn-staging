@@ -593,7 +593,7 @@ PY
 drill_rel06() {
   local old="$extra"
   write_drill_env
-  pgbackrest_restore latest
+  pgbackrest_restore default
   drill_compose up -d --wait --wait-timeout 180 --no-build db
   snapshot_release_ids
   drill_compose --profile ops run --rm migrate up

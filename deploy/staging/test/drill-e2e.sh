@@ -264,8 +264,15 @@ EOF
 
 drill_compose_files up --no-start --no-deps db
 docker network connect hcn-drill_internal hcn-e2e-minio
+set +e
 restore_out="$(run_entry "drill restore --escrow $escrow")"
+restore_code=$?
+set -e
 printf '%s\n' "$restore_out"
+if [[ "$restore_code" -ne 0 ]]; then
+  echo "restore thoát $restore_code" >&2
+  exit "$restore_code"
+fi
 printf '%s\n' "$restore_out" | grep -E 'missing=0 mismatch=0' >/dev/null
 printf '%s\n' "$restore_out" | python3 -c '
 import json, sys
@@ -286,8 +293,15 @@ echo "Không có object WAL mới trong kho staging sau diễn tập"
 
 drill_compose_files up --no-start --no-deps db
 docker network connect hcn-drill_internal hcn-e2e-minio || true
+set +e
 rel_out="$(run_entry "drill rel06 $old --escrow $escrow")"
+rel_code=$?
+set -e
 printf '%s\n' "$rel_out"
+if [[ "$rel_code" -ne 0 ]]; then
+  echo "rel06 thoát $rel_code" >&2
+  exit "$rel_code"
+fi
 printf '%s\n' "$rel_out" | grep -q "\"old_sha\":\"$old\""
 printf '%s\n' "$rel_out" | grep -E 'missing=0 mismatch=0' >/dev/null
 rm -f "$escrow"

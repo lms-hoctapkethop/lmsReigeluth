@@ -236,7 +236,7 @@ def first(pred):
         if pred(line):
             return i
     raise SystemExit("X07 thiếu mốc trong log")
-restore = first(lambda line: "entrypoint pgbackrest" in line and "--type=latest" in line)
+restore = first(lambda line: "entrypoint pgbackrest" in line and "--type=default" in line)
 up = first(lambda line: " up " in line and line.rstrip().endswith(" db"))
 snap = first(lambda line: line == "MARKER snapshot")
 migrate = first(lambda line: "migrate" in line and line.rstrip().endswith(" up"))
