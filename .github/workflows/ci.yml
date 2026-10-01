@@ -164,7 +164,7 @@ jobs:
           $$;
           SQL
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e --reporter=github,list,html
         env:
           WORKER_DATABASE_URL: postgres://hcn_e2e_worker:hcn_e2e_worker@localhost:5432/hcn?sslmode=disable
       - uses: actions/upload-artifact@v4
