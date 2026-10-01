@@ -40,7 +40,7 @@ Mọi hàm ở đây là **hàm thuần** (không I/O). Bản cài đặt tham c
   - KC lấy từ `question_kc_links` role `observable` (không `required`, B01) hoặc `rubric_criteria.kc_version_id`; ghi đúng `kc_version_id` lúc đó.
   - `source_type`: purpose của assessment (`diagnostic`, `practice`, `exit_ticket`) hoặc `review`; `self_assessment`, `summative` không tạo.
   - `hints_used`, `provisional_item` chép sang; `observed_at` = `answered_at` hoặc `published_at`.
-  - `ON CONFLICT (source_ref, kc_version_id) DO NOTHING` (B02). Có hàng mới thì phát `ObservationsAdded {learnerId, offeringId, kcIds}`.
+  - `ON CONFLICT (source_ref, kc_version_id) DO NOTHING` (B02). Có hàng mới thì phát `ObservationsAdded {learnerId, offeringId, kcIds}` (`kcIds` là id `knowledge_components`; consumer duy nhất là `insight.recomputeNeeds`). Tín hiệu lỗi hiểu sai không đi qua quan sát: `insight.updateMisconceptionSignals` nghe thẳng `QuestionAnswered` (docs/05 mục 11.0).
 - **Backfill** (CLI `pnpm insight:backfill`, chạy một lần khi triển khai M8 và an toàn khi chạy lại): duyệt mọi `question_responses` của lượt đã nộp (mục đích khác practice: chỉ hàng `try_no` lớn nhất mỗi câu) và của practice (mọi hàng), cùng mọi review `published`; tạo quan sát như trên rồi tính lại ước lượng. Sự kiện M6–M7 đã bị đánh dấu `done` không bị mất.
 
 

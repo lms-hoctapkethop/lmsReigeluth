@@ -56,8 +56,10 @@ jobs:
           dbmate --migrations-dir db/migrations --no-dump-schema up
           for i in $(ls db/migrations | wc -l | xargs seq); do dbmate --migrations-dir db/migrations --no-dump-schema down; done
           dbmate --migrations-dir db/migrations --no-dump-schema up
-      - name: Schema invariants (DB01–DB41)
+      - name: Schema invariants (DB01–DB46)
+        shell: bash
         run: |
+          set -o pipefail
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/schema_invariants.sql 2>&1 | tee invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/curriculum_review_invariants.sql 2>&1 | tee -a invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/learning_invariants.sql 2>&1 | tee -a invariants.log
@@ -65,7 +67,8 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/file_guards_invariants.sql 2>&1 | tee -a invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/review_guards_invariants.sql 2>&1 | tee -a invariants.log
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/insight_guards_invariants.sql 2>&1 | tee -a invariants.log
-          test "$(grep -c 'PASS' invariants.log)" -ge 111
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/tests/ops_invariants.sql 2>&1 | tee -a invariants.log
+          test "$(grep -c 'PASS' invariants.log)" -ge 116
 
   unit-integration:
     runs-on: ubuntu-24.04

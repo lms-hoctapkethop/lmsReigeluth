@@ -1,6 +1,422 @@
 # 08 · Triển khai và vận hành
 
-Mục tiêu: một máy Ubuntu 24.04 LTS, 8 vCPU, 16 GB RAM, SSD 200 GB (cấu hình thử, cần đo ở M9). Hai môi trường tách: **staging** (máy nhỏ hơn hoặc cùng máy khác thư mục/domain) và **production**. Tệp cấu hình ở `deploy/`.
+Mục tiêu: một máy Ubuntu 24.04 LTS, 8 vCPU, 16 GB RAM, SSD 200 GB (cấu hình thử, cần đo ở M9). Hai môi trường tách: **staging** (máy nhỏ hơn hoặc cùng máy khác thư mục/domain) và **production**. Tệp cấu hình ở `deploy/`. **Staging của M9 chạy chung VPS với site trường: xem mục 0.**
+
+## 0 Chốt ở 3.8: staging trên VPS đang chạy site trường (M9)
+
+Phần này thắng các mục 1–10 khi khác nhau, và chỉ áp dụng cho **staging**. Production chưa triển khai ở M9.
+
+### 0.1 Ràng buộc cứng
+
+- VPS đang chạy site trường `lms.hoctapkethop.edu.vn` (trong đó có API cũ ở cổng 4319). Staging **không được**:
+  - publish cổng công khai nào. Chỉ `127.0.0.1:18080` (Caddy staging) và `127.0.0.1:19090` (Prometheus, nếu bật);
+  - đọc, sửa, dừng hay xóa container, image, volume, network, cấu hình của site trường;
+  - chạy `docker system prune`, `docker volume prune`, `docker image prune -a`, `docker compose down` không kèm `-p hcn-staging`, khởi động lại Docker daemon, sửa `ufw` hay `iptables`.
+- Mọi lệnh compose của staging luôn có `-p hcn-staging` (diễn tập: `-p hcn-drill`). Volume, network, container do Compose tự gắn tiền tố tên project nên không trùng site trường.
+- Staging **chỉ có dữ liệu tổng hợp** (mục 0.10). Không nhập dữ liệu HS thật. Không khôi phục bản sao lưu production vào staging.
+- Cursor không giữ khóa, mật khẩu hay token nào của VPS, Cloudflare, S3. Cursor chỉ viết mã và tài liệu. Người vận hành (ops) làm các bước có ghi "ops làm tay".
+
+### 0.2 Tên miền và đường đi request
+
+| Biến | Giá trị staging |
+|---|---|
+| `APP_DOMAIN` | `staging-lms.hoctapkethop.edu.vn` |
+| `ID_DOMAIN` | `id-staging-lms.hoctapkethop.edu.vn` |
+
+Cả hai là subdomain **một cấp** của zone `hoctapkethop.edu.vn` để chứng chỉ miễn phí của Cloudflare (Universal SSL, `*.hoctapkethop.edu.vn`) phủ được. Tên hai cấp như `staging.lms…` bị lỗi bắt tay TLS ở Cloudflare (đã kiểm 01/10/2026).
+
+```text
+Trình duyệt ──TLS──> Cloudflare (proxied, SSL mode "Full (strict)")
+          ──TLS (chứng chỉ Origin CA)──> reverse proxy sẵn có của host, cổng 443
+          ──HTTP──> 127.0.0.1:18080 (Caddy staging) ──> api:3000 | keycloak:8080
+```
+
+**Reverse proxy của host** đang phục vụ site trường. Ops làm tay, một lần:
+
+- thêm **một** tệp cấu hình mới cho hai tên staging;
+- kiểm cú pháp (`nginx -t` hoặc `caddy validate`), rồi reload.
+
+Không sửa khối cấu hình của site trường. Mẫu ở `deploy/staging/host-proxy/` (Cursor viết, xem 0.13). Yêu cầu của mẫu:
+
+- TLS bằng `/etc/ssl/hcn-staging/origin.pem` và `origin.key`. Khóa sinh trên VPS bằng CSR, không bao giờ rời máy (không dán vào chat, Docs, GitHub).
+- Lấy IP thật của người dùng từ header `CF-Connecting-IP`, và chỉ tin header này khi request đến từ dải IP của Cloudflare. Với nginx: `set_real_ip_from` + `real_ip_header CF-Connecting-IP`; danh sách dải IP sinh từ `https://www.cloudflare.com/ips-v4` và `ips-v6` lúc cài.
+- Request đi tiếp tới `http://127.0.0.1:18080`:
+  - giữ nguyên `Host`;
+  - `X-Forwarded-Proto: https`;
+  - `X-Forwarded-For` **ghi đè** bằng IP thật (không nối thêm vào giá trị client gửi);
+  - `client_max_body_size 30m`;
+  - `proxy_read_timeout 60s`.
+- Tùy chọn: bật Authenticated Origin Pulls để chỉ Cloudflare kết nối được tới hai tên staging.
+
+**Caddy staging** dùng `deploy/Caddyfile` đã tham số hóa:
+
+- địa chỉ site là `{$APP_SITE_ADDRESS:{$APP_DOMAIN}}` và `{$ID_SITE_ADDRESS:{$ID_DOMAIN}}`. Ở staging, đặt hai biến này thành `http://staging-lms…` và `http://id-staging-lms…`, nên Caddy không xin ACME;
+- vẫn gửi đủ header bảo mật, kể cả HSTS;
+- tin X-Forwarded-* từ `private_ranges` (cổng nối Docker tới host proxy);
+- `/metrics*` trả 404; trên tên ID, `/admin*` và `/realms/master*` trả 404.
+
+**API**:
+
+- `TRUST_PROXY` = dải mạng `edge` của project (khai báo cố định trong `compose.staging.yml`, ví dụ `172.30.18.0/24`);
+- khóa giới hạn tần suất (SEC-12) dựa trên IP thật;
+- giá trị `X-Forwarded-For` do client tự gửi không được tin. Có test integration cho ý này.
+
+**Cài đặt Cloudflare cho hai tên staging** (ops làm tay):
+
+- SSL/TLS mode **Full (strict)**; bật Always Use HTTPS;
+- Cache Rule **Bypass** cho `/api/*`, `/auth/*`, `/health/*`;
+- **tắt** Rocket Loader, Email Obfuscation, Web Analytics/Zaraz và mọi tính năng chèn script (phá CSP; vi phạm INV-14);
+- Bot Fight Mode chặn Playwright và ZAP chạy từ GitHub. Nếu bị chặn, tạo một WAF custom rule **Skip** cho request có header `X-HCN-Probe` bằng giá trị bí mật `STAGING_PROBE_TOKEN`.
+
+**Rủi ro cần quyết trước G4.** Với Cloudflare proxied, TLS được giải mã tại máy chủ biên của Cloudflare, có thể ở ngoài Việt Nam. Staging dùng dữ liệu tổng hợp nên chấp nhận được. Production chở dữ liệu HS thật nên phải được pháp chế nhà trường quyết định theo mục 11. Có ba lựa chọn:
+
+- tắt proxy (DNS only) và dùng chứng chỉ ACME;
+- dùng CDN hoặc proxy trong nước;
+- chấp nhận có văn bản.
+
+Đây là mục chặn G4 trong `docs/09` mục 10.
+
+### 0.3 Thư mục, người dùng, quyền trên VPS
+
+```text
+/opt/hcn-staging/                 root:root 0755
+  bin/hcn-staging                 entry duy nhất CI được gọi (root, 0755)
+  bin/policy-check.sh             kiểm compose trước khi chạy (root, 0755)
+  bin/lib/*.sh                    hàm dùng chung (root, 0644)
+  env/staging.env                 biến không bí mật: APP_DOMAIN, ID_DOMAIN, GUARD_URL, … (0600)
+  secrets/*.txt                   mật khẩu DB, cookie, OIDC… do init-secrets sinh (0600)
+  secrets/pgbackrest.env          khóa S3 + cipher pass cho pgBackRest (0600)
+  secrets/restic.env              khóa S3 + mật khẩu restic (0600)
+  releases/<sha>/                 bundle của từng bản (deploy/, db/, perf/, manifest)
+  current -> releases/<sha>       bản đang chạy
+  previous -> releases/<sha>      bản trước, để hoàn tác
+/var/lib/hcn-staging/metrics/backup.prom   textfile metric sao lưu
+/var/log/hcn-staging/entry.log             nhật ký entry (không chứa bí mật)
+```
+
+- Người dùng `hcndeploy`:
+  - không mật khẩu, không thuộc nhóm `docker`, không sudo chung;
+  - `/etc/sudoers.d/hcn-staging` chỉ có `hcndeploy ALL=(root) NOPASSWD: /opt/hcn-staging/bin/hcn-staging`; kiểm bằng `visudo -cf`.
+- `~hcndeploy/.ssh/authorized_keys` có đúng một dòng:
+  `restrict,command="sudo /opt/hcn-staging/bin/hcn-staging" ssh-ed25519 AAAA… github-actions-staging`.
+  Entry đọc `$SSH_ORIGINAL_COMMAND`. Khóa này không mở shell, không forward cổng, không dùng được cho việc gì khác.
+- `deploy/staging/install.sh`: ops chạy bằng root từ một bản checkout (`git clone` vào thư mục tạm). Script idempotent và làm các việc:
+  - cài `jq` và `zstd`;
+  - tạo người dùng và thư mục;
+  - chép `bin/` với chủ root;
+  - ghi sudoers;
+  - chạy `init-secrets.sh` (chỉ sinh tệp **chưa có**, không ghi đè);
+  - cài systemd timer sao lưu (mục 0.8).
+
+  CI **không** thay được mã chạy bằng root. Đổi `bin/` thì ops chạy lại `install.sh`; entry in ra cảnh báo khi `bin/` lệch với bản trong release.
+
+### 0.4 Lệnh của entry (danh sách cho phép)
+
+`<sha>` khớp `^[0-9a-f]{40}$`. Lệnh khác thì thoát mã 64. Mỗi lệnh ghi một dòng `entry.log`: thời điểm UTC, lệnh, sha, kết quả. Các lệnh đổi trạng thái dùng `flock /run/hcn-staging.lock`.
+
+| Lệnh | Việc |
+|---|---|
+| `receive <sha>` | stdin là tar ≤ 2 GB gồm `manifest.sha256`, `images.tar.zst` (`hcn/api:<sha>`, `hcn/web:<sha>`, `hcn/postgres:18-<sha>`), `bundle.tar` (`git archive <sha> deploy db perf`). Kiểm sha256, giải vào `releases/<sha>/`, `docker load`, kiểm đúng ba tag. Giữ 3 release mới nhất; xóa image `hcn/*` của release cũ hơn bằng `docker image rm` theo tag, không prune |
+| `deploy <sha>` | `preflight --quick` → `policy-check` → sao lưu `diff` nếu stanza đã có → `migrate up` → `up -d --no-build` → chờ `/health/ready` và healthcheck ≤ 5 phút → khói nội bộ (mục 8, curl qua `127.0.0.1:18080` với Host header) → đổi `previous`, `current`. Lỗi sau khi migrate: tự `rollback` app (schema giữ nguyên, nhờ quy tắc tương thích ngược ở mục 9) và thoát khác 0 |
+| `rollback` | `up -d` với image của `previous`; đổi symlink |
+| `status [--json]` | sha hiện tại; trạng thái container; phiên bản migration; tuổi sao lưu; `outbox_pending`, `outbox_dead`, `files_pending_scan` (đọc `/metrics` nội bộ); % đĩa, RAM còn trống |
+| `seed` | chạy `seed-staging` (mục 0.10) trong container api |
+| `perf <PERF-0N>` | mục 0.11 |
+| `drill restore` / `drill rel06 <old_sha>` | mục 0.12; ops có thể chạy trực tiếp bằng root |
+| `backup full\|diff\|files` | timer systemd gọi; ops cũng chạy tay được |
+
+### 0.5 Kiểm chính sách compose (`policy-check.sh`)
+
+Script lấy `docker compose -p <project> -f compose.yml -f compose.staging.yml config --format json` và **từ chối** khi có bất kỳ điều sau:
+
+- `privileged`, `cap_add`, `devices`;
+- `pid`, `ipc` hoặc `network_mode` là `host`;
+- `security_opt` có `unconfined`;
+- mount `/var/run/docker.sock`;
+- bind mount ngoài danh sách cho phép: `releases/<sha>/`, `/opt/hcn-staging/secrets/`, `/var/lib/hcn-staging/metrics/`;
+- cổng publish khác `127.0.0.1:18080` và `127.0.0.1:19090`;
+- image ngoài danh sách cho phép:
+  - `hcn/*:<sha>` của chính release;
+  - `quay.io/keycloak/keycloak`, `clamav/clamav`, `ghcr.io/amacneil/dbmate`, `grafana/k6`, `restic/restic`, `prom/prometheus`, mỗi cái ghim theo digest `@sha256:` trong `deploy/staging/images.lock`;
+- tên project khác `hcn-staging` hoặc `hcn-drill`.
+
+Có test cho script: `deploy/staging/test/policy-check.test.sh` chạy với các compose mẫu đúng và sai, trong CI job `deploy-lint`.
+
+### 0.6 `deploy/compose.staging.yml`
+
+Đây là override cho `deploy/compose.yml` và cần Docker Compose ≥ 2.24. Thay đổi so với compose gốc:
+
+- **Image**: dùng image đã build sẵn: `hcn/api:${APP_VERSION}`, `hcn/web:${APP_VERSION}` (Caddy + web tĩnh), `hcn/postgres:18-${APP_VERSION}`. Đặt `pull_policy: never` cho image `hcn/*`; image ngoài lấy theo digest.
+- **Cổng**: `caddy.ports: !override ["127.0.0.1:18080:80"]`.
+- **Mạng**: mạng `edge` có subnet cố định để làm `TRUST_PROXY`.
+- **Dịch vụ tắt**: `node-exporter` cho vào `profiles: ["never"]` (host có thể đã có exporter riêng, và staging không được dùng `pid: host`).
+- **Môi trường**:
+  - `HCN_ENV=staging`, nên web hiện băng "MÔI TRƯỜNG THỬ — dữ liệu tổng hợp" ở mọi trang;
+  - `FEATURE_FLAGS=insight_read=true,ai=false`;
+  - `METRICS_PORT=9464`.
+- **Keycloak**:
+  - `kc-entrypoint.sh` render realm từ `realm-hcn.json` vào tmpfs, thay các placeholder `__APP_DOMAIN__`, `__OIDC_CLIENT_SECRET__`, `__PROVISIONER_SECRET__` bằng giá trị từ biến môi trường và secret file, rồi import;
+  - không cần mở console để tạo lại secret (bỏ bước 2–3 ở mục 4 cho staging; production dùng cùng cơ chế);
+  - đặt heap `JAVA_OPTS_KC_HEAP=-XX:MaxRAMPercentage=70`.
+- **Sao lưu**: `db.env_file: /opt/hcn-staging/secrets/pgbackrest.env`; repo2 (mục 0.8). `api` mount `/var/lib/hcn-staging/metrics` vào `/run/hcn-metrics`, chỉ đọc.
+- **Giới hạn tài nguyên** (tổng 4,75 vCPU và 5,5 GB):
+
+| Dịch vụ | cpus | memory | Ghi chú |
+|---|---|---|---|
+| caddy | 0.25 | 128M | |
+| api | 1.0 | 768M | |
+| worker | 0.5 | 512M | |
+| db | 1.5 | 1536M | `shared_buffers=384MB`, `effective_cache_size=1GB`, `max_connections=60` |
+| keycloak | 1.0 | 1024M | |
+| clamav | 0.5 | 1536M | REL-03 cần clamd thật |
+
+Ngoài ra:
+
+- `preflight.sh` (mục 0.13) từ chối nếu sau khi trừ ngân sách trên, RAM còn trống < 2 GB hoặc đĩa trống < 40 GB. Khi đó dừng và báo, không hạ giới hạn tùy tiện.
+- **Hợp đồng chạy** giữa compose và code (Cursor sửa compose gốc cho khớp, có test `docker compose config` trong CI):
+  - API nghe `PORT=3000`;
+  - worker đọc `CLAMD_HOST`, `CLAMD_PORT`, `WORKER_DATABASE_URL_FILE`;
+  - lệnh chạy là `node apps/api/src/main.ts` và `node apps/worker/src/main.ts` (Node 26 tự bỏ kiểu TS) hoặc bản build `dist/`; chọn một và ghi vào README;
+  - healthcheck gọi `/health/ready`.
+
+### 0.7 Workflow `.github/workflows/deploy-staging.yml`
+
+**Kích hoạt**:
+
+- `workflow_run` của `ci` khi `conclusion == success` trên `main`;
+- `workflow_dispatch` (input `sha`, mặc định HEAD của `main`);
+- `push` tag `v*`.
+
+**Thiết lập job**:
+
+- `environment: staging`. GitHub Environment `staging` chỉ cho branch `main` và tag `v*`.
+- `concurrency: { group: staging, cancel-in-progress: false }`.
+- `permissions: { contents: read }`.
+
+**Chuỗi cung ứng**:
+
+- mọi action ghim theo commit SHA;
+- không dùng action SSH của bên thứ ba; dùng `ssh` của OpenSSH có sẵn trên runner;
+- `StrictHostKeyChecking=yes` với `known_hosts` lấy từ secret;
+- khóa SSH ghi vào `$RUNNER_TEMP` (0600) và xóa trong bước `if: always()`;
+- không `set -x`.
+
+**Các bước**:
+
+1. Checkout đúng `sha`.
+2. `docker buildx build --load` ba image, gắn tag sha.
+3. Trivy quét ba image: `--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1`; báo cáo SARIF lưu artifact.
+4. `docker save | zstd`; `git archive`; tạo manifest.
+5. `ssh … receive <sha> < release.tar`
+6. `ssh … deploy <sha>`
+7. Khói từ runner, qua Cloudflare:
+   - các curl ở mục 8 (`/health/ready` 200; CSP có mặt; `/api/v1/me` 401; `https://$ID_DOMAIN/admin/` 404; `https://$APP_DOMAIN/metrics` 404; `https://$ID_DOMAIN/realms/master/` 404);
+   - Playwright `@smoke` (`BASE_URL=https://$APP_DOMAIN`, tài khoản khói, header `X-HCN-Probe` nếu có token).
+8. Khói lỗi → `ssh … rollback`, job fail.
+
+**Secret và biến** (Environment `staging`): bảng ở mục 0.14.
+
+**Workflow `ops-staging-nightly.yml`** (00:15 UTC, tức 07:15 giờ Việt Nam):
+
+- `ssh … status --json` và khẳng định:
+  - sao lưu `pg_full` ≤ 8 ngày, `pg_diff` ≤ 26 giờ, `files` ≤ 26 giờ;
+  - `outbox_dead == 0`; đĩa < 80%; `/health/ready` 200;
+- ZAP baseline tới `https://$APP_DOMAIN` (thụ động, không quét chủ động);
+- lỗi thì workflow đỏ và GitHub gửi email cho người theo dõi repo. Không gửi dữ liệu HS (staging chỉ có dữ liệu tổng hợp).
+
+**Workflow `nightly.yml`** (trên runner, không đụng VPS):
+
+- Schemathesis SEC-14 với stack compose dựng trong runner;
+- E2E đủ trình duyệt;
+- REL-01…04 (mục 0.12).
+
+### 0.8 Sao lưu staging ra kho S3 trong nước
+
+- **Kho**:
+  - bucket riêng `hcn-staging-backup` ở nhà cung cấp S3-compatible **đặt tại Việt Nam** (Viettel IDC, VNPT, FPT Cloud, BizFly…);
+  - access key chỉ có quyền trên bucket này;
+  - bật versioning hoặc object lock nếu nhà cung cấp hỗ trợ (chống xóa bởi kẻ chiếm máy);
+  - production sau này dùng bucket và key khác.
+- **pgBackRest repo2**: `pgbackrest.conf` giữ giá trị mặc định; biến môi trường ghi đè từ `secrets/pgbackrest.env`:
+  - `PGBACKREST_REPO2_S3_ENDPOINT`, `PGBACKREST_REPO2_S3_BUCKET`, `PGBACKREST_REPO2_S3_REGION`;
+  - `PGBACKREST_REPO2_S3_KEY`, `PGBACKREST_REPO2_S3_KEY_SECRET`;
+  - `PGBACKREST_REPO2_S3_URI_STYLE=path` (đa số kho trong nước cần);
+  - `PGBACKREST_REPO2_PATH=/pg`, `PGBACKREST_REPO2_CIPHER_PASS`.
+
+  `stanza-create` và `check` do `install.sh` hướng dẫn ops chạy sau lần deploy đầu.
+- **restic** cho volume `hcn-staging_files`:
+
+  ```bash
+  docker run --rm --env-file /opt/hcn-staging/secrets/restic.env \
+    -v hcn-staging_files:/data:ro restic/restic@sha256:<digest> backup /data --tag files
+  ```
+
+  - `RESTIC_REPOSITORY=s3:https://<endpoint>/hcn-staging-backup/files`; thêm `RESTIC_PASSWORD`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`;
+  - `forget --keep-daily 14 --keep-weekly 8 --keep-monthly 12 --prune` chạy chủ nhật;
+  - `check --read-data-subset=5%` chạy ngày 1 hằng tháng.
+- **Lịch** (systemd timer, giờ máy UTC):
+
+| Việc | Giờ máy (UTC) | Giờ Việt Nam |
+|---|---|---|
+| `pg_full` | 18:00 thứ bảy | 01:00 chủ nhật |
+| `pg_diff` | 18:00 các ngày khác | 01:00 |
+| `files` | 18:30 hằng ngày | 01:30 |
+
+  Có `RandomizedDelaySec=300` và `Nice=10` để không giành tài nguyên với site trường.
+- **Metric**:
+  - chỉ khi sao lưu thành công, script ghi nguyên tử (ghi tệp tạm rồi `mv`) vào `/var/lib/hcn-staging/metrics/backup.prom` hai dòng: `hcn_last_backup_timestamp_seconds{kind="pg_full|pg_diff|files"}` và `hcn_last_backup_success{kind=…} 1`;
+  - API đọc tệp này mỗi lần scrape và xuất `hcn_last_backup_age_seconds{kind}` (docs/02 mục 9). Thiếu tệp thì không xuất giá trị, **không** xuất 0 (INV-12).
+- **Ký gửi bí mật**: `PGBACKREST_REPO2_CIPHER_PASS`, `RESTIC_PASSWORD` và khóa S3 phải có bản sao trong kho mật khẩu của trường, không chỉ nằm trên VPS. Mất VPS mà không có bản sao này thì bản sao lưu ngoài máy vô dụng. Diễn tập REL-05 dùng **bản ký gửi**, không dùng bản trên VPS, nhờ vậy kiểm luôn việc ký gửi.
+
+### 0.9 `/metrics` (SEC-21)
+
+- API phục vụ metrics trên **listener riêng** `METRICS_PORT=9464`, trong container, chỉ trên mạng `internal`. Caddy không định tuyến tới cổng này và vẫn chặn `/metrics*` trên cổng chính.
+- Thư viện: đặc tả này duyệt dùng `prom-client`, hoặc tự viết bộ định dạng text exposition; không thêm thư viện khác.
+- Metric:
+  - `http_request_duration_seconds` (histogram). Nhãn: `method`, `route` (mẫu route, không chứa ID), `status_class`;
+  - `hcn_db_pool_total`, `hcn_db_pool_idle`, `hcn_db_pool_waiting`;
+  - `hcn_outbox_pending`, `hcn_outbox_dead`, `hcn_files_pending_scan` (đếm bằng truy vấn có chỉ mục, cache 15 giây);
+  - `hcn_last_backup_age_seconds{kind}`.
+- Không nhãn nào chứa user id, school id hay đường dẫn có ID (INV-13).
+- `/health/ready`: kiểm DB (`SELECT 1` với timeout 1 giây) và đọc được issuer OIDC đã cache. Trả 503 kèm `{status, checks}`, không lộ chi tiết lỗi. Gỡ `x-milestone` của `healthReady` trong `openapi.yaml`.
+- Prometheus (tùy chọn, profile `monitoring`): `prom/prometheus` trong mạng `internal`, publish `127.0.0.1:19090`; ops xem qua `ssh -L 19090:127.0.0.1:19090`. Alertmanager để M10.
+
+### 0.10 Dữ liệu tổng hợp trên staging
+
+CLI `seed-staging` (gọi qua `entry seed`):
+
+- **Chặn môi trường**: từ chối nếu `HCN_ENV != 'staging'`.
+- **Tổ chức**: trường `STAGING` "Trường thử nghiệm (dữ liệu tổng hợp)", một năm học, 27 lớp × 45 HS = 1 215 HS (≥ 1 200), 60 GV, 300 PH.
+- **Học liệu**: offering Tin học 10 dùng module seed đã duyệt (M-TIN10-CAULENH và các module seed khác đã có). Không bịa YCCĐ, KC (AGENTS.md mục 7).
+- **Lịch sử**: ~10 000 bài nộp và ~200 000 quan sát (docs/09 mục 7), sinh **qua use case** (không INSERT thẳng) để giữ đủ audit, outbox và trigger. Được chạy theo lô; worker xử lý dần.
+- **Tên và tài khoản**:
+  - tên ghép từ danh sách âm tiết cố định, có seed để tái lập;
+  - username `stg.hs0001`…, `stg.gv001`…, `stg.ph001`…;
+  - tạo người dùng Keycloak qua provisioner; mọi tài khoản tổng hợp dùng chung mật khẩu trong `secrets/synthetic_user_password.txt`.
+- **Tài khoản khói**: `stg.smoke.hs`, `stg.smoke.gv`, trong offering "KIỂM THỬ" (docs/08 mục 8); mật khẩu ở `secrets/smoke_*_password.txt`, ops chép sang GitHub secret.
+- **Chạy lại**: idempotent, không tạo trùng.
+
+### 0.11 Hiệu năng trên máy dùng chung (PERF-01…05)
+
+- **Nơi chạy**: k6 chạy **trên VPS** qua `entry perf PERF-0N`:
+  - `docker run --rm --cpus 1 --memory 512m --network host grafana/k6@sha256:…`;
+  - option `hosts` của k6 ánh xạ `APP_DOMAIN` và `ID_DOMAIN` về `127.0.0.1`, nên đo qua host proxy, không qua Cloudflare. Như vậy không kích hoạt chống DDoS và đo đúng máy chủ;
+  - `insecureSkipTLSVerify` chỉ hợp lệ vì đích là loopback.
+- **Khung giờ**: chỉ 22:00–05:00 giờ Việt Nam. Ngoài khung, entry từ chối, thoát mã 75.
+- **Bảo vệ site trường**:
+  - trong lúc chạy, một vòng lặp gửi `GET $GUARD_URL` mỗi 5 giây (`GUARD_URL=https://lms.hoctapkethop.edu.vn/` trong `staging.env`; chỉ đọc trang chủ, không đăng nhập);
+  - nếu 2 lần liên tiếp chậm hơn 3 giây hoặc trả mã ≥ 400 → `docker kill` k6; kết quả ghi `aborted_guard`, không tính là đạt hay trượt.
+- **Kịch bản**:
+  - `perf/lib/login.js` đăng nhập OIDC thật bằng form Keycloak, mỗi VU một lần;
+  - `perf/perf-0N.js` mang ngưỡng của docs/09 mục 7 làm `thresholds`;
+  - PERF-03 đối soát bằng role `hcn_readonly`: đúng 200 `submission_versions` mới trong cửa sổ chạy, 0 trùng;
+  - PERF-04 theo dõi `hcn_outbox_pending` về 0 trong 2 phút.
+- **Báo cáo**: entry in tóm tắt JSON (thêm `pg_stat_statements` top 10; cần `shared_preload_libraries=pg_stat_statements` ở staging). Workflow `perf-staging.yml` (chỉ `workflow_dispatch`) lưu tóm tắt thành artifact. Cursor viết `docs/qa/releases/<ver>/perf.md` gồm:
+  - cấu hình máy và giới hạn mục 0.6;
+  - sha, dữ liệu, kết quả, nút thắt.
+- **Diễn giải**: staging bị giới hạn ~4,75 vCPU trên máy dùng chung. Đạt ngưỡng ở đây là kết quả thận trọng cho production. Trượt thì báo cáo và tìm nút thắt; không nới giới hạn quá ngân sách mục 0.6.
+
+### 0.12 Tin cậy, khôi phục, migration (REL-01…06, AC13, A09, A10)
+
+**REL-01…04**: chạy trên runner (`nightly.yml` và job `resilience` khi PR đổi `deploy/`, `apps/worker/`, `apps/api/src/plugins/`), với stack compose dựng từ image vừa build; không chạy trên VPS.
+
+| Ca | Cách làm |
+|---|---|
+| REL-01 | `docker compose stop worker` 10 phút giữa lúc nộp và công bố, rồi `start`; khẳng định không mất bài và thông báo không trùng |
+| REL-02 | `HCN_FAULT_AFTER_COMMIT=submitAssignment` làm API `process.exit(1)` ngay sau commit; client gửi lại cùng `Idempotency-Key` → một phiên bản, cùng biên nhận. Biến này chỉ được chấp nhận khi `HCN_ENV=test`; config từ chối ở `staging` và `production` (như `HCN_CLOCK_FILE`), và có test cho việc từ chối |
+| REL-03 | Dừng clamav |
+| REL-04 | Dừng keycloak; phiên cũ vẫn gọi API được; trang đăng nhập báo lỗi thân thiện |
+
+**`drill restore`** (REL-05 mức staging, AC13, A09): ops chạy bằng root, truyền bí mật **ký gửi** qua `--escrow /root/escrow.env` (tệp tạm, xóa sau).
+
+1. Dựng project `hcn-drill` với volume mới. Caddy drill không publish cổng; khói chạy bằng `docker compose exec`.
+2. `pgbackrest --repo=2 --type=time --target=<T> restore` từ S3, rồi `restic restore latest` từ S3.
+3. Khởi động và chạy khói.
+4. Chạy CLI `verify-files`: với mọi hàng `files`, tệp tồn tại và `sha256` khớp `content_hash` → 0 thiếu, 0 lệch. Với mọi `submission_version_files`, mở được.
+5. In RTO (từ lúc bắt đầu tới khi khói đạt) và RPO (T so với giao dịch commit cuối trong bản gốc). Cursor ghi `docs/ops/restore-drill-<ngày>.md`.
+6. `docker compose -p hcn-drill down -v`.
+
+Diễn tập trên cùng VPS chỉ đạt REL-05 ở mức **M9/G3**. **G4** phải lặp lại trên máy trống thật theo mục 6.
+
+**`drill rel06 <old_sha>`** (REL-06, A10):
+
+1. Khôi phục bản sao lưu staging mới nhất vào `hcn-drill`.
+2. `migrate up` bằng release hiện tại.
+3. Khởi động **image API và worker của `old_sha`** trên schema mới; chạy khói.
+4. Chạy `db/checks/release_id_semantics.sql` (Cursor viết; chỉ đọc). Kiểm rằng mọi `submissions`, `quiz_attempts`, `activity_progress` vẫn trỏ đúng `module_release_id` và `module_version_id` như trước migration (so với bảng chụp lấy trước bước 2).
+5. Dọn `hcn-drill`.
+
+### 0.13 Tệp Cursor viết cho M9
+
+```text
+deploy/api/Dockerfile                 multi-stage, node:26-bookworm-slim, USER 10001, pnpm deploy --prod, không có devDependencies
+deploy/web/Dockerfile                 stage build apps/web, stage caddy:2 (digest) + /srv/web; tên image hcn/web
+deploy/compose.staging.yml            mục 0.6
+deploy/Caddyfile                      tham số hóa site address (mục 0.2)
+deploy/keycloak/kc-entrypoint.sh      render realm (mục 0.6); realm-hcn.json dùng placeholder
+deploy/staging/preflight.sh           chỉ đọc (mục 0.13 dưới)
+deploy/staging/install.sh, init-secrets.sh, bin/hcn-staging, bin/policy-check.sh, bin/lib/*.sh
+deploy/staging/systemd/*.service, *.timer
+deploy/staging/host-proxy/nginx-staging.conf, caddy-staging.caddyfile   mẫu, ops áp dụng tay
+deploy/staging/images.lock            digest image ngoài
+deploy/staging/test/*.sh              test policy-check, test entry (mô phỏng SSH_ORIGINAL_COMMAND)
+.github/workflows/deploy-staging.yml, ops-staging-nightly.yml, perf-staging.yml, nightly.yml
+perf/lib/*.js, perf/perf-01.js … perf-05.js
+tests/resilience/*                    REL-01…04
+docs/ops/staging-runbook.md           cài lần đầu, deploy, hoàn tác, sự cố riêng cho staging
+```
+
+Ràng buộc:
+
+- **Shell**: mọi script có `set -euo pipefail` và qua `shellcheck` (job `deploy-lint` trong `ci.yml`, cùng `docker compose config` và hadolint).
+- **`preflight.sh`**: chỉ đọc, không cần mạng. In ra:
+  - Ubuntu version; Docker và Compose version (Compose ≥ 2.24);
+  - `nproc`, `MemAvailable`, đĩa trống của `/var/lib/docker`;
+  - các cổng 80, 443, 18080, 19090 đang nghe (`ss -ltnp`), và tiến trình đang giữ cổng 443;
+  - `docker compose ls`; `ufw status`.
+
+  Mã thoát:
+
+| Mã | Nghĩa |
+|---|---|
+| 0 | Đạt |
+| 10 | Cổng 18080 hoặc 19090 đã bị dùng |
+| 11 | Thiếu tài nguyên theo mục 0.6 |
+| 12 | Cổng 443 do một container giữ (proxy của site trường chạy trong Docker). Thêm site vào đó là sửa cấu hình site trường, nên **dừng và hỏi người điều phối** |
+| 13 | Compose < 2.24 |
+
+  Ops chạy trước khi cài và dán kết quả vào báo cáo M9 (không có bí mật trong đầu ra).
+
+### 0.14 Ops chuẩn bị (không phải việc của Cursor)
+
+| Việc | Ghi chú |
+|---|---|
+| DNS Cloudflare | A `staging-lms` và A `id-staging-lms` → IP VPS, Proxied |
+| Chứng chỉ Origin | Sinh khóa và CSR **trên VPS**; Cloudflare "Use my private key and CSR", hostnames là hai tên trên; chỉ chép chứng chỉ về `/etc/ssl/hcn-staging/origin.pem` |
+| Host proxy | Chạy `preflight.sh`; áp mẫu `deploy/staging/host-proxy/*` thành một tệp mới; kiểm cú pháp rồi reload |
+| Kho S3 trong nước | Bucket `hcn-staging-backup`, access key riêng; điền `secrets/pgbackrest.env`, `secrets/restic.env`; ký gửi vào kho mật khẩu trường |
+| Khóa SSH deploy | `ssh-keygen -t ed25519 -N '' -C github-actions-staging -f hcn_staging_deploy`; public key vào `authorized_keys` của `hcndeploy` theo mục 0.3; private key vào GitHub secret rồi xóa bản trên máy |
+| GitHub Environment `staging` | Bảng dưới |
+
+**Secret** (Settings → Environments → staging):
+
+| Secret | Giá trị |
+|---|---|
+| `STAGING_SSH_HOST` | IP VPS (không dùng tên qua Cloudflare, vì Cloudflare không chuyển SSH) |
+| `STAGING_SSH_PORT` | Cổng SSH |
+| `STAGING_SSH_USER` | `hcndeploy` |
+| `STAGING_SSH_KEY` | Private key ed25519 ở trên |
+| `STAGING_SSH_KNOWN_HOSTS` | Đầu ra `ssh-keyscan -t ed25519 -p <port> <IP>`, đối chiếu với `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` trên VPS |
+| `STAGING_SMOKE_HS_PASSWORD`, `STAGING_SMOKE_GV_PASSWORD` | Từ `secrets/smoke_*_password.txt` sau lần `seed` đầu |
+| `STAGING_PROBE_TOKEN` | Tùy chọn, chỉ khi cần WAF Skip (mục 0.2) |
+
+**Biến** (vars): `STAGING_APP_DOMAIN`, `STAGING_ID_DOMAIN`.
+
+**Cổng SSH**: nếu `ufw` đang giới hạn 22/tcp theo IP văn phòng, runner GitHub sẽ không vào được. Ops chọn một trong ba:
+
+- mở 22/tcp (giữ khóa SSH bắt buộc, fail2ban, và khóa `restrict` ở mục 0.3);
+- dùng self-hosted runner trong mạng trường (để M10);
+- giữ chặn và deploy bằng `workflow_dispatch` từ máy ops (không khuyến nghị).
 
 ## 1 Thành phần
 

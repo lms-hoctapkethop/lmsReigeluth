@@ -15,6 +15,7 @@ LMS "Học cùng nhau" cho trường phổ thông Việt Nam theo CT GDPT 2018. 
 - PostgreSQL 18; migration SQL thuần bằng `dbmate` trong `db/migrations/`.
 - Keycloak 26 (OIDC), Caddy 2, ClamAV, Docker Compose.
 - Kiểm thử: Vitest, Testcontainers (PostgreSQL thật), Playwright, axe-core, k6, Schemathesis.
+- Vận hành (đặc tả 3.8 duyệt): `prom-client` cho `/metrics`; Prometheus (profile `monitoring`), restic, pgBackRest, Trivy, ZAP, shellcheck, hadolint. Staging chạy chung VPS với site trường: tuân docs/08 mục 0, không đụng tài nguyên của site trường.
 
 ## 3 Lệnh
 
