@@ -79,6 +79,10 @@ async function writeSubmit(
     counted.push(String(row.id))
     const body = asResponse(row.response)
     if (body.notLearned || row.correct === null) continue
+    if (row.points !== null) {
+      score += Number(row.points)
+      continue
+    }
     const key = await readQuestionKey(trx, question.id)
     try {
       const graded = gradeResponse(question.qtype, asKey(key), body)

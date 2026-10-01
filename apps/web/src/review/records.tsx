@@ -4,7 +4,16 @@ import type { Me } from '@hcn/contracts'
 import { ApiError, apiJson, retryUnlessDenied } from '../learn/http.ts'
 import styles from './desk.module.css'
 
+type NeedStatus = 'insufficient' | 'needs_support' | 'developing' | 'strong'
+type NeedItem = { kcVersionId: string; kcName: string; status: NeedStatus; label?: string }
 type Decision = { id: string; decision: 'achieved' | 'not_yet'; decidedAt: string }
+
+const needLabel: Record<NeedStatus, string> = {
+  insufficient: 'Chưa đủ bằng chứng',
+  needs_support: 'Cần hỗ trợ',
+  developing: 'Đang phát triển',
+  strong: 'Có bằng chứng tốt',
+}
 type Records = {
   activity: { completed: number; required: number; updatedAt: string | null }
   requirements: {
@@ -27,6 +36,12 @@ export function LearnerRecord() {
     queryKey: ['records', me.userId, offeringId],
     queryFn: () => apiJson<Records>(`/api/v1/learners/${me.userId}/records?offeringId=${offeringId}`),
     retry: retryUnlessDenied,
+  })
+  const needs = useQuery({
+    queryKey: ['needs', me.userId, offeringId],
+    queryFn: () => apiJson<NeedItem[]>(`/api/v1/learners/${me.userId}/needs?offeringId=${offeringId}`),
+    retry: retryUnlessDenied,
+    enabled: Boolean(records.data),
   })
   if (records.isLoading) return <p>Đang tải hồ sơ.</p>
   if (records.error instanceof ApiError && (records.error.status === 404 || records.error.status === 403)) {
@@ -53,6 +68,18 @@ export function LearnerRecord() {
             <p>{row.requirement.text}</p>
             <p>{row.currentDecision ? (row.currentDecision.decision === 'achieved' ? 'Đạt' : 'Chưa đạt') : 'Chưa có kết luận'}</p>
             <p>cập nhật lúc {when(row.currentDecision?.decidedAt ?? null)}</p>
+          </article>
+        ))}
+      </section>
+      <section className={styles.panel} aria-labelledby="layer-needs">
+        <h2 id="layer-needs">Nhu cầu</h2>
+        {needs.isLoading ? <p>Đang tải nhu cầu.</p> : null}
+        {needs.isError ? <p role="alert">Không tải được nhu cầu. <button type="button" onClick={() => void needs.refetch()}>Thử lại</button></p> : null}
+        {needs.data && needs.data.length === 0 ? <p>Chưa có ước lượng.</p> : null}
+        {needs.data?.map((item) => (
+          <article key={item.kcVersionId}>
+            <h3>{item.kcName}</h3>
+            <p>{item.label ?? needLabel[item.status]}</p>
           </article>
         ))}
       </section>

@@ -10,6 +10,7 @@ import { LearnerRecord } from './review/records.tsx'
 import { ReviewDesk } from './review/desk.tsx'
 import { ReviewKeysHelp } from './review/help.tsx'
 import { ReviewQueue } from './review/queue.tsx'
+import { HeatmapPage } from './teach/heatmap.tsx'
 import { CurriculumHome } from './curriculum.tsx'
 import { readJson } from './admin-api.ts'
 import { fetchMe, logout, switchContext } from './api.ts'
@@ -170,6 +171,7 @@ const router = createBrowserRouter([
       { path: 'quan-tri/phu-huynh', element: <AdminPage page="guardians" /> },
       { path: 'chuyen-mon', element: <CurriculumPage /> },
       { path: 'day', element: <TeachHome /> },
+      { path: 'day/lop/:id', element: <HeatmapPage /> },
       { path: 'day/lop/:id/giao', element: <Suspense fallback={<p>Đang mở giao bài</p>}><AssignWork /></Suspense> },
       { path: 'day/soan', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioList /></Suspense> },
       { path: 'day/soan/:moduleId', element: <Suspense fallback={<p>Đang mở studio</p>}><StudioEditor /></Suspense> },

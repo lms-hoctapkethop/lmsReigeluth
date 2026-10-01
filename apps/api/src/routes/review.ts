@@ -6,6 +6,8 @@ import {
   DomainError,
   cancelFamilySupport,
   commitFamilySupport,
+  getHeatmap,
+  getLearnerNeeds,
   getLearnerRecords,
   getReviewQueue,
   listNotifications,
@@ -151,5 +153,17 @@ export function registerReviewRoutes(app: FastifyInstance, db: Kysely<Database>)
     const params = z.strictObject({ notificationId: uuid }).parse(request.params)
     await markNotificationRead(db, meta(request), params.notificationId)
     return reply.code(204).send()
+  })
+
+  app.get('/api/v1/learners/:learnerId/needs', async (request) => {
+    const params = z.strictObject({ learnerId: uuid }).parse(request.params)
+    const query = z.strictObject({ offeringId: uuid }).parse(request.query)
+    return getLearnerNeeds(db, meta(request), params.learnerId, query.offeringId)
+  })
+
+  app.get('/api/v1/offerings/:offeringId/heatmap', async (request) => {
+    const params = z.strictObject({ offeringId: uuid }).parse(request.params)
+    const query = z.strictObject({ includeValues: z.enum(['true', 'false']).optional() }).parse(request.query)
+    return getHeatmap(db, meta(request), params.offeringId, query.includeValues === 'true')
   })
 }

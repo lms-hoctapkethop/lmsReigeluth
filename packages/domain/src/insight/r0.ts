@@ -1,6 +1,7 @@
 import { round4 } from '../round.ts'
 
-export const R0_VERSION = 'R0@1.0.0'
+export const R0_MODEL_VERSION = 'R0@1.0.0'
+export const R0_VERSION = R0_MODEL_VERSION
 
 export type R0Observation = {
   sourceType: 'review' | 'diagnostic' | 'practice' | 'exit_ticket'

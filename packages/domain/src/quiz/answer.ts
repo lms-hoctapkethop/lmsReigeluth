@@ -1,3 +1,4 @@
+import { round3 } from '../round.ts'
 import { gradeResponse } from './grade.ts'
 import { normalizeNumber } from './normalize.ts'
 import { readQuestionKey } from './keys.ts'
@@ -96,6 +97,7 @@ async function writeAnswer(
   const hints = await hintsOf(trx, attempt.id)
   const hintsUsed = hints.find((row) => row.question_item_id === questionId)?.hints_used ?? 0
   let correct: boolean | null = null
+  let points: string | null = null
   let misconceptionId: string | null = null
   let feedback: string | null = null
   let misconceptionCode: string | null = null
@@ -103,6 +105,7 @@ async function writeAnswer(
     const key = await readQuestionKey(trx, questionId)
     const graded = gradeOrReject(question, key, response)
     correct = graded.correct
+    if (correct !== null) points = round3(graded.score).toFixed(3)
     const optionId = typeof response.option === 'string' ? response.option : undefined
     if (correct === false && optionId) {
       const found = await misconceptionForOption(trx, questionId, optionId)
@@ -130,6 +133,7 @@ async function writeAnswer(
       try_no: tryNo,
       response: asJson(stored),
       correct,
+      points,
       hints_used: hintsUsed,
       misconception_id: misconceptionId,
     })

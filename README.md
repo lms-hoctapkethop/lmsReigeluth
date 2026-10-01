@@ -160,6 +160,23 @@ Không có gói đặc tả 3.5, không có mục README "Thay đổi 3.5", và 
 - `openapi.yaml` 3.7.0: `getLearnerNeeds`, `getHeatmap` chuyển `x-milestone` sang M8 (M8 gỡ khi cài route); heatmap thêm `includeValues`, `value`, `rootGaps`, `modelVersion`.
 - Ghi nhận từ M7: `publishReview` chỉ ghi quyết định gốc; đổi quyết định đã có đi qua `supersedeDecision` (README "Thay đổi M7"). Đặc tả chấp nhận cách này.
 
+## Thay đổi M8
+
+Nền dữ liệu chẩn đoán: quan sát, R0, bản đồ nhiệt. Worker chạy bằng `WORKER_DATABASE_URL` (login thuộc nhóm `hcn_worker`). `FEATURE_AI` mặc định tắt; không có client LLM.
+
+- Chấm M6 ghi `question_responses.points` (0..1, 3 chữ số) lúc INSERT khi `correct` khác NULL. `multi_choice` `partial` ghi điểm lẻ, `correct` là false nếu điểm khác 1. `submit` cộng `points` đã lưu; chỉ đọc `question_keys` khi `points` còn NULL (hàng cũ).
+- Worker:
+  - `insight.deriveObservations` từ `QuestionAnswered` và `ReviewPublished` (docs/06 mục 3.0–3.2), `ON CONFLICT DO NOTHING`, rồi phát `ObservationsAdded`.
+  - `insight.recomputeNeeds` gộp mọi version của một KC, gọi `r0Estimate`, INSERT chỉ khi `status` hoặc `value` đổi. Hằng `R0_MODEL_VERSION = 'R0@1.0.0'`.
+  - `insight.updateMisconceptionSignals` theo docs/05 mục 11.0. Chạy trên `QuestionAnswered` (kể cả câu không có KC observable). `resolved` không bị ghi đè.
+  - `pnpm insight:backfill` và `pnpm insight:recompute --model <ver>`.
+- Payload `ObservationsAdded` dùng `kcIds` (id của knowledge component), đúng docs/06 mục 3.0. Bảng sự kiện ở docs/05 mục 1 ghi `kcVersionIds` và liệt kê `updateMisconceptionSignals` là consumer của sự kiện này; code không làm vậy vì ước lượng tính theo KC, còn tín hiệu lỗi hiểu sai cần `responseIds`.
+- Migration mới `db/migrations/20261008000100_worker_outbox_insert.sql`: `GRANT INSERT ON outbox_events TO hcn_worker`. 0004 chỉ cho UPDATE các cột trạng thái, không cho INSERT, nên worker không phát được `ObservationsAdded` trong cùng transaction với quan sát. Không sửa migration đã merge, không đụng `db/SPEC_SHA256SUMS`.
+- API: `getLearnerNeeds` (GV có `value`; HS chỉ nhãn chữ, không có khóa `value`; PH và người khác 404), `getHeatmap` (`includeValues`, `rootGaps`, `modelVersion`, `lastUpdatedAt`). Đã gỡ `x-milestone: M8` của hai thao tác này. `healthReady` vẫn để M8.
+- Ước lượng không ghi `attainment_decisions`.
+- Web: `/day/lop/:id` tab Bản đồ nhiệt (HS × KC theo thứ tự tô-pô, bốn trạng thái có chữ và màu, công tắc "Hiện giá trị số", nhóm hổng gốc, "Nên trao đổi trực tiếp" khi `capped`, "cập nhật lúc…"). Hồ sơ HS có mục "Nhu cầu" tách khỏi "Kết luận của GV".
+- Chạy worker: `WORKER_DATABASE_URL=... pnpm worker`. `WORKER_HEALTH_PORT` (ví dụ 4391) chỉ bật khi cần kiểm tra sống, phục vụ E2E.
+
 ## Chạy
 
 ```bash

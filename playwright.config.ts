@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const databaseUrl = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/hcn?sslmode=disable'
+const workerDatabaseUrl = process.env.WORKER_DATABASE_URL ?? databaseUrl
 const issuer = process.env.OIDC_ISSUER ?? 'http://localhost:8081/realms/hcn'
 
 export default defineConfig({
@@ -35,6 +36,18 @@ export default defineConfig({
       command: 'pnpm --filter web dev',
       url: 'http://localhost:5173/',
       timeout: 120_000,
+    },
+    {
+      command: 'node --experimental-strip-types apps/worker/src/main.ts',
+      url: 'http://127.0.0.1:4391/health/live',
+      timeout: 120_000,
+      env: {
+        WORKER_DATABASE_URL: workerDatabaseUrl,
+        WORKER_HEALTH_PORT: '4391',
+        FILE_STORAGE_DIR: '/tmp/hcn-e2e-files',
+        CLAMD_HOST: '127.0.0.1',
+        CLAMD_PORT: '3310',
+      },
     },
   ],
 })

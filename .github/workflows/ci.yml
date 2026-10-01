@@ -4,7 +4,7 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring, chore/m4-close, m5-learning, m6-quiz, m7-review]
+    branches: [main, m1-auth, m2-org, m3-curriculum, m4-authoring, chore/m4-close, m5-learning, m6-quiz, m7-review, m8-insight]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -149,8 +149,21 @@ jobs:
           done
           exit 1
       - run: pnpm db:migrate && pnpm db:seed:test
+      - name: Login role thuộc hcn_worker
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hcn_e2e_worker') THEN
+              CREATE ROLE hcn_e2e_worker LOGIN PASSWORD 'hcn_e2e_worker' IN ROLE hcn_worker;
+            END IF;
+          END
+          $$;
+          SQL
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+        env:
+          WORKER_DATABASE_URL: postgres://hcn_e2e_worker:hcn_e2e_worker@localhost:5432/hcn?sslmode=disable
       - uses: actions/upload-artifact@v4
         if: always()
         with:

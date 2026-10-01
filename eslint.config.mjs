@@ -81,6 +81,18 @@ export default tseslint.config(
     },
   },
   {
+    files: ['packages/domain/src/insight/**/*.ts', 'apps/worker/src/insight/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['fastify', 'react', 'react-dom'],
+          patterns: ['apps/*', '**/review/**', '**/release/**', '**/quiz/keys*', '**/quiz/keys'],
+        },
+      ],
+    },
+  },
+  {
     files: ['packages/domain/src/review/publish.ts', 'packages/domain/src/review/supersede.ts'],
     rules: {
       'no-restricted-syntax': [

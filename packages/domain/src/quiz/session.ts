@@ -45,6 +45,7 @@ export type ResponseRow = {
   try_no: number
   response: unknown
   correct: boolean | null
+  points: string | null
   hints_used: number
   misconception_id: string | null
 }
@@ -134,7 +135,7 @@ export async function lockAttempt(trx: Trx, attemptId: string, schoolId: string,
 export async function responsesOf(db: Db | Trx, attemptId: string): Promise<ResponseRow[]> {
   return db
     .selectFrom('question_responses')
-    .select(['id', 'question_item_id', 'try_no', 'response', 'correct', 'hints_used', 'misconception_id'])
+    .select(['id', 'question_item_id', 'try_no', 'response', 'correct', 'points', 'hints_used', 'misconception_id'])
     .where('attempt_id', '=', attemptId)
     .orderBy('try_no')
     .execute()

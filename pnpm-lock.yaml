@@ -136,6 +136,9 @@ importers:
       '@hcn/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@hcn/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       kysely:
         specifier: ^0.28.17
         version: 0.28.17
