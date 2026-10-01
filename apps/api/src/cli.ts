@@ -1,8 +1,11 @@
 import { userInfo } from 'node:os'
 import { createDb } from '@hcn/db'
+import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { bootstrapSchool, grantReviewer, revokeReviewer, seedCurriculum, systemClock } from '@hcn/domain'
 import { KeycloakAdmin } from './adapters/keycloak-admin.ts'
 import { loadConfig } from './config.ts'
+import { seedStaging } from './seed-staging.ts'
 
 const [command, ...rest] = process.argv.slice(2)
 
@@ -70,8 +73,38 @@ try {
       ? await grantReviewer(db, meta, { userId, subjectCode: subject, grantedBy, osUser })
       : await revokeReviewer(db, meta, { userId, subjectCode: subject, osUser })
     console.log(JSON.stringify(result))
+  } else if (command === 'seed-staging') {
+    if (!config.keycloakProvisionerSecret) {
+      console.error('Cấu hình không hợp lệ: KEYCLOAK_PROVISIONER_SECRET')
+      process.exit(1)
+    }
+    const idp = new KeycloakAdmin({
+      issuer: config.oidcIssuer,
+      clientId: config.keycloakProvisionerClientId ?? 'hcn-provisioner',
+      clientSecret: config.keycloakProvisionerSecret,
+    })
+    const history = await seedStaging(db, idp, config)
+    console.log(`submissions=${history.submissions} observations=${history.observations}`)
+  } else if (command === 'verify-files') {
+    const rows = await db.selectFrom('files').select(['id', 'storage_key', 'sha256']).execute()
+    let missing = 0
+    let mismatch = 0
+    for (const row of rows) {
+      const path = `${process.env.FILE_STORAGE_DIR ?? '/data/files'}/${row.storage_key}`
+      let bytes: Buffer
+      try {
+        bytes = readFileSync(path)
+      } catch {
+        missing += 1
+        continue
+      }
+      if (createHash('sha256').update(bytes).digest('hex') !== row.sha256) mismatch += 1
+    }
+    const links = await db.selectFrom('submission_version_files').select(['file_id']).execute()
+    console.log(`files=${rows.length} missing=${missing} mismatch=${mismatch} submission_files=${links.length}`)
+    if (missing > 0 || mismatch > 0) process.exit(1)
   } else {
-    console.error('Lệnh: bootstrap-school | seed-curriculum | grant-reviewer | revoke-reviewer')
+    console.error('Lệnh: bootstrap-school | seed-curriculum | grant-reviewer | revoke-reviewer | seed-staging | verify-files')
     process.exit(1)
   }
 } finally {

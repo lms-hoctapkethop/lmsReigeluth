@@ -18,7 +18,7 @@
 	}
 }
 
-{$APP_DOMAIN} {
+{$APP_SITE_ADDRESS:{$APP_DOMAIN}} {
 	import security_headers
 	encode zstd gzip
 	request_body {
@@ -55,7 +55,7 @@
 	}
 }
 
-{$ID_DOMAIN} {
+{$ID_SITE_ADDRESS:{$ID_DOMAIN}} {
 	import security_headers
 	# Chỉ mở realm hcn và tài nguyên cần cho đăng nhập; chặn console quản trị từ Internet
 	@admin path /admin* /realms/master*

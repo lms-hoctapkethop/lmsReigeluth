@@ -35,4 +35,10 @@ describe('cấu hình', () => {
     expect(() => loadConfig({ ...base, COOKIE_SECRET: 'ngan' })).toThrow(/COOKIE_SECRET/)
     expect(() => loadConfig({ ...base, TRUST_PROXY: 'not-a-cidr' })).toThrow(/TRUST_PROXY/)
   })
+
+  it('từ chối HCN_FAULT_AFTER_COMMIT ngoài HCN_ENV=test và đồng hồ giả trên staging', () => {
+    expect(() => loadConfig({ ...base, HCN_ENV: 'staging', HCN_FAULT_AFTER_COMMIT: 'submitAssignment' })).toThrow(/HCN_FAULT_AFTER_COMMIT/)
+    expect(() => loadConfig({ ...base, HCN_ENV: 'production', HCN_CLOCK_FILE: '/tmp/clock' })).toThrow(/HCN_CLOCK_FILE/)
+    expect(loadConfig({ ...base, HCN_ENV: 'test', HCN_FAULT_AFTER_COMMIT: 'submitAssignment' }).faultAfterCommit).toBe('submitAssignment')
+  })
 })

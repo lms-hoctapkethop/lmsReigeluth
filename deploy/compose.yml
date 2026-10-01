@@ -8,7 +8,7 @@ services:
   caddy:
     build:
       context: ..
-      dockerfile: deploy/caddy/Dockerfile        # stage 1 build apps/web; stage 2 caddy:2 + /srv/web
+      dockerfile: deploy/web/Dockerfile         # stage 1 build apps/web; stage 2 caddy:2 + /srv/web
     restart: unless-stopped
     ports: ["80:80", "443:443", "443:443/udp"]
     environment:
@@ -28,9 +28,13 @@ services:
     build: { context: .., dockerfile: deploy/api/Dockerfile }
     image: hcn/api:${APP_VERSION}
     restart: unless-stopped
-    command: ["node", "apps/api/dist/main.js"]
+    command: ["node", "apps/api/src/main.ts"]
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: --experimental-strip-types
+      HCN_ENV: production
+      PORT: "3000"
+      METRICS_PORT: "9464"
       APP_ORIGIN: https://${APP_DOMAIN}
       OIDC_ISSUER: https://${ID_DOMAIN}/realms/hcn
       OIDC_CLIENT_ID: hcn-web
@@ -60,13 +64,15 @@ services:
   worker:
     image: hcn/api:${APP_VERSION}
     restart: unless-stopped
-    command: ["node", "apps/worker/dist/main.js"]
+    command: ["node", "apps/worker/src/main.ts"]
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: --experimental-strip-types
+      HCN_ENV: production
       WORKER_DATABASE_URL_FILE: /run/secrets/database_url_worker
       FILE_STORAGE_DIR: /data/files
-      CLAMAV_HOST: clamav
-      CLAMAV_PORT: "3310"
+      CLAMD_HOST: clamav
+      CLAMD_PORT: "3310"
     secrets: [database_url_worker]
     volumes: [files:/data/files]
     depends_on:
@@ -140,6 +146,7 @@ services:
     image: quay.io/keycloak/keycloak:26.7
     restart: unless-stopped
     entrypoint: ["/bin/bash", "/opt/hcn/kc-entrypoint.sh"]      # đọc secret file vào biến môi trường rồi chạy kc.sh start --import-realm
+    secrets: [pg_keycloak_password, kc_admin_password, oidc_client_secret, kc_provisioner_secret]
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://db:5432/keycloak
@@ -152,9 +159,11 @@ services:
       KC_METRICS_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: kcadmin
       KC_BOOTSTRAP_ADMIN_PASSWORD_FROM: /run/secrets/kc_admin_password
-    secrets: [pg_keycloak_password, kc_admin_password]
+      APP_DOMAIN: ${APP_DOMAIN}
+      OIDC_CLIENT_SECRET_FILE: /run/secrets/oidc_client_secret
+      KC_PROVISIONER_SECRET_FILE: /run/secrets/kc_provisioner_secret
     volumes:
-      - ./keycloak/realm-hcn.json:/opt/keycloak/data/import/realm-hcn.json:ro
+      - ./keycloak/realm-hcn.json:/opt/hcn/realm-hcn.json:ro
       - ./keycloak/kc-entrypoint.sh:/opt/hcn/kc-entrypoint.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]

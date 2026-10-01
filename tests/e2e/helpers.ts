@@ -12,6 +12,10 @@ export function setClock(iso: string): void {
   writeFileSync(clockFile, iso)
 }
 
+export async function checkA11y(page: Page): Promise<void> {
+  await expectNoSeriousAxe(page)
+}
+
 export async function expectNoSeriousAxe(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page }).analyze()
   const blocking = result.violations.filter((item) => item.impact === 'serious' || item.impact === 'critical')

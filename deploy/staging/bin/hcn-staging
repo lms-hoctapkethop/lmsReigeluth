@@ -1,0 +1,699 @@
+#!/usr/bin/env bash
+# Entry duy nhất CI được gọi. Đọc SSH_ORIGINAL_COMMAND.
+set -euo pipefail
+
+log() {
+  local dir=/var/log/hcn-staging
+  if [[ -e "$dir" && ! -w "$dir" ]]; then
+    return 0
+  fi
+  mkdir -p "$dir" 2>/dev/null || return 0
+  printf '%s %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" "${result:-start}" >> "$dir/entry.log" 2>/dev/null || true
+}
+
+cmd="${SSH_ORIGINAL_COMMAND:-${1:-}}"
+read -r -a parts <<< "$cmd"
+action="${parts[0]:-}"
+arg="${parts[1]:-}"
+extra="${parts[2]:-}"
+sha_re='^[0-9a-f]{40}$'
+result=ok
+root="${HCN_STAGING_ROOT:-/opt/hcn-staging}"
+release_dir=""
+drill_env_file=""
+
+finish() {
+  local code=$?
+  trap - EXIT
+  if [[ -n "$drill_env_file" ]]; then
+    rm -f "$drill_env_file"
+    drill_env_file=""
+  fi
+  if [[ $code -ne 0 ]]; then result="fail:$code"; else result=ok; fi
+  log "$action" "${arg:-}"
+  exit "$code"
+}
+trap finish EXIT
+
+case "$action" in
+  receive|deploy)
+    [[ "$arg" =~ $sha_re ]] || exit 64
+    ;;
+  rollback|seed)
+    ;;
+  status)
+    [[ -z "$arg" || "$arg" == "--json" ]] || exit 64
+    ;;
+  perf)
+    [[ "$arg" =~ ^PERF-0[1-5]$ ]] || exit 64
+    ;;
+  drill)
+    if [[ "$arg" == "restore" ]]; then
+      :
+    elif [[ "$arg" == "rel06" && "$extra" =~ $sha_re ]]; then
+      :
+    else
+      exit 64
+    fi
+    ;;
+  backup)
+    [[ "$arg" == "full" || "$arg" == "diff" || "$arg" == "files" || "$arg" == "files-maintain" || "$arg" == "files-check" ]] || exit 64
+    ;;
+  *)
+    exit 64
+    ;;
+esac
+
+if [[ "${HCN_STAGING_DRY:-}" == "1" ]]; then
+  echo "dry $action ${arg:-}"
+  exit 0
+fi
+
+lock() {
+  local file="${HCN_STAGING_LOCK:-/run/hcn-staging.lock}"
+  exec 9>"$file"
+  flock 9
+}
+
+compose() {
+  docker compose -p hcn-staging \
+    -f "$release_dir/deploy/compose.yml" \
+    -f "$release_dir/deploy/compose.staging.yml" \
+    --env-file "$root/env/staging.env" \
+    "$@"
+}
+
+load_env() {
+  set -a
+  # shellcheck disable=SC1090,SC1091
+  . "$root/env/staging.env"
+  set +a
+}
+
+use_current() {
+  release_dir="$(readlink -f "$root/current" 2>/dev/null || true)"
+  [[ -n "$release_dir" && -d "$release_dir" ]] || {
+    echo "chưa có current" >&2
+    exit 1
+  }
+  APP_VERSION="$(basename "$release_dir")"
+  export APP_VERSION
+}
+
+image_ref() {
+  local name="$1"
+  local lock="${HCN_IMAGES_LOCK:-$root/bin/images.lock}"
+  grep -E "^${name}[:@]" "$lock" | head -n 1
+}
+
+write_backup_metric() {
+  local kind="$1"
+  local dir=/var/lib/hcn-staging/metrics
+  local now tmp line kept
+  mkdir -p "$dir"
+  now="$(date +%s)"
+  tmp="$(mktemp "$dir/.backup.XXXXXX")"
+  kept=""
+  if [[ -f "$dir/backup.prom" ]]; then
+    while IFS= read -r line; do
+      case "$line" in
+        *"kind=\"${kind}\""*) ;;
+        *) kept="${kept}${line}"$'\n' ;;
+      esac
+    done < "$dir/backup.prom"
+  fi
+  {
+    printf '%s' "$kept"
+    printf 'hcn_last_backup_timestamp_seconds{kind="%s"} %s\n' "$kind" "$now"
+    printf 'hcn_last_backup_success{kind="%s"} 1\n' "$kind"
+  } > "$tmp"
+  mv "$tmp" "$dir/backup.prom"
+}
+
+prune_releases() {
+  local dir sha count=0
+  local -A keep=()
+  local current_path previous_path
+  current_path="$(readlink -f "$root/current" 2>/dev/null || true)"
+  previous_path="$(readlink -f "$root/previous" 2>/dev/null || true)"
+  [[ -n "$current_path" ]] && keep["$current_path"]=1
+  [[ -n "$previous_path" ]] && keep["$previous_path"]=1
+  while IFS= read -r dir; do
+    [[ -n "$dir" ]] || continue
+    if (( count < 3 )); then
+      keep["$dir"]=1
+      count=$((count + 1))
+    fi
+  done < <(find "$root/releases" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' | sort -nr | cut -d' ' -f2-)
+  while IFS= read -r dir; do
+    [[ -n "$dir" ]] || continue
+    [[ -n "${keep[$dir]:-}" ]] && continue
+    sha="$(basename "$dir")"
+    docker image rm "hcn/api:${sha}" "hcn/web:${sha}" "hcn/postgres:18-${sha}" >/dev/null 2>&1 || true
+    rm -rf "$dir"
+  done < <(find "$root/releases" -mindepth 1 -maxdepth 1 -type d -printf '%p\n')
+}
+
+receive_release() {
+  local max=$((2 * 1024 * 1024 * 1024))
+  local tmp bytes workdir images bundle
+  tmp="$(mktemp)"
+  workdir="$(mktemp -d)"
+  dd if=/dev/stdin of="$tmp" bs=1048576 count=2049 status=none
+  bytes="$(stat -c%s "$tmp")"
+  if (( bytes > max )); then
+    rm -rf "$tmp" "$workdir"
+    echo "tar lớn hơn 2GB" >&2
+    exit 1
+  fi
+  tar -xf "$tmp" -C "$workdir"
+  rm -f "$tmp"
+  (
+    cd "$workdir"
+    sha256sum -c manifest.sha256
+  )
+  images="$workdir/images.tar.zst"
+  bundle="$workdir/bundle.tar"
+  [[ -f "$images" && -f "$bundle" ]] || exit 1
+  zstd -dc "$images" | tar -xO manifest.json > "$workdir/manifest.json"
+  python3 - "$arg" "$workdir/manifest.json" <<'PY'
+import json, sys
+sha, path = sys.argv[1], sys.argv[2]
+with open(path, encoding="utf-8") as handle:
+    doc = json.load(handle)
+found = []
+rows = doc if isinstance(doc, list) else []
+for row in rows:
+    tags = row.get("RepoTags") or []
+    if isinstance(tags, str):
+        tags = [tags]
+    found.extend(tags)
+expected = {f"hcn/api:{sha}", f"hcn/web:{sha}", f"hcn/postgres:18-{sha}"}
+if set(found) != expected:
+    print("RepoTags không đúng: " + ", ".join(sorted(found)), file=sys.stderr)
+    raise SystemExit(1)
+PY
+  zstd -dc "$images" | docker load
+  docker image inspect "hcn/api:${arg}" "hcn/web:${arg}" "hcn/postgres:18-${arg}" >/dev/null
+  mkdir -p "$root/releases"
+  rm -rf "$root/releases/${arg}"
+  mkdir -p "$root/releases/${arg}"
+  tar -xf "$bundle" -C "$root/releases/${arg}"
+  rm -rf "$workdir"
+  if [[ -f "$root/bin/hcn-staging" && -f "$root/releases/${arg}/deploy/staging/bin/hcn-staging" ]]; then
+    if ! cmp -s "$root/bin/hcn-staging" "$root/releases/${arg}/deploy/staging/bin/hcn-staging"; then
+      echo "cảnh báo: bin trên máy lệch release ${arg}. Ops chạy lại install.sh." >&2
+    fi
+  fi
+  prune_releases
+}
+
+wait_ready() {
+  local deadline=$((SECONDS + 300))
+  local code
+  while (( SECONDS < deadline )); do
+    code="$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${APP_DOMAIN}" http://127.0.0.1:18080/health/ready || true)"
+    if [[ "$code" == "200" ]]; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo "health/ready không đạt trong 5 phút" >&2
+  return 1
+}
+
+internal_smoke() {
+  local code
+  curl -fsS -H "Host: ${APP_DOMAIN}" http://127.0.0.1:18080/health/ready >/dev/null
+  curl -fsSI -H "Host: ${APP_DOMAIN}" http://127.0.0.1:18080/ | grep -iq 'content-security-policy'
+  code="$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${APP_DOMAIN}" http://127.0.0.1:18080/api/v1/me)"
+  [[ "$code" == "401" ]]
+  code="$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${APP_DOMAIN}" http://127.0.0.1:18080/metrics)"
+  [[ "$code" == "404" ]]
+  code="$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${ID_DOMAIN}" http://127.0.0.1:18080/admin/)"
+  [[ "$code" == "404" ]]
+  code="$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${ID_DOMAIN}" http://127.0.0.1:18080/realms/master/)"
+  [[ "$code" == "404" ]]
+}
+
+deploy_release() {
+  local new="$root/releases/${arg}"
+  local old migrated=0
+  [[ -d "$new/deploy" ]] || {
+    echo "thiếu release ${arg}" >&2
+    exit 1
+  }
+  old="$(readlink -f "$root/current" 2>/dev/null || true)"
+  export APP_VERSION="$arg"
+  export HCN_RELEASE_ROOT="$new"
+  load_env
+  export HCN_IMAGES_LOCK="$root/bin/images.lock"
+  "$root/bin/preflight.sh" --quick
+  "$root/bin/policy-check.sh" hcn-staging -f "$new/deploy/compose.yml" -f "$new/deploy/compose.staging.yml"
+  if [[ -n "$old" && -d "$old" ]]; then
+    release_dir="$old"
+    export APP_VERSION
+    APP_VERSION="$(basename "$old")"
+    if compose exec -u postgres -T db pgbackrest --stanza=hcn --repo=2 info >/dev/null 2>&1; then
+      compose exec -u postgres -T db pgbackrest --stanza=hcn --repo=2 --type=diff backup
+    fi
+  fi
+  release_dir="$new"
+  export APP_VERSION="$arg"
+  if ! compose --profile ops run --rm migrate up; then
+    echo "migrate lỗi" >&2
+    exit 1
+  fi
+  migrated=1
+  if ! compose up -d --no-build; then
+    if [[ "$migrated" == 1 && -n "$old" ]]; then
+      release_dir="$old"
+      export APP_VERSION
+      APP_VERSION="$(basename "$old")"
+      compose up -d --no-build || true
+    fi
+    exit 1
+  fi
+  if ! wait_ready || ! internal_smoke; then
+    if [[ -n "$old" ]]; then
+      release_dir="$old"
+      export APP_VERSION
+      APP_VERSION="$(basename "$old")"
+      compose up -d --no-build || true
+    fi
+    exit 1
+  fi
+  if [[ -n "$old" && "$old" != "$new" ]]; then
+    ln -sfn "$old" "$root/previous"
+  fi
+  ln -sfn "$new" "$root/current"
+}
+
+rollback_release() {
+  local prev old
+  prev="$(readlink -f "$root/previous" 2>/dev/null || true)"
+  old="$(readlink -f "$root/current" 2>/dev/null || true)"
+  [[ -n "$prev" && -d "$prev" ]] || exit 1
+  load_env
+  release_dir="$prev"
+  export APP_VERSION
+  APP_VERSION="$(basename "$prev")"
+  compose up -d --no-build
+  wait_ready
+  if [[ -n "$old" ]]; then
+    ln -sfn "$old" "$root/previous"
+  fi
+  ln -sfn "$prev" "$root/current"
+}
+
+status_json() {
+  use_current
+  load_env
+  local sha disk mem ready migration pending dead files age_full age_diff age_files line kind ts now
+  sha="$(basename "$release_dir")"
+  disk="$(df -P / | awk 'NR==2 {gsub(/%/,"",$5); print $5}')"
+  mem="$(awk '/MemAvailable/ {print int($2/1024)}' /proc/meminfo)"
+  ready="$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${APP_DOMAIN}" http://127.0.0.1:18080/health/ready || true)"
+  migration="$(compose exec -T db psql -U postgres -d hcn -tAc 'select version from schema_migrations order by version desc limit 1' 2>/dev/null | tr -d '[:space:]' || true)"
+  pending=""
+  dead=""
+  files=""
+  local metrics
+  metrics="$(compose exec -T api node --input-type=module -e 'const r=await fetch("http://127.0.0.1:9464/metrics"); process.stdout.write(await r.text())' 2>/dev/null || true)"
+  pending="$(printf '%s\n' "$metrics" | awk '/^hcn_outbox_pending / {print $2; exit}')"
+  dead="$(printf '%s\n' "$metrics" | awk '/^hcn_outbox_dead / {print $2; exit}')"
+  files="$(printf '%s\n' "$metrics" | awk '/^hcn_files_pending_scan / {print $2; exit}')"
+  age_full=""
+  age_diff=""
+  age_files=""
+  now="$(date +%s)"
+  if [[ -f /var/lib/hcn-staging/metrics/backup.prom ]]; then
+    while IFS= read -r line; do
+      [[ "$line" == hcn_last_backup_timestamp_seconds* ]] || continue
+      kind="$(printf '%s' "$line" | sed -n 's/.*kind="\([^"]*\)".*/\1/p')"
+      ts="$(printf '%s' "$line" | awk '{print $2}')"
+      case "$kind" in
+        pg_full) age_full="$((now - ts))" ;;
+        pg_diff) age_diff="$((now - ts))" ;;
+        files) age_files="$((now - ts))" ;;
+      esac
+    done < /var/lib/hcn-staging/metrics/backup.prom
+  fi
+  python3 - "$sha" "$disk" "$mem" "$ready" "$migration" "$pending" "$dead" "$files" "$age_full" "$age_diff" "$age_files" <<'PY'
+import json, sys
+sha, disk, mem, ready, migration, pending, dead, files, age_full, age_diff, age_files = sys.argv[1:]
+def num(value):
+    return None if value == "" else int(value)
+print(json.dumps({
+    "sha": sha,
+    "disk_used_percent": num(disk),
+    "mem_available_mb": num(mem),
+    "ready": ready == "200",
+    "migration": migration or None,
+    "outbox_pending": num(pending),
+    "outbox_dead": num(dead),
+    "files_pending_scan": num(files),
+    "backup_age_seconds": {"pg_full": num(age_full), "pg_diff": num(age_diff), "files": num(age_files)},
+}, ensure_ascii=False))
+PY
+}
+
+run_perf() {
+  local hour cid guard_fail=0 slow=0 code started elapsed
+  hour="$(TZ=Asia/Ho_Chi_Minh date +%H)"
+  if (( 10#$hour >= 5 && 10#$hour < 22 )); then
+    echo "ngoài khung 22:00–05:00" >&2
+    exit 75
+  fi
+  use_current
+  load_env
+  local k6 number script out started_at
+  k6="$(image_ref 'grafana/k6')"
+  number="${arg#PERF-0}"
+  script="/scripts/perf-0${number}.js"
+  out="$release_dir/perf-out"
+  mkdir -p "$out"
+  started_at="$(date +%s)"
+  cid="$(docker run -d --cpus 1 --memory 512m --network host \
+    -v "$release_dir/perf:/scripts:ro" \
+    -v "$root/secrets/synthetic_user_password.txt:/secrets/synthetic_user_password:ro" \
+    -v "$out:/out" \
+    -e BASE_URL="https://${APP_DOMAIN}" \
+    -e APP_DOMAIN="${APP_DOMAIN}" \
+    -e ID_DOMAIN="${ID_DOMAIN}" \
+    "$k6" run --summary-export "/out/${arg}.json" \
+    "$script")"
+  while docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null | grep -q true; do
+    if [[ -n "${GUARD_URL:-}" ]]; then
+      started="$(date +%s)"
+      code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "$GUARD_URL" || echo 000)"
+      elapsed="$(( $(date +%s) - started ))"
+      if [[ "$code" == "000" || "$code" -ge 400 || "$elapsed" -ge 3 ]]; then
+        slow="$((slow + 1))"
+      else
+        slow=0
+      fi
+      if (( slow >= 2 )); then
+        docker kill "$cid" >/dev/null 2>&1 || true
+        guard_fail=1
+        break
+      fi
+    fi
+    sleep 5
+  done
+  docker logs "$cid" > "$out/${arg}.log" 2>&1 || true
+  docker rm "$cid" >/dev/null 2>&1 || true
+  if (( guard_fail == 1 )); then
+    echo '{"result":"aborted_guard"}'
+    exit 75
+  fi
+  if [[ "$arg" == "PERF-03" ]]; then
+    local versions distinct_versions
+    versions="$(compose exec -T db psql -U postgres -d hcn -tAc "SET ROLE hcn_readonly; SELECT count(*) FROM submission_versions WHERE submitted_at >= to_timestamp(${started_at})" | tail -n 1 | tr -d '[:space:]')"
+    distinct_versions="$(compose exec -T db psql -U postgres -d hcn -tAc "SET ROLE hcn_readonly; SELECT count(DISTINCT submission_id::text || ':' || version_no::text) FROM submission_versions WHERE submitted_at >= to_timestamp(${started_at})" | tail -n 1 | tr -d '[:space:]')"
+    [[ "$versions" == "200" && "$distinct_versions" == "200" ]]
+  fi
+  if [[ "$arg" == "PERF-04" ]]; then
+    local pending deadline
+    deadline="$((SECONDS + 120))"
+    pending=1
+    while (( SECONDS < deadline )); do
+      pending="$(compose exec -T api node --input-type=module -e 'const r=await fetch("http://127.0.0.1:9464/metrics"); const t=await r.text(); const m=t.match(/^hcn_outbox_pending (\\d+)/m); process.stdout.write(m?m[1]:"")' || true)"
+      if [[ "$pending" == "0" ]]; then
+        break
+      fi
+      sleep 5
+    done
+    [[ "$pending" == "0" ]]
+  fi
+  if [[ -f "$out/${arg}.json" ]]; then
+    cat "$out/${arg}.json"
+  else
+    echo "{\"scenario\":\"${arg}\",\"summary\":\"missing\"}"
+    exit 1
+  fi
+}
+
+drill_compose() {
+  docker compose -p hcn-drill \
+    -f "$release_dir/deploy/compose.yml" \
+    -f "$release_dir/deploy/compose.staging.yml" \
+    -f "$release_dir/deploy/staging/compose.drill.yml" \
+    --env-file "$root/env/staging.env" \
+    "$@"
+}
+
+write_drill_env() {
+  local dest key
+  dest="$(mktemp)"
+  chmod 0600 "$dest"
+  for key in \
+    PGBACKREST_REPO2_S3_KEY \
+    PGBACKREST_REPO2_S3_KEY_SECRET \
+    PGBACKREST_REPO2_S3_ENDPOINT \
+    PGBACKREST_REPO2_S3_BUCKET \
+    PGBACKREST_REPO2_S3_REGION \
+    PGBACKREST_REPO2_S3_URI_STYLE \
+    PGBACKREST_REPO2_S3_PORT \
+    PGBACKREST_REPO2_S3_VERIFY_TLS \
+    PGBACKREST_REPO2_CIPHER_PASS \
+    RESTIC_REPOSITORY \
+    RESTIC_PASSWORD \
+    AWS_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY \
+    AWS_DEFAULT_REGION
+  do
+    if [[ -n "${!key:-}" ]]; then
+      printf '%s=%s\n' "$key" "${!key}" >> "$dest"
+    fi
+  done
+  drill_env_file="$dest"
+}
+
+discard_drill_env() {
+  if [[ -n "$drill_env_file" ]]; then
+    rm -f "$drill_env_file"
+    drill_env_file=""
+  fi
+}
+
+read_epoch() {
+  local raw status
+  set +e
+  raw="$("$@" | tail -n 1 | tr -d '[:space:]')"
+  status=$?
+  set -e
+  if [[ "$status" -ne 0 ]]; then
+    return "$status"
+  fi
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    printf '%s' "$raw"
+  else
+    printf '0'
+  fi
+}
+
+audit_epoch_sql="SET ROLE hcn_readonly; SELECT COALESCE(floor(extract(epoch from max(created_at)))::bigint, 0) FROM audit_log"
+
+pgbackrest_restore() {
+  local mode="$1"
+  shift
+  local -a env_args=()
+  local key
+  # docker compose run không có --env-file. Giá trị lấy từ escrow đã export;
+  # tệp 0600 vẫn dành cho restic (docker run --env-file).
+  for key in \
+    PGBACKREST_REPO2_S3_KEY \
+    PGBACKREST_REPO2_S3_KEY_SECRET \
+    PGBACKREST_REPO2_S3_ENDPOINT \
+    PGBACKREST_REPO2_S3_BUCKET \
+    PGBACKREST_REPO2_S3_REGION \
+    PGBACKREST_REPO2_S3_URI_STYLE \
+    PGBACKREST_REPO2_S3_PORT \
+    PGBACKREST_REPO2_S3_VERIFY_TLS \
+    PGBACKREST_REPO2_CIPHER_PASS
+  do
+    if [[ -n "${!key:-}" ]]; then
+      env_args+=(-e "$key")
+    fi
+  done
+  drill_compose run --rm --no-deps --user root --entrypoint chown db -R postgres:postgres /var/lib/postgresql /var/lib/pgbackrest
+  drill_compose run --rm --no-deps --user postgres --entrypoint pgbackrest "${env_args[@]}" db \
+    --stanza=hcn --repo=2 --type="$mode" "$@" restore
+}
+
+restic_restore_files() {
+  docker run --rm --env-file "$drill_env_file" \
+    -v hcn-drill_files:/data \
+    "$(image_ref 'restic/restic')" restore latest:/data --target /data
+}
+
+snapshot_release_ids() {
+  drill_compose exec -T db psql -U postgres -d hcn -v ON_ERROR_STOP=1 <<'SQL'
+CREATE TABLE release_id_snapshot (
+  source text,
+  id uuid,
+  module_release_id uuid,
+  module_version_id uuid
+);
+ALTER TABLE release_id_snapshot OWNER TO postgres;
+INSERT INTO release_id_snapshot (source, id, module_release_id, module_version_id)
+SELECT 'submissions', s.id, s.module_release_id, r.module_version_id
+FROM submissions s
+JOIN module_releases r ON r.id = s.module_release_id
+UNION ALL
+SELECT 'quiz_attempts', q.id, q.module_release_id, r.module_version_id
+FROM quiz_attempts q
+JOIN module_releases r ON r.id = q.module_release_id
+UNION ALL
+SELECT 'activity_progress', a.id, a.module_release_id, r.module_version_id
+FROM activity_progress a
+JOIN module_releases r ON r.id = a.module_release_id;
+SQL
+}
+
+drill_restore() {
+  local started rto rpo staging_epoch restored_epoch
+  [[ -n "${RESTORE_TARGET:-}" ]] || {
+    echo "escrow thiếu RESTORE_TARGET" >&2
+    exit 1
+  }
+  started="$(date +%s)"
+  staging_epoch="$(read_epoch compose exec -T db psql -U postgres -d hcn -tAc "$audit_epoch_sql")"
+  write_drill_env
+  pgbackrest_restore time --target="$RESTORE_TARGET" --target-action=promote
+  drill_compose up -d --wait --wait-timeout 180 --no-build db
+  restored_epoch="$(read_epoch drill_compose exec -T db psql -U postgres -d hcn -tAc "$audit_epoch_sql")"
+  rpo="$((staging_epoch - restored_epoch))"
+  if (( rpo < 0 )); then
+    rpo="$((-rpo))"
+  fi
+  restic_restore_files
+  discard_drill_env
+  drill_compose up -d --wait --wait-timeout 600 --no-build
+  local ready=0
+  for _ in $(seq 1 30); do
+    if drill_compose exec -T caddy wget -q -O - --header "Host: ${APP_DOMAIN}" http://127.0.0.1/health/ready; then
+      ready=1
+      break
+    fi
+    sleep 2
+  done
+  [[ "$ready" == "1" ]]
+  drill_compose exec -T api node apps/api/src/cli.ts verify-files
+  rto="$(( $(date +%s) - started ))"
+  python3 - "$rto" "$rpo" "$RESTORE_TARGET" <<'PY'
+import json, sys
+rto, rpo, target = sys.argv[1:]
+print(json.dumps({"drill": "restore", "rto_seconds": int(rto), "rpo_seconds": int(rpo), "rpo_target": target}, ensure_ascii=False, separators=(",", ":")))
+PY
+  drill_compose down -v
+}
+
+drill_rel06() {
+  local old="$extra"
+  write_drill_env
+  pgbackrest_restore default
+  drill_compose up -d --wait --wait-timeout 180 --no-build db
+  snapshot_release_ids
+  drill_compose --profile ops run --rm migrate up
+  restic_restore_files
+  discard_drill_env
+  APP_VERSION="$old" drill_compose up -d --wait --wait-timeout 600 --no-build api worker
+  drill_compose exec -T api node apps/api/src/cli.ts verify-files
+  drill_compose exec -T db psql -U postgres -d hcn -v ON_ERROR_STOP=1 -f /dev/stdin < "$release_dir/db/checks/release_id_semantics.sql"
+  printf '{"drill":"rel06","old_sha":"%s"}\n' "$old"
+  drill_compose down -v
+}
+
+drill_run() {
+  local escrow="" i
+  for ((i = 0; i < ${#parts[@]}; i++)); do
+    if [[ "${parts[$i]}" == "--escrow" ]]; then
+      escrow="${parts[$((i + 1))]:-}"
+    fi
+  done
+  if [[ -z "$escrow" || ! -f "$escrow" ]]; then
+    echo "drill thiếu tệp --escrow" >&2
+    exit 75
+  fi
+  set -a
+  # shellcheck disable=SC1090
+  . "$escrow"
+  set +a
+  use_current
+  load_env
+  export HCN_IMAGES_LOCK="$root/bin/images.lock"
+  if [[ "$arg" == "restore" ]]; then
+    drill_restore
+  else
+    drill_rel06
+  fi
+}
+
+if [[ -n "${HCN_STAGING_DUMP_CONFIG:-}" ]]; then
+  use_current
+  load_env
+  if [[ "$HCN_STAGING_DUMP_CONFIG" == "drill" ]]; then
+    drill_compose config --format json
+  else
+    compose config --format json
+  fi
+  exit 0
+fi
+
+case "$action" in
+  receive)
+    lock
+    receive_release
+    ;;
+  deploy)
+    lock
+    deploy_release
+    ;;
+  rollback)
+    lock
+    rollback_release
+    ;;
+  status)
+    status_json
+    ;;
+  seed)
+    use_current
+    compose exec -T api node apps/api/src/cli.ts seed-staging
+    ;;
+  perf)
+    run_perf
+    ;;
+  drill)
+    drill_run
+    ;;
+  backup)
+    use_current
+    load_env
+    case "$arg" in
+      full)
+        compose exec -u postgres -T db pgbackrest --stanza=hcn --repo=2 --type=full backup
+        write_backup_metric pg_full
+        ;;
+      diff)
+        compose exec -u postgres -T db pgbackrest --stanza=hcn --repo=2 --type=diff backup
+        write_backup_metric pg_diff
+        ;;
+      files)
+        docker run --rm --env-file "$root/secrets/restic.env" \
+          -v hcn-staging_files:/data:ro \
+          "$(image_ref 'restic/restic')" backup /data --tag files
+        write_backup_metric files
+        ;;
+      files-maintain)
+        docker run --rm --env-file "$root/secrets/restic.env" \
+          "$(image_ref 'restic/restic')" forget --keep-daily 14 --keep-weekly 8 --keep-monthly 12 --prune
+        ;;
+      files-check)
+        docker run --rm --env-file "$root/secrets/restic.env" \
+          "$(image_ref 'restic/restic')" check --read-data-subset=5%
+        ;;
+    esac
+    ;;
+esac

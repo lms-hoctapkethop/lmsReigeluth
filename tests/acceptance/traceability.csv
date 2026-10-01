@@ -35,7 +35,7 @@ AC09,Kiến trúc 1.0,Quiz tối đa điểm không tự xác nhận mục tiêu
 AC10,Kiến trúc 1.0,Công bố rồi sửa quyết định → lịch sử đủ,L3/L5/L6,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts AC10
 AC11,Kiến trúc 1.0,Worker ngừng rồi chạy lại → không trùng thông báo,L3/L5/L6,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts AC11
 AC12,Kiến trúc 1.0,Upload sai loại/quá lớn/chưa quét → từ chối/cách ly,L3/L5/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts AC12
-AC13,Kiến trúc 1.0,Khôi phục sang máy trống,L3/L5/L6,,M9,todo,
+AC13,Kiến trúc 1.0,Khôi phục sang máy trống,L3/L5/L6,docs/ops/staging-runbook.md,M9,todo,
 AC14,Kiến trúc 1.0,"Bàn phím, zoom 200%, 360 px",L3/L5/L6,,M9,todo,
 AC15,Kiến trúc 1.0,Kịch bản tải,L3/L5/L6,,M9,todo,
 AC16,Kiến trúc 1.0,Module dự án 6 hoạt động không ép 4 bước,L3/L5/L6,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
@@ -47,13 +47,13 @@ A05,2.1 tệp 07,Autosave trước submit không nộp nhầm revision,L3/L5,app
 A06,2.1 tệp 07,Review cạnh tranh tạo conflict đúng,L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts A06
 A07,2.1 tệp 07,Dependency bất biến sau khi giao,L3/L5,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 A08,2.1 tệp 07,Outbox an toàn khi crash sau commit,L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts A08
-A09,2.1 tệp 07,"Restore đủ DB và tệp, đúng checksum",L3/L5,,M9,todo,
-A10,2.1 tệp 07,Migration bảo toàn nghĩa release_id,L3/L5,,M9,todo,
+A09,2.1 tệp 07,"Restore đủ DB và tệp, đúng checksum",L3/L5,apps/api/src/cli.ts verify-files,M9,todo,
+A10,2.1 tệp 07,Migration bảo toàn nghĩa release_id,L3/L5,db/checks/release_id_semantics.sql,M9,todo,
 A11,2.1 tệp 07,Route/waiver có lịch sử (P2),L3/L5,,M10,todo,
 A12,2.1 tệp 07,Cổng KC không gây bế tắc (P2),L3/L5,,M10,todo,
 A13,2.1 tệp 07,Tệp và nhập liệu không tin cậy bị cô lập,L3/L5,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts A13
 A14,2.1 tệp 07,"Chấm số đúng validation, không chấm 0 khi sai định dạng",L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts A14
-A15,2.1 tệp 07,Assessment tương tác tiếp cận được,L3/L5,,M9,todo,
+A15,2.1 tệp 07,Assessment tương tác tiếp cận được,L3/L5,tests/e2e/a11y-routes.spec.ts,M9,todo,
 A16,2.1 tệp 07,AI không có quyền quyết định,L3/L5,,M8,pass,packages/domain/src/insight/guard.test.ts A16
 A17,2.1 tệp 07,RAG không rò rỉ (khi bật AI),L3/L5,,M10,todo,
 A18,2.1 tệp 07,Mất AI không mất luồng học,L3/L5,,M8,pass,apps/api/test/insight.test.ts A18
@@ -126,7 +126,7 @@ SEC-08,docs/09 mục 6,Lộ đáp án,L3/L4/L6,apps/api/test/quiz.test.ts,M6,pas
 SEC-09,docs/09 mục 6,Gán thuộc tính hàng loạt,L3/L4/L6,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts SEC-09
 SEC-10,docs/09 mục 6,Leo quyền qua ngữ cảnh,L3/L4/L6,,M1,todo,
 SEC-11,docs/09 mục 6,Open redirect,L3/L4/L6,,M1,todo,
-SEC-12,docs/09 mục 6,Rate limit,L3/L4/L6,,M9,todo,
+SEC-12,docs/09 mục 6,Rate limit,L3/L4/L6,apps/api/test/health.test.ts,M9,todo,
 SEC-13,docs/09 mục 6,Dò mật khẩu,L3/L4/L6,,M9,todo,
 SEC-14,docs/09 mục 6,Fuzz SQL/unicode,L3/L4/L6,,M9,todo,
 SEC-15,docs/09 mục 6,Header bảo mật,L3/L4/L6,,M9,todo,
@@ -137,21 +137,21 @@ SEC-19,docs/09 mục 6,Lỗ hổng phụ thuộc,L3/L4/L6,,M0,todo,
 SEC-20,docs/09 mục 6,Bí mật trong repo,L3/L4/L6,,M0,todo,
 SEC-21,docs/09 mục 6,"Console Keycloak, /metrics không mở",L3/L4/L6,,M9,todo,
 SEC-22,docs/09 mục 6,Prompt injection (khi bật AI),L3/L4/L6,,M10,todo,
-PERF-01,docs/09 mục 7,Đọc HS 200 VU,L6,perf/,M9,todo,
-PERF-02,docs/09 mục 7,Tự lưu 200 VU,L6,perf/,M9,todo,
-PERF-03,docs/09 mục 7,Đợt nộp 200/60 giây,L6,perf/,M9,todo,
-PERF-04,docs/09 mục 7,Luyện tập 150 VU,L6,perf/,M9,todo,
+PERF-01,docs/09 mục 7,Đọc HS 200 VU,L6,perf/perf-01.js,M9,todo,
+PERF-02,docs/09 mục 7,Tự lưu 200 VU,L6,perf/perf-02.js,M9,todo,
+PERF-03,docs/09 mục 7,Đợt nộp 200/60 giây,L6,perf/perf-03.js,M9,todo,
+PERF-04,docs/09 mục 7,Luyện tập 150 VU,L6,perf/perf-04.js,M9,todo,
 PERF-05,docs/09 mục 7,"GV hàng chờ, bản đồ nhiệt",L6,perf/,M9,todo,
-A11Y-01,docs/09 mục 8,Luồng HS bằng bàn phím,L5/tay,e2e/ + biên bản,M9,todo,
-A11Y-02,docs/09 mục 8,Bàn chấm bằng bàn phím,L5/tay,e2e/ + biên bản,M9,todo,
-A11Y-03,docs/09 mục 8,Zoom 200%,L5/tay,e2e/ + biên bản,M9,todo,
-A11Y-04,docs/09 mục 8,360 px,L5/tay,e2e/ + biên bản,M9,todo,
-A11Y-05,docs/09 mục 8,Trình đọc màn hình,L5/tay,e2e/ + biên bản,M9,todo,
-A11Y-06,docs/09 mục 8,Sắp xếp không kéo thả,L5/tay,e2e/ + biên bản,M9,todo,
-A11Y-07,docs/09 mục 8,Trạng thái phân biệt khi đen trắng,L5/tay,e2e/ + biên bản,M9,todo,
-A11Y-08,docs/09 mục 8,"Tương phản 4,5:1",L5/tay,e2e/ + biên bản,M9,todo,
-REL-01,docs/09 mục 9,Dừng worker 10 phút,L6,staging + biên bản,M9,todo,
-REL-02,docs/09 mục 9,Kill API giữa nộp,L6,staging + biên bản,M9,todo,
+A11Y-01,docs/09 mục 8,Luồng HS bằng bàn phím,L5/tay,docs/qa/a11y-manual.md,M9,todo,
+A11Y-02,docs/09 mục 8,Bàn chấm bằng bàn phím,L5/tay,docs/qa/a11y-manual.md,M9,todo,
+A11Y-03,docs/09 mục 8,Zoom 200%,L5/tay,docs/qa/a11y-manual.md,M9,todo,
+A11Y-04,docs/09 mục 8,360 px,L5/tay,docs/qa/a11y-manual.md,M9,todo,
+A11Y-05,docs/09 mục 8,Trình đọc màn hình,L5/tay,docs/qa/a11y-manual.md,M9,todo,
+A11Y-06,docs/09 mục 8,Sắp xếp không kéo thả,L5/tay,docs/qa/a11y-manual.md,M9,todo,
+A11Y-07,docs/09 mục 8,Trạng thái phân biệt khi đen trắng,L5/tay,docs/qa/a11y-manual.md,M9,todo,
+A11Y-08,docs/09 mục 8,"Tương phản 4,5:1",L5/tay,docs/qa/a11y-manual.md,M9,todo,
+REL-01,docs/09 mục 9,Dừng worker 10 phút,L6,tests/resilience/rel-notes.md,M9,todo,
+REL-02,docs/09 mục 9,Kill API giữa nộp,L6,apps/api/test/config.test.ts,M9,todo,
 REL-03,docs/09 mục 9,ClamAV dừng,L6,staging + biên bản,M9,todo,
 REL-04,docs/09 mục 9,Keycloak dừng,L6,staging + biên bản,M9,todo,
 REL-05,docs/09 mục 9,Diễn tập khôi phục,L6,staging + biên bản,M9,todo,

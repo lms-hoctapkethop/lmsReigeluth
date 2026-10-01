@@ -34,7 +34,14 @@ const schema = z.object({
   keycloakProvisionerSecret: z.string().min(1).optional(),
 })
 
-export type AppConfig = z.infer<typeof schema>
+export type HcnEnv = 'development' | 'test' | 'staging' | 'production'
+
+export type AppConfig = z.infer<typeof schema> & {
+  hcnEnv: HcnEnv
+  metricsPort: number
+  backupMetricsFile: string
+  faultAfterCommit: string | null
+}
 
 const envByField: Record<string, string> = {
   appOrigin: 'APP_ORIGIN',
@@ -68,23 +75,42 @@ function readSecret(env: NodeJS.ProcessEnv, name: string): string | undefined {
   return env[name]
 }
 
+const hcnEnvSchema = z.enum(['development', 'test', 'staging', 'production'])
+
 const clockSchema = z
   .object({
     nodeEnv: z.string().optional(),
+    hcnEnv: hcnEnvSchema,
     clockFile: z.string().optional(),
     clockNow: z.string().optional(),
+    testClock: z.string().optional(),
+    faultAfterCommit: z.string().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.nodeEnv !== 'production') return
-    if (value.clockFile !== undefined) ctx.addIssue({ code: 'custom', path: ['HCN_CLOCK_FILE'], message: 'HCN_CLOCK_FILE' })
-    if (value.clockNow !== undefined) ctx.addIssue({ code: 'custom', path: ['HCN_NOW'], message: 'HCN_NOW' })
+    const locked = value.nodeEnv === 'production' || value.hcnEnv === 'production' || value.hcnEnv === 'staging'
+    if (locked && value.clockFile !== undefined) ctx.addIssue({ code: 'custom', path: ['HCN_CLOCK_FILE'], message: 'HCN_CLOCK_FILE' })
+    if (locked && value.clockNow !== undefined) ctx.addIssue({ code: 'custom', path: ['HCN_NOW'], message: 'HCN_NOW' })
+    if (locked && value.testClock !== undefined) ctx.addIssue({ code: 'custom', path: ['HCN_TEST_CLOCK'], message: 'HCN_TEST_CLOCK' })
+    if (value.faultAfterCommit !== undefined && value.hcnEnv !== 'test') {
+      ctx.addIssue({ code: 'custom', path: ['HCN_FAULT_AFTER_COMMIT'], message: 'HCN_FAULT_AFTER_COMMIT' })
+    }
   })
 
+function readHcnEnv(env: NodeJS.ProcessEnv): HcnEnv {
+  const parsed = hcnEnvSchema.safeParse(env.HCN_ENV ?? 'development')
+  if (!parsed.success) throw new ConfigError(['HCN_ENV'])
+  return parsed.data
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
+  const hcnEnv = readHcnEnv(env)
   const clock = clockSchema.safeParse({
     nodeEnv: env.NODE_ENV,
+    hcnEnv,
     clockFile: env.HCN_CLOCK_FILE,
     clockNow: env.HCN_NOW,
+    testClock: env.HCN_TEST_CLOCK,
+    faultAfterCommit: env.HCN_FAULT_AFTER_COMMIT,
   })
   if (!clock.success) {
     const names = [
@@ -122,5 +148,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ]
     throw new ConfigError(names.length > 0 ? names : ['config'])
   }
-  return parsed.data
+  const metricsPort = z.coerce.number().int().positive().safeParse(env.METRICS_PORT ?? '9464')
+  if (!metricsPort.success) throw new ConfigError(['METRICS_PORT'])
+  return {
+    ...parsed.data,
+    hcnEnv,
+    metricsPort: metricsPort.data,
+    backupMetricsFile: env.HCN_BACKUP_METRICS_FILE ?? '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: env.HCN_FAULT_AFTER_COMMIT ?? null,
+  }
 }

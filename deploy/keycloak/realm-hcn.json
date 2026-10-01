@@ -29,17 +29,17 @@
       "protocol": "openid-connect",
       "publicClient": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "CHANGE_ME_REGENERATE_AFTER_IMPORT",
+      "secret": "__OIDC_CLIENT_SECRET__",
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false,
       "frontchannelLogout": true,
-      "redirectUris": ["https://hoc.truong.edu.vn/auth/callback"],
-      "webOrigins": ["https://hoc.truong.edu.vn"],
+      "redirectUris": ["https://__APP_DOMAIN__/auth/callback"],
+      "webOrigins": ["https://__APP_DOMAIN__"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://hoc.truong.edu.vn/"
+        "post.logout.redirect.uris": "https://__APP_DOMAIN__/"
       },
       "defaultClientScopes": ["openid", "profile", "email"]
     },
@@ -50,7 +50,7 @@
       "protocol": "openid-connect",
       "publicClient": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "CHANGE_ME_REGENERATE_AFTER_IMPORT",
+      "secret": "__PROVISIONER_SECRET__",
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true

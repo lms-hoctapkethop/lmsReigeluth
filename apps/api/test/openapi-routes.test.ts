@@ -25,6 +25,10 @@ describe('OA-02', () => {
       sessionMaxDays: 7,
       trustProxy: [],
       port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
     }
     const db = createDb(config.databaseUrl)
     const app = await buildApp({ config, db })

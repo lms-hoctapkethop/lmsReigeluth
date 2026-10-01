@@ -220,6 +220,16 @@ Sau khi review PR #7 (M9), thêm `docs/08` mục 0.15. Các điểm chính:
 - `db/tests/ops_invariants.sql` (DB42–DB46): worker INSERT được `outbox_events`; bề mặt ghi của worker theo danh sách cho phép; worker không đọc `question_keys`; `hcn_readonly` không ghi; không role nào được TRUNCATE. CI yêu cầu ≥ 116 PASS và chạy bước này với `pipefail`. Thêm tệp này cùng migration `20261008000100_worker_outbox_insert.sql` (M8) vào `db/SPEC_SHA256SUMS`.
 - Đồng bộ với M8: payload `ObservationsAdded` là `kcIds`, và consumer duy nhất là `recomputeNeeds`; `updateMisconceptionSignals` nghe `QuestionAnswered` và không cần KC observable (`docs/05` mục 1 và 11.0, `docs/06` mục 3.0).
 - `openapi.yaml` 3.8.0: `healthReady` có schema `{status, checks}`, `x-milestone: M9`.
+
+## Thay đổi M9
+
+Sẵn sàng vận hành trên staging, theo docs/08 mục 0. Không SSH vào VPS.
+
+- Ảnh `deploy/api/Dockerfile` (Node 26, user 10001, `pnpm deploy --prod`) và `deploy/web/Dockerfile` (Caddy + web tĩnh). Lệnh chạy trong compose là `node apps/api/src/main.ts` và `node apps/worker/src/main.ts` với `NODE_OPTIONS=--experimental-strip-types`. API nghe `PORT` (3000 trong compose), worker đọc `CLAMD_HOST` và `CLAMD_PORT`.
+- `GET /health/ready` kiểm DB và issuer OIDC đã cache, trả `{status, checks}`, đã gỡ `x-milestone`. Metrics ở listener `METRICS_PORT` (mặc định 9464). Thiếu `backup.prom` thì không xuất `hcn_last_backup_age_seconds`. `TRUST_PROXY` không tin `X-Forwarded-For` từ peer ngoài dải. `HCN_ENV=staging` làm web hiện băng "MÔI TRƯỜNG THỬ — dữ liệu tổng hợp". `HCN_FAULT_AFTER_COMMIT` chỉ khi `HCN_ENV=test`.
+- `deploy/compose.staging.yml`, Caddyfile tham số hóa, `kc-entrypoint.sh` render realm, `deploy/staging/*`, workflow deploy/nightly/perf. Job `deploy-lint` chạy shellcheck, hadolint và policy-check.
+- CLI `seed-staging` (chỉ khi `HCN_ENV=staging`) và `verify-files`. Kịch bản k6 ở `perf/`. Biên bản tay `docs/qa/a11y-manual.md`. Sổ tay `docs/ops/staging-runbook.md`.
+- E2E thêm project firefox, webkit và viewport 360×740. CI của PR vẫn chạy Chromium. `checkA11y` trên các route chính.
 - `docs/09`: ghi chú PERF/REL cho staging dùng chung máy; G4 thêm hai điều kiện: quyết định về Cloudflare proxy cho production và bucket sao lưu production đặt tại Việt Nam.
 - `docs/10` M9 viết lại; `AGENTS.md` duyệt các công cụ vận hành.
 

@@ -5,10 +5,12 @@ import type { Database } from './schema.ts'
 export type { Database, Role, UserStatus, SessionContext } from './schema.ts'
 export { effectivePrerequisites, proposedEdgesForReview, type KcEdgeRow } from './repositories/kcGraph.ts'
 
-export function createDb(connectionString: string): Kysely<Database> {
-  return new Kysely<Database>({
-    dialect: new PostgresDialect({
-      pool: new pg.Pool({ connectionString }),
-    }),
+export type AppDatabase = Kysely<Database> & { pool: pg.Pool }
+
+export function createDb(connectionString: string): AppDatabase {
+  const pool = new pg.Pool({ connectionString })
+  const db = new Kysely<Database>({
+    dialect: new PostgresDialect({ pool }),
   })
+  return Object.assign(db, { pool })
 }

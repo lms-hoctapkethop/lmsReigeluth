@@ -1,0 +1,12 @@
+# Mẫu nếu proxy của host là Caddy. Ops thêm một site mới, không sửa site trường.
+staging-lms.hoctapkethop.edu.vn, id-staging-lms.hoctapkethop.edu.vn {
+  tls /etc/ssl/hcn-staging/origin.pem /etc/ssl/hcn-staging/origin.key
+  request_body {
+    max_size 30MB
+  }
+  reverse_proxy 127.0.0.1:18080 {
+    header_up Host {host}
+    header_up X-Forwarded-Proto https
+    header_up X-Forwarded-For {client_ip}
+  }
+}

@@ -1,0 +1,157 @@
+name: nightly
+on:
+  schedule:
+    - cron: '30 17 * * *'
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: Chỉ chạy một job (để trống = mọi job)
+        required: false
+        default: ""
+        type: string
+permissions:
+  contents: read
+jobs:
+  browsers:
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'browsers') }}
+    runs-on: ubuntu-24.04
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/hcn?sslmode=disable
+      OIDC_ISSUER: http://localhost:8081/realms/hcn
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Install dbmate 2.28.0
+        run: |
+          curl -fsSL -o /tmp/dbmate-linux-amd64 https://github.com/amacneil/dbmate/releases/download/v2.28.0/dbmate-linux-amd64
+          echo "4a3814fdb7253348d6b3cd60a2e315fba69e1a3a794a31ec75af2ca6019c835c  /tmp/dbmate-linux-amd64" | sha256sum -c -
+          install -m 755 /tmp/dbmate-linux-amd64 /usr/local/bin/dbmate
+      - run: docker compose -f deploy/compose.dev.yml up -d --wait
+      - name: Wait for Keycloak issuer
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8081/realms/hcn/.well-known/openid-configuration && exit 0
+            sleep 2
+          done
+          exit 1
+      - run: pnpm db:migrate && pnpm db:seed:test
+      - name: Login role thuộc hcn_worker
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hcn_e2e_worker') THEN
+              CREATE ROLE hcn_e2e_worker LOGIN PASSWORD 'hcn_e2e_worker' IN ROLE hcn_worker;
+            END IF;
+          END
+          $$;
+          SQL
+      - name: E2E đủ trình duyệt
+        run: |
+          pnpm exec playwright install --with-deps chromium firefox webkit
+          pnpm exec playwright test tests/e2e
+        env:
+          WORKER_DATABASE_URL: postgres://hcn_e2e_worker:hcn_e2e_worker@localhost:5432/hcn?sslmode=disable
+  contract:
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'contract') }}
+    runs-on: ubuntu-24.04
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/hcn?sslmode=disable
+      OIDC_ISSUER: http://localhost:8081/realms/hcn
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Install dbmate 2.28.0
+        run: |
+          curl -fsSL -o /tmp/dbmate-linux-amd64 https://github.com/amacneil/dbmate/releases/download/v2.28.0/dbmate-linux-amd64
+          echo "4a3814fdb7253348d6b3cd60a2e315fba69e1a3a794a31ec75af2ca6019c835c  /tmp/dbmate-linux-amd64" | sha256sum -c -
+          install -m 755 /tmp/dbmate-linux-amd64 /usr/local/bin/dbmate
+      - run: docker compose -f deploy/compose.dev.yml up -d --wait
+      - name: Wait for Keycloak issuer
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8081/realms/hcn/.well-known/openid-configuration && exit 0
+            sleep 2
+          done
+          exit 1
+      - run: pnpm db:migrate && pnpm db:seed:test
+      - name: Schemathesis SEC-14
+        run: |
+          python3 -m pip install --user 'schemathesis==3.39.15'
+          export PATH="$HOME/.local/bin:$PATH"
+          pnpm --filter @hcn/api dev &
+          api_pid=$!
+          ready=0
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4319/health/live; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$ready" != 1 ]]; then
+            kill "$api_pid" || true
+            exit 1
+          fi
+          set +e
+          schemathesis run openapi.yaml \
+            --base-url http://127.0.0.1:4319 \
+            --checks not_a_server_error \
+            --hypothesis-max-examples=3 \
+            --request-timeout=10 \
+            | tee schemathesis.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          kill "$api_pid" || true
+          exit "$code"
+        env:
+          APP_ORIGIN: http://localhost:5173
+          OIDC_CLIENT_ID: hcn-web
+          OIDC_CLIENT_SECRET: dev-secret-hcn-web
+          COOKIE_SECRET: dev-cookie-secret-for-e2e-only-32
+          KEYCLOAK_PROVISIONER_SECRET: dev-secret-hcn-provisioner
+          SESSION_TTL_HOURS: "12"
+          SESSION_MAX_DAYS: "7"
+          TRUST_PROXY: ""
+          PORT: "4319"
+          HCN_ENV: test
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: schemathesis
+          path: schemathesis.txt
+  resilience:
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'resilience') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Install dbmate 2.28.0
+        run: |
+          curl -fsSL -o /tmp/dbmate-linux-amd64 https://github.com/amacneil/dbmate/releases/download/v2.28.0/dbmate-linux-amd64
+          echo "4a3814fdb7253348d6b3cd60a2e315fba69e1a3a794a31ec75af2ca6019c835c  /tmp/dbmate-linux-amd64" | sha256sum -c -
+          install -m 755 /tmp/dbmate-linux-amd64 /usr/local/bin/dbmate
+      - name: REL-02
+        run: bash tests/resilience/rel-02.sh
+      - name: REL-01 REL-03 REL-04
+        run: pnpm exec vitest run apps/api/test/resilience.test.ts
+        env:
+          HCN_RESILIENCE: "1"
+  drill-e2e:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'drill-e2e' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Diễn tập khôi phục và đối soát WAL
+        run: bash deploy/staging/test/drill-e2e.sh

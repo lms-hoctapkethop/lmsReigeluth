@@ -1,0 +1,71 @@
+# Override diễn tập (project hcn-drill). Kèm compose.yml và compose.staging.yml.
+# Không xuất cổng (tránh đụng 127.0.0.1:18080 của staging).
+# Postgres tắt archive và không đọc pgbackrest.env của staging — WAL diễn tập
+# không được đẩy vào kho S3 đang phục vụ staging.
+services:
+  caddy:
+    ports: !reset []
+    depends_on: !override
+      api:
+        condition: service_healthy
+
+  api:
+    environment:
+      OIDC_ISSUER: http://keycloak:8080/realms/hcn
+    depends_on: !override
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    healthcheck:
+      start_period: 120s
+      interval: 10s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    depends_on: !override
+      db:
+        condition: service_healthy
+    profiles: !override ["manual"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - 'export WORKER_DATABASE_URL="$$(cat "$$WORKER_DATABASE_URL_FILE")" && exec node apps/worker/src/main.ts'
+
+  db:
+    env_file: !reset []
+    environment:
+      PGBACKREST_REPO2_S3_KEY: ${PGBACKREST_REPO2_S3_KEY:-}
+      PGBACKREST_REPO2_S3_KEY_SECRET: ${PGBACKREST_REPO2_S3_KEY_SECRET:-}
+      PGBACKREST_REPO2_S3_ENDPOINT: ${PGBACKREST_REPO2_S3_ENDPOINT:-}
+      PGBACKREST_REPO2_S3_BUCKET: ${PGBACKREST_REPO2_S3_BUCKET:-}
+      PGBACKREST_REPO2_S3_REGION: ${PGBACKREST_REPO2_S3_REGION:-}
+      PGBACKREST_REPO2_S3_URI_STYLE: ${PGBACKREST_REPO2_S3_URI_STYLE:-}
+      PGBACKREST_REPO2_S3_PORT: ${PGBACKREST_REPO2_S3_PORT:-}
+      PGBACKREST_REPO2_S3_VERIFY_TLS: ${PGBACKREST_REPO2_S3_VERIFY_TLS:-}
+      PGBACKREST_REPO2_CIPHER_PASS: ${PGBACKREST_REPO2_CIPHER_PASS:-}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=384MB
+      - -c
+      - effective_cache_size=1GB
+      - -c
+      - max_connections=60
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=off
+      - -c
+      - timezone=UTC
+
+  keycloak:
+    environment:
+      JAVA_OPTS_KC_HEAP: -Xmx384m
+    deploy:
+      resources: { limits: { cpus: "1.0", memory: 768M } }
+
+  clamav:
+    profiles: !override ["manual"]
