@@ -464,6 +464,23 @@ Mục này bổ sung cho 0.2–0.12; ở điểm nào khác nhau thì mục này
 
 PR M9 chỉ được coi là xong khi D01–D06, W01–W03, H01–H02 đã có test. Các mục B, P, S, R là điều kiện của cổng G3 (mục "Hoàn thành khi" của M9 ở docs/10).
 
+### 0.16 Chốt ở 3.8.2 (review PR #7 lần 2: diễn tập và entry)
+
+Mục này thắng 0.12 và 0.15 (R01) ở các điểm khác nhau. D01–D06, W01–W03, H01–H02 của 0.15 đã đạt ở commit 1651835.
+
+| Mã | Yêu cầu | Lý do |
+|---|---|---|
+| X01 | `use_current` đặt và export `APP_VERSION=$(basename current)`. Mọi lệnh gọi compose (`status`, `backup`, `seed`, `perf`, `drill`) đều chạy với một phiên bản xác định. Test dùng `docker compose config` **thật**, không dùng docker giả | Không có biến này thì `image: hcn/api:` rỗng, nên các lệnh sau lần deploy đầu (timer sao lưu, nightly) sẽ hỏng |
+| X02 | Project `hcn-drill` dùng thêm override riêng `deploy/staging/compose.drill.yml`: `caddy.ports: !reset []`; db chạy với `archive_mode=off` và không mount `pgbackrest.env` của staging. policy-check áp cho cả bộ ba tệp | Override staging publish `127.0.0.1:18080`, trùng với staging đang chạy. Nghiêm trọng hơn: db diễn tập bật `archive_command` sẽ đẩy WAL của timeline đã rẽ nhánh vào **chính kho S3 của staging** |
+| X03 | pgBackRest và restic trong diễn tập lấy khóa S3, `CIPHER_PASS` và `RESTIC_PASSWORD` **từ tệp `--escrow`**, truyền qua `--env-file` tạm (0600, xóa khi xong). Không đọc `/opt/hcn-staging/secrets/pgbackrest.env` hay `restic.env` | Diễn tập phải chứng minh bản ký gửi dùng được (0.8) |
+| X04 | Khôi phục DB bằng container chạy một lần **trước** khi PostgreSQL khởi động: `run --rm --no-deps db pgbackrest … restore` vào volume trống, rồi mới `up -d db` | pgBackRest không khôi phục vào cụm đang chạy, và initdb đã ghi vào volume |
+| X05 | restic: `restore latest:/data --target /data` (cú pháp thư mục con, restic ≥ 0.17) hoặc `--target /` | `restore latest --target /data` với snapshot của `/data` sẽ tạo `/data/data/…`, và `verify-files` sẽ báo thiếu toàn bộ |
+| X06 | RPO: lấy thời điểm commit cuối của staging (`max(created_at)` của `audit_log`, đọc bằng `hcn_readonly` **trước** khi diễn tập) so với commit cuối có trong bản khôi phục. In `rpo_seconds` cùng `rto_seconds` | 0.12 bước 5 yêu cầu cả hai số |
+| X07 | `drill rel06`: sau khôi phục và **trước** `migrate up`, tạo `release_id_snapshot` (bảng tạm trong DB diễn tập, chủ là `postgres`) từ `submissions`, `quiz_attempts`, `activity_progress` nối `module_releases`; sau migrate, chạy `db/checks/release_id_semantics.sql`. Khôi phục theo X04 | Hiện không có bước tạo snapshot nên kiểm tra luôn báo thiếu bảng |
+| X08 | Job `drill-e2e` trong `nightly.yml` chạy trên runner. MinIO chỉ dùng làm S3 giả trong runner; không phải dịch vụ triển khai, không cần ADR. Các bước: dựng stack, seed nhỏ, `backup full` + `files`, ghi thêm dữ liệu, `drill restore` với tệp escrow giả. Khẳng định: `verify-files` 0 thiếu 0 lệch; RPO, RTO có số; **không có object WAL mới** trong kho staging sau diễn tập (X02). Chạy thêm `drill rel06` với hai sha liên tiếp | Test với docker giả không bắt được X01–X07 |
+
+R01 của 0.15 chỉ coi là đạt khi `drill-e2e` xanh. Sau đó ops mới chạy diễn tập trên VPS.
+
 ## 1 Thành phần
 
 | Dịch vụ | Image | Cổng | Mạng |
