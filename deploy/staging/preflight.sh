@@ -49,7 +49,17 @@ if (parts[0], parts[1]) < (2, 24):
 PY
 
 if command -v ss >/dev/null 2>&1; then
-  if ss -ltn | awk '{print $4}' | grep -Eq '(:18080|:19090)$'; then
+  busy=0
+  for port in 18080 19090; do
+    if ss -ltn | awk '{print $4}' | grep -Eq ":${port}$"; then
+      project="$(docker ps --filter "publish=${port}" --format '{{.Label "com.docker.compose.project"}}' 2>/dev/null | head -n 1 || true)"
+      if [[ "$quick" -eq 1 && ( "$project" == "hcn-staging" || "$project" == "hcn-drill" ) ]]; then
+        continue
+      fi
+      busy=1
+    fi
+  done
+  if (( busy == 1 )); then
     echo "cổng 18080 hoặc 19090 đang dùng" >&2
     exit 10
   fi

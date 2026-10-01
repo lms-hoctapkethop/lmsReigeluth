@@ -4,7 +4,7 @@ Staging chạy chung VPS với site trường. Cursor không SSH, không giữ k
 
 ## Cài
 
-Ops chạy `deploy/staging/install.sh` bằng root từ một bản checkout. Script tạo `hcndeploy`, sudoers, secret còn thiếu và timer sao lưu.
+Ops chạy `deploy/staging/install.sh` bằng root từ một bản checkout. Script tạo `hcndeploy`, sudoers, secret còn thiếu và ba timer: diff các ngày trừ thứ bảy lúc 18:00 UTC, full thứ bảy 18:00 UTC, tệp 18:30 UTC. Đổi `bin/` thì chạy lại `install.sh`.
 
 ## Deploy
 

@@ -11,9 +11,70 @@ jobs:
     environment: staging
     steps:
       - name: Chưa có SSH thì bỏ qua
+        id: gate
         run: |
           if [[ -z "${{ secrets.STAGING_SSH_HOST }}" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Ops chưa cấu hình environment staging. Xem docs/ops/staging-runbook.md."
-            exit 0
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "Khi đã có khóa, job này gọi hcn-staging status --json và ZAP baseline."
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: steps.gate.outputs.ready == 'true'
+      - name: Ghi khóa SSH
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$RUNNER_TEMP/ssh"
+          printf '%s\n' "${{ secrets.STAGING_SSH_KNOWN_HOSTS }}" > "$RUNNER_TEMP/ssh/known_hosts"
+          umask 077
+          printf '%s\n' "${{ secrets.STAGING_SSH_KEY }}" > "$RUNNER_TEMP/ssh/id"
+          chmod 600 "$RUNNER_TEMP/ssh/id"
+      - name: status --json
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          ssh -i "$RUNNER_TEMP/ssh/id" \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
+            -o BatchMode=yes \
+            -p "${{ secrets.STAGING_SSH_PORT }}" \
+            "${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }}" \
+            "status --json" > status.json
+          python3 - <<'PY'
+          import json
+          status = json.load(open("status.json"))
+          ages = status["backup_age_seconds"]
+          if ages["pg_full"] is None or ages["pg_full"] > 8 * 86400:
+              raise SystemExit("pg_full quá hạn")
+          if ages["pg_diff"] is None or ages["pg_diff"] > 26 * 3600:
+              raise SystemExit("pg_diff quá hạn")
+          if ages["files"] is None or ages["files"] > 26 * 3600:
+              raise SystemExit("files quá hạn")
+          if status["outbox_dead"] != 0:
+              raise SystemExit("outbox_dead")
+          if status["disk_used_percent"] is None or status["disk_used_percent"] >= 80:
+              raise SystemExit("đĩa")
+          if not status["ready"]:
+              raise SystemExit("health")
+          PY
+      - name: ZAP baseline
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          APP_DOMAIN: ${{ vars.STAGING_APP_DOMAIN }}
+          STAGING_PROBE_TOKEN: ${{ secrets.STAGING_PROBE_TOKEN }}
+        run: |
+          set -euo pipefail
+          docker run --rm --user root \
+            -v "$PWD:/zap/wrk:rw" \
+            -e STAGING_PROBE_TOKEN \
+            ghcr.io/zaproxy/zaproxy@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef \
+            zap-baseline.py -t "https://${APP_DOMAIN}" -I -r zap-baseline.html -H deploy/staging/zap-hook.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && steps.gate.outputs.ready == 'true'
+        with:
+          name: zap-baseline
+          path: zap-baseline.html
+      - name: Xóa khóa SSH
+        if: always()
+        run: rm -f "$RUNNER_TEMP/ssh/id"

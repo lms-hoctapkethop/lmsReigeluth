@@ -13,11 +13,40 @@ jobs:
     runs-on: ubuntu-24.04
     environment: staging
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Chưa chạy trên VPS khi chưa có SSH
+      - name: Chưa có SSH thì bỏ qua
+        id: gate
         run: |
           if [[ -z "${{ secrets.STAGING_SSH_HOST }}" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "Perf chạy trên VPS trong khung 22:00–05:00 qua entry perf. Ops chưa cấu hình SSH."
-            exit 0
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "scenario=${{ inputs.scenario }}"
+      - name: Ghi khóa SSH
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$RUNNER_TEMP/ssh"
+          printf '%s\n' "${{ secrets.STAGING_SSH_KNOWN_HOSTS }}" > "$RUNNER_TEMP/ssh/known_hosts"
+          umask 077
+          printf '%s\n' "${{ secrets.STAGING_SSH_KEY }}" > "$RUNNER_TEMP/ssh/id"
+          chmod 600 "$RUNNER_TEMP/ssh/id"
+      - name: Chạy perf trên VPS
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          ssh -i "$RUNNER_TEMP/ssh/id" \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" \
+            -o BatchMode=yes \
+            -p "${{ secrets.STAGING_SSH_PORT }}" \
+            "${{ secrets.STAGING_SSH_USER }}@${{ secrets.STAGING_SSH_HOST }}" \
+            "perf ${{ inputs.scenario }}" | tee perf.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          name: perf-${{ inputs.scenario }}
+          path: perf.json
+      - name: Xóa khóa SSH
+        if: always()
+        run: rm -f "$RUNNER_TEMP/ssh/id"

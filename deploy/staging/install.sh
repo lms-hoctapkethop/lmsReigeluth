@@ -33,6 +33,10 @@ chmod 440 /etc/sudoers.d/hcn-staging
 visudo -cf /etc/sudoers.d/hcn-staging
 install -m 0644 "$src/systemd/hcn-staging-backup.service" /etc/systemd/system/hcn-staging-backup.service
 install -m 0644 "$src/systemd/hcn-staging-backup.timer" /etc/systemd/system/hcn-staging-backup.timer
+install -m 0644 "$src/systemd/hcn-staging-backup-full.service" /etc/systemd/system/hcn-staging-backup-full.service
+install -m 0644 "$src/systemd/hcn-staging-backup-full.timer" /etc/systemd/system/hcn-staging-backup-full.timer
+install -m 0644 "$src/systemd/hcn-staging-backup-files.service" /etc/systemd/system/hcn-staging-backup-files.service
+install -m 0644 "$src/systemd/hcn-staging-backup-files.timer" /etc/systemd/system/hcn-staging-backup-files.timer
 systemctl daemon-reload
-systemctl enable --now hcn-staging-backup.timer
+systemctl enable --now hcn-staging-backup.timer hcn-staging-backup-full.timer hcn-staging-backup-files.timer
 echo "install ok. Ops chạy stanza-create sau lần deploy đầu."
