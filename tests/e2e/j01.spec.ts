@@ -21,8 +21,11 @@ test('J01 đăng nhập, đổi ngữ cảnh GV sang PH, đăng xuất', async (
   if (!guardianValue) throw new Error('Không thấy ngữ cảnh phụ huynh')
   await page.getByLabel('Ngữ cảnh').selectOption(guardianValue)
   await expect(page.getByRole('heading', { name: /Phụ huynh/ })).toBeVisible()
+  const logoutResponse = page.waitForResponse(
+    (response) => response.url().includes('/auth/logout') && response.request().method() === 'POST',
+  )
   await page.getByRole('button', { name: 'Đăng xuất' }).click()
-  await page.waitForURL(/\/login-required|\/$/)
+  expect((await logoutResponse).ok()).toBe(true)
   const me = await page.request.get('/api/v1/me')
   expect(me.status()).toBe(401)
 })
