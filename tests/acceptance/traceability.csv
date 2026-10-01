@@ -54,28 +54,28 @@ A12,2.1 tệp 07,Cổng KC không gây bế tắc (P2),L3/L5,,M10,todo,
 A13,2.1 tệp 07,Tệp và nhập liệu không tin cậy bị cô lập,L3/L5,apps/api/test/learning.test.ts,M5,pass,apps/api/test/learning.test.ts A13
 A14,2.1 tệp 07,"Chấm số đúng validation, không chấm 0 khi sai định dạng",L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts A14
 A15,2.1 tệp 07,Assessment tương tác tiếp cận được,L3/L5,,M9,todo,
-A16,2.1 tệp 07,AI không có quyền quyết định,L3/L5,,M8,todo,
+A16,2.1 tệp 07,AI không có quyền quyết định,L3/L5,,M8,pass,packages/domain/src/insight/guard.test.ts A16
 A17,2.1 tệp 07,RAG không rò rỉ (khi bật AI),L3/L5,,M10,todo,
-A18,2.1 tệp 07,Mất AI không mất luồng học,L3/L5,,M8,todo,
-B01,2.2 tệp 08,Chỉ KC observable đổi ước lượng,L1/L3/L5,,M8,todo,
-B02,2.2 tệp 08,Worker xử lý lại không nhân đôi quan sát,L1/L3/L5,,M8,todo,
-B03,2.2 tệp 08,Ước lượng tốt không tạo quyết định,L1/L3/L5,,M8,todo,
+A18,2.1 tệp 07,Mất AI không mất luồng học,L3/L5,,M8,pass,apps/api/test/insight.test.ts A18
+B01,2.2 tệp 08,Chỉ KC observable đổi ước lượng,L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts B01
+B02,2.2 tệp 08,Worker xử lý lại không nhân đôi quan sát,L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts B02
+B03,2.2 tệp 08,Ước lượng tốt không tạo quyết định,L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts B03
 B04,2.2 tệp 08,Cạnh đề xuất không dùng cho chẩn đoán,L1/L3/L5,packages/domain/src/curriculum/b04-imports.test.ts,M3,pass,apps/api/test/curriculum.test.ts
 B05,2.2 tệp 08,'Em chưa học phần này' ghi thiếu dữ liệu,L1/L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts B05
-B06,2.2 tệp 08,Hổng gốc sâu hơn 3 bước dừng và gợi ý GV,L1/L3/L5,,M8,todo,
+B06,2.2 tệp 08,Hổng gốc sâu hơn 3 bước dừng và gợi ý GV,L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts B06
 B07,2.2 tệp 08,Nhiệm vụ thay thế cần duyệt,L1/L3/L5,,M10,todo,
-B08,2.2 tệp 08,PH gọi API needs bị từ chối,L1/L3/L5,,M8,todo,
+B08,2.2 tệp 08,PH gọi API needs bị từ chối,L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts B08
 B09,2.2 tệp 08,PH gọi API tiến độ HS khác bị từ chối,L1/L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts B09
-B10,2.2 tệp 08,Tắt LLM vẫn chạy,L1/L3/L5,,M8,todo,
-B11,2.2 tệp 08,"Đổi phiên bản mô hình tính lại, giữ lịch sử",L1/L3/L5,,M8,todo,
+B10,2.2 tệp 08,Tắt LLM vẫn chạy,L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts B10
+B11,2.2 tệp 08,"Đổi phiên bản mô hình tính lại, giữ lịch sử",L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts B11
 B12,2.2 tệp 08,HS định hướng ICT không nhận YCCĐ chỉ CS,L1/L3/L5,,M10,todo,
 B13,2.2 tệp 08,Toán 7 không có chat mở,L1/L3/L5,tests/e2e/journeys/J11.spec.ts,M6,pass,tests/e2e/journeys/J11.spec.ts B13
 B14,2.2 tệp 08,"Cảnh báo W3 hiện dữ liệu, bỏ qua có lý do",L1/L3/L5,,M10,todo,
 C01,2.2 tệp 09,Publish bị chặn V01 đúng YCCĐ,L1/L3/L5,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 C02,2.2 tệp 09,"Bloom 6 chỉ trắc nghiệm → V02, phát hành sau khi có lý do",L1/L3/L5,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
-C03,2.2 tệp 09,Lỗi hiểu sai 2 câu → signal,L1/L3/L5,,M8,todo,
+C03,2.2 tệp 09,Lỗi hiểu sai 2 câu → signal,L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts C03
 C04,2.2 tệp 09,"Gợi ý bậc 2 → hints_used=2, trọng số 0,3",L1/L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts C04
-C05,2.2 tệp 09,Mức 'chưa thể hiện' không tạo quan sát,L1/L3/L5,,M8,todo,
+C05,2.2 tệp 09,Mức 'chưa thể hiện' không tạo quan sát,L1/L3/L5,,M8,pass,apps/api/test/insight.test.ts C05
 C06,2.2 tệp 09,Công bố không chọn quyết định → không có decision,L1/L3/L5,apps/api/test/review.test.ts,M7,pass,apps/api/test/review.test.ts C06
 C07,2.2 tệp 09,Câu AI chưa duyệt → V07,L1/L3/L5,apps/api/test/authoring.test.ts,M4,pass,apps/api/test/authoring.test.ts
 C08,2.2 tệp 09,Body gửi correct=true bị bỏ qua,L1/L3/L5,apps/api/test/quiz.test.ts,M6,pass,apps/api/test/quiz.test.ts C08
@@ -167,7 +167,7 @@ J08,docs/09 mục 5.1,Nộp v2 khi GV mở v1,L5,tests/e2e/journeys/J08.spec.ts,
 J09,docs/09 mục 5.1,"Công bố có quyết định, hồ sơ",L5,tests/e2e/journeys/J09.spec.ts,M7,pass,tests/e2e/journeys/J09.spec.ts
 J10,docs/09 mục 5.1,"PH xem con, thử URL khác",L5,tests/e2e/journeys/J10.spec.ts,M7,pass,tests/e2e/journeys/J10.spec.ts
 J11,docs/09 mục 5.1,"Toán 7 phiếu ra lớp, định dạng số",L5,tests/e2e/journeys/J11.spec.ts,M6,pass,tests/e2e/journeys/J11.spec.ts J11
-J12,docs/09 mục 5.1,Bản đồ nhiệt sau worker,L5,e2e/journeys/J12.spec.ts,M8,todo,
+J12,docs/09 mục 5.1,Bản đồ nhiệt sau worker,L5,e2e/journeys/J12.spec.ts,M8,pass,tests/e2e/journeys/J12.spec.ts J12
 DB30,db/tests,Tệp gắn bài nộp đúng chủ và đã quét,L2,db/tests/file_guards_invariants.sql,M7,pass,db/tests/file_guards_invariants.sql
 DB31,db/tests,Ảnh nội dung chỉ ảnh sạch,L2,db/tests/file_guards_invariants.sql,M7,pass,db/tests/file_guards_invariants.sql
 DB32,db/tests,content_files bất biến,L2,db/tests/file_guards_invariants.sql,M7,pass,db/tests/file_guards_invariants.sql
@@ -176,9 +176,9 @@ DB34,db/tests,Quyết định đúng HS và offering của review,L2,db/tests/re
 DB35,db/tests,Một quyết định gốc; chuỗi không đổi đối tượng,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
 DB36,db/tests,Đồng hành gia đình chỉ committed → cancelled,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
 DB37,db/tests,Thông báo chỉ đổi read_at,L2,db/tests/review_guards_invariants.sql,M7,pass,db/tests/review_guards_invariants.sql
-DB38,db/tests,points 0..1 khớp correct,L2,db/tests/insight_guards_invariants.sql,M8,todo,
-DB39,db/tests,Chỉ worker ghi quan sát và ước lượng,L2,db/tests/insight_guards_invariants.sql,M8,todo,
-DB40,db/tests,needs_estimates chỉ thêm,L2,db/tests/insight_guards_invariants.sql,M8,todo,
-DB41,db/tests,needs_current_kc gộp version,L2,db/tests/insight_guards_invariants.sql,M8,todo,
-BACKFILL-01,docs/06 mục 3.0,Backfill quan sát từ dữ liệu M6–M7 chạy lại không nhân đôi,L3,,M8,todo,
-PARTIAL-01,docs/06 mục 3.0,multi_choice partial ghi points lẻ và quan sát đúng điểm,L3,,M8,todo,
+DB38,db/tests,points 0..1 khớp correct,L2,db/tests/insight_guards_invariants.sql,M8,pass,db/tests/insight_guards_invariants.sql DB38
+DB39,db/tests,Chỉ worker ghi quan sát và ước lượng,L2,db/tests/insight_guards_invariants.sql,M8,pass,db/tests/insight_guards_invariants.sql DB39
+DB40,db/tests,needs_estimates chỉ thêm,L2,db/tests/insight_guards_invariants.sql,M8,pass,db/tests/insight_guards_invariants.sql DB40
+DB41,db/tests,needs_current_kc gộp version,L2,db/tests/insight_guards_invariants.sql,M8,pass,db/tests/insight_guards_invariants.sql DB41
+BACKFILL-01,docs/06 mục 3.0,Backfill quan sát từ dữ liệu M6–M7 chạy lại không nhân đôi,L3,,M8,pass,apps/api/test/insight.test.ts BACKFILL-01
+PARTIAL-01,docs/06 mục 3.0,multi_choice partial ghi points lẻ và quan sát đúng điểm,L3,,M8,pass,apps/api/test/insight.test.ts PARTIAL-01

@@ -554,6 +554,7 @@ export interface QuestionResponsesTable {
   try_no: number
   response: unknown
   correct: boolean | null
+  points: ColumnType<string | null, string | number | null, never> | null
   hints_used: number
   misconception_id: string | null
   answered_at: Generated<Date>
@@ -631,6 +632,65 @@ export interface ProcessedEventsTable {
   processed_at: Generated<Date>
 }
 
+export type NeedStatus = 'insufficient' | 'needs_support' | 'developing' | 'strong'
+
+export interface ObservationsTable {
+  id: Generated<string>
+  school_id: string
+  learner_id: string
+  offering_id: string
+  kc_version_id: string
+  source_type: 'review' | 'diagnostic' | 'practice' | 'exit_ticket'
+  source_ref: string
+  weight: ColumnType<string, string | number, never>
+  score: ColumnType<string, string | number, never>
+  hints_used: number
+  provisional_item: boolean
+  observed_at: Date
+  created_at: Generated<Date>
+}
+
+export interface NeedsEstimatesTable {
+  id: Generated<string>
+  school_id: string
+  learner_id: string
+  offering_id: string
+  kc_version_id: string
+  status: NeedStatus
+  value: ColumnType<string | null, string | number | null, never> | null
+  n_observations: number
+  model_version: string
+  observation_ids: string[]
+  computed_at: Generated<Date>
+}
+
+export interface NeedsCurrentKcTable {
+  id: string
+  school_id: string
+  learner_id: string
+  offering_id: string
+  kc_id: string
+  kc_version_id: string
+  status: NeedStatus
+  value: string | null
+  n_observations: number
+  model_version: string
+  observation_ids: string[]
+  computed_at: Date
+}
+
+export interface MisconceptionSignalsTable {
+  id: Generated<string>
+  school_id: string
+  learner_id: string
+  offering_id: string
+  misconception_id: string
+  evidence_response_ids: string[]
+  distinct_items: number
+  status: 'seen_once' | 'signal' | 'resolved'
+  updated_at: Generated<Date>
+}
+
 export interface Database {
   schools: SchoolsTable
   users: UsersTable
@@ -689,4 +749,8 @@ export interface Database {
   family_supports: FamilySupportsTable
   notifications: NotificationsTable
   processed_events: ProcessedEventsTable
+  observations: ObservationsTable
+  needs_estimates: NeedsEstimatesTable
+  needs_current_kc: NeedsCurrentKcTable
+  misconception_signals: MisconceptionSignalsTable
 }

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@hcn/db": "workspace:*",
+    "@hcn/domain": "workspace:*",
     "kysely": "^0.28.17"
   },
   "devDependencies": {

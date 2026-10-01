@@ -1,6 +1,9 @@
 import { sql, type Kysely, type Transaction } from 'kysely'
 import type { Database } from '@hcn/db'
 import { runDueSoon } from './due-soon.ts'
+import { deriveObservations } from './insight/derive.ts'
+import { recomputeNeeds } from './insight/recompute.ts'
+import { updateMisconceptionSignals } from './insight/signals.ts'
 import { notifyFromEvent } from './notify.ts'
 import { applyScan } from './scan.ts'
 
@@ -25,6 +28,19 @@ export const consumerByEvent: Record<string, string> = {
   ReleaseCreated: 'notify',
   ReviewPublished: 'notify',
   DecisionSuperseded: 'notify',
+  QuestionAnswered: 'insight.deriveObservations',
+  ObservationsAdded: 'insight.recomputeNeeds',
+}
+
+const followedBy: Record<string, string[]> = {
+  ReviewPublished: ['insight.deriveObservations'],
+  QuestionAnswered: ['insight.updateMisconceptionSignals'],
+}
+
+export function consumersFor(eventType: string): string[] {
+  const primary = consumerByEvent[eventType]
+  const rest = (followedBy[eventType] ?? []).filter((name) => name !== primary)
+  return primary ? [primary, ...rest] : rest
 }
 
 function pgCode(error: unknown): string | undefined {
@@ -32,10 +48,7 @@ function pgCode(error: unknown): string | undefined {
   return undefined
 }
 
-/** Tác dụng của consumer và processed_events trong một transaction. Outbox đánh dấu done sau commit. */
-export async function commitConsumer(db: Kysely<Database>, event: EventRow, options: WorkerOptions): Promise<void> {
-  const consumer = consumerByEvent[event.event_type]
-  if (!consumer) return
+async function commitOne(db: Kysely<Database>, event: EventRow, options: WorkerOptions, consumer: string): Promise<void> {
   await db.transaction().execute(async (trx) => {
     const seen = await trx
       .selectFrom('processed_events')
@@ -58,8 +71,18 @@ export async function commitConsumer(db: Kysely<Database>, event: EventRow, opti
       if (result === 'error') throw new Error('SCAN_ERROR')
     }
     if (consumer === 'notify') await notifyFromEvent(trx, event)
+    if (consumer === 'insight.deriveObservations') await deriveObservations(trx, event)
+    if (consumer === 'insight.recomputeNeeds') await recomputeNeeds(trx, event)
+    if (consumer === 'insight.updateMisconceptionSignals') await updateMisconceptionSignals(trx, event)
     await trx.insertInto('processed_events').values({ event_id: event.event_id, consumer }).execute()
   })
+}
+
+/** Tác dụng của consumer chính và processed_events trong một transaction. Outbox đánh dấu done sau commit. */
+export async function commitConsumer(db: Kysely<Database>, event: EventRow, options: WorkerOptions): Promise<void> {
+  const consumer = consumerByEvent[event.event_type]
+  if (!consumer) return
+  await commitOne(db, event, options, consumer)
 }
 
 type Executor = Kysely<Database> | Transaction<Database>
@@ -84,13 +107,18 @@ export async function processOutbox(db: Kysely<Database>, options: WorkerOptions
 }
 
 async function handleEvent(db: Kysely<Database>, locked: Executor, event: EventRow, options: WorkerOptions): Promise<void> {
-  const consumer = consumerByEvent[event.event_type]
+  const consumers = consumersFor(event.event_type)
+  const consumer = consumers[0]
   if (!consumer) {
     await mark(locked, event.id, 'done', event.attempts, null)
     return
   }
+  let active = consumer
   try {
-    await commitConsumer(db, event, options)
+    for (const name of consumers) {
+      active = name
+      await commitOne(db, event, options, name)
+    }
     await acknowledgeOutbox(locked, event.id, event.attempts)
   } catch (error) {
     if (pgCode(error) === '23505') {
@@ -99,7 +127,7 @@ async function handleEvent(db: Kysely<Database>, locked: Executor, event: EventR
     }
     const next = event.attempts + 1
     const message = error instanceof Error ? error.message : 'error'
-    if (consumer === 'files.scan' && next >= 3 && event.payload.fileId) {
+    if (active === 'files.scan' && next >= 3 && event.payload.fileId) {
       await db
         .updateTable('files')
         .set({ scan_status: 'error', scanned_at: new Date() })

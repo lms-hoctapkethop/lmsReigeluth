@@ -1,0 +1,18 @@
+.stack { display: flex; flex-direction: column; gap: var(--space-4); }
+.nav { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.nav a { min-height: 44px; display: inline-flex; align-items: center; }
+.nav a[aria-current='page'] { font-weight: 700; }
+.wrap { overflow-x: auto; }
+table { border-collapse: collapse; min-width: 100%; }
+th, td { border: 1px solid var(--c-line); padding: var(--space-2); text-align: left; vertical-align: top; }
+.cell { min-width: 8rem; border-radius: var(--radius); padding: var(--space-2); }
+.insufficient { background: var(--c-line); color: var(--c-ink); }
+.needs_support { background: #f8d0d0; color: #3d1212; }
+.developing { background: #fff4d6; color: #3d2e00; }
+.strong { background: #d7f5df; color: #12321c; }
+.group { border: 1px solid var(--c-line); border-radius: var(--radius); padding: var(--space-3); }
+.muted { color: var(--c-muted); }
+:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+@media (max-width: 40rem) {
+  .cell { min-width: 7rem; }
+}

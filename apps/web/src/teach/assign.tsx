@@ -4,6 +4,7 @@ import { useParams, useRouteLoaderData } from 'react-router'
 import type { Me } from '@hcn/contracts'
 import { apiJson } from '../learn/http.ts'
 import styles from '../learn/learn.module.css'
+import { ClassNav } from './class-nav.tsx'
 
 type Offering = { id: string; title: string; courseId: string }
 type ModuleRow = { id: string; title: string }
@@ -105,6 +106,7 @@ export function AssignWork() {
 
   return (
     <section className={styles.stack}>
+      <ClassNav offeringId={id} current="assign" />
       <h1>Giao bài {offering ? offering.title : ''}</h1>
       {releases.isLoading ? <p>Đang tải đợt giao.</p> : null}
       {releases.isError ? <p role="alert">Không tải được danh sách giao bài.</p> : null}

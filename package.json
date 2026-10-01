@@ -18,6 +18,9 @@
     "db:migrate": "dbmate --migrations-dir db/migrations --no-dump-schema up",
     "db:types": "kysely-codegen --out-file packages/db/src/schema.ts --dialect postgres",
     "db:seed:curriculum": "node --experimental-strip-types apps/api/src/cli.ts seed-curriculum db/seeds/curriculum_requirements.csv",
+    "worker": "node --experimental-strip-types apps/worker/src/main.ts",
+    "insight:backfill": "node --experimental-strip-types apps/worker/src/cli.ts backfill",
+    "insight:recompute": "node --experimental-strip-types apps/worker/src/cli.ts recompute",
     "openapi:check": "node scripts/openapi-check.mjs",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm openapi:check && pnpm build"
   },
