@@ -13,7 +13,7 @@ import { ReviewQueue } from './review/queue.tsx'
 import { HeatmapPage } from './teach/heatmap.tsx'
 import { CurriculumHome } from './curriculum.tsx'
 import { readJson } from './admin-api.ts'
-import { fetchMe, logout, switchContext } from './api.ts'
+import { fetchMe, fetchRuntime, logout, switchContext } from './api.ts'
 import { roleLabel } from './labels.ts'
 import adminStyles from './admin.module.css'
 import styles from './shell.module.css'
@@ -36,12 +36,19 @@ async function rootLoader(): Promise<Me> {
   return me
 }
 
+function StagingBanner() {
+  const runtime = useQuery({ queryKey: ['runtime'], queryFn: fetchRuntime })
+  if (runtime.data?.env !== 'staging') return null
+  return <p className={styles.staging} role="status">MÔI TRƯỜNG THỬ — dữ liệu tổng hợp</p>
+}
+
 function LoginRequired() {
   const params = new URLSearchParams(window.location.search)
   const requested = params.get('returnTo')
   const returnTo = requested && requested.startsWith('/') && !requested.startsWith('//') ? requested : window.location.pathname
   return (
     <main className={styles.main}>
+      <StagingBanner />
       <section className={styles.card}>
         <h1>Đăng nhập</h1>
         <p>Bạn cần đăng nhập để tiếp tục học cùng nhau.</p>
@@ -70,7 +77,9 @@ function Shell() {
   })
   const showCurriculum = Boolean(access.data?.propose || access.data?.review)
   return (
-    <div className={styles.frame}>
+    <>
+      <StagingBanner />
+      <div className={styles.frame}>
       <aside className={styles.sidebar}>
         <p className={styles.brand}>Học cùng nhau</p>
         <p className={styles.muted}>{me.displayName}</p>
@@ -128,7 +137,8 @@ function Shell() {
       <main className={styles.main}>
         <Outlet />
       </main>
-    </div>
+      </div>
+    </>
   )
 }
 

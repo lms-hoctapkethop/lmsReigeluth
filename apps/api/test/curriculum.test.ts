@@ -47,6 +47,10 @@ describe.skipIf(!ready)('chương trình M3', () => {
       sessionMaxDays: 7,
       trustProxy: [],
       port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
     }
     app = await buildApp({ config, db })
   }, 300_000)

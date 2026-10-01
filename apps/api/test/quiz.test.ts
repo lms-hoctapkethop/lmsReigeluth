@@ -71,6 +71,10 @@ describe.skipIf(!ready)('quiz M6', () => {
       sessionMaxDays: 7,
       trustProxy: [],
       port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
     }
     app = await buildApp({ config, db })
   }, 300_000)
@@ -611,6 +615,10 @@ describe.skipIf(!ready)('quiz M6', () => {
         sessionMaxDays: 7,
         trustProxy: [],
         port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
       },
       db,
     })

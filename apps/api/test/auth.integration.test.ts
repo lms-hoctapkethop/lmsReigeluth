@@ -86,6 +86,10 @@ describe.skipIf(!ready)('xác thực M1', () => {
     sessionMaxDays: 7,
     trustProxy: [],
     port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
   })
 
   beforeAll(async () => {

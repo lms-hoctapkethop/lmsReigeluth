@@ -9,7 +9,12 @@ export default defineConfig({
   timeout: 120_000,
   workers: 1,
   use: { baseURL: 'http://localhost:5173', trace: 'retain-on-failure' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'mobile', use: { ...devices['Desktop Chrome'], viewport: { width: 360, height: 740 } } },
+  ],
   webServer: [
     {
       command: 'pnpm --filter @hcn/api dev',

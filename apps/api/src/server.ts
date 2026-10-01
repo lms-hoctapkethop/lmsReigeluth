@@ -1,8 +1,8 @@
 import cookie from '@fastify/cookie'
 import multipart from '@fastify/multipart'
 import Fastify, { type FastifyInstance } from 'fastify'
+import { sql, type Kysely } from 'kysely'
 import type { DestinationStream, Logger } from 'pino'
-import type { Kysely } from 'kysely'
 import type { Database } from '@hcn/db'
 import { IdpAdminError, type IdpAdmin } from '@hcn/domain'
 import type { AppConfig } from './config.ts'
@@ -23,7 +23,37 @@ import { createLogger, loggedUrl } from './plugins/logger.ts'
 import { registerRateLimit } from './plugins/rate-limit.ts'
 import { requestIdFrom, registerRequestId } from './plugins/request-id.ts'
 import { registerSession } from './plugins/session.ts'
+import { recordRequest, statusClass } from './ops/metrics.ts'
 import './types.ts'
+
+let oidcCache: { ok: boolean; at: number } | null = null
+
+async function dbReady(db: Kysely<Database>): Promise<'ok' | 'fail'> {
+  try {
+    const ok = await Promise.race([
+      sql`SELECT 1`.execute(db).then(() => true, () => false),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1000)),
+    ])
+    return ok ? 'ok' : 'fail'
+  } catch {
+    return 'fail'
+  }
+}
+
+async function oidcReady(issuer: string): Promise<'ok' | 'fail'> {
+  if (oidcCache && Date.now() - oidcCache.at < 60_000) return oidcCache.ok ? 'ok' : 'fail'
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 1000)
+  try {
+    const response = await fetch(`${issuer}/.well-known/openid-configuration`, { signal: controller.signal })
+    oidcCache = { ok: response.ok, at: Date.now() }
+    return response.ok ? 'ok' : 'fail'
+  } catch {
+    return oidcCache?.ok ? 'ok' : 'fail'
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 export type BuildAppOptions = {
   config: AppConfig
@@ -86,8 +116,21 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
       },
       'request',
     )
+    const route = request.routeOptions.url ?? 'unmatched'
+    recordRequest(
+      { method: request.method, route, statusClass: statusClass(reply.statusCode) },
+      reply.elapsedTime / 1000,
+    )
   })
   app.get('/health/live', { config: { public: true } }, async () => ({ status: 'live' }))
+  app.get('/health/ready', { config: { public: true } }, async (_request, reply) => {
+    const checks = { db: await dbReady(options.db), oidc: await oidcReady(options.config.oidcIssuer) }
+    const ready = checks.db === 'ok' && checks.oidc === 'ok'
+    return reply.code(ready ? 200 : 503).send({ status: ready ? 'ready' : 'not_ready', checks })
+  })
+  app.get('/api/v1/runtime', { config: { public: true } }, async () => ({
+    env: options.config.hcnEnv ?? 'development',
+  }))
   registerAuthRoutes(app, options.db, options.config)
   registerMeRoutes(app, options.db)
   registerOfferingRoutes(app, options.db)

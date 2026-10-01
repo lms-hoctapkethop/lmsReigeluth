@@ -80,6 +80,10 @@ describe.skipIf(!ready)('học tập M5', () => {
       sessionMaxDays: 7,
       trustProxy: [],
       port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
     }
     app = await buildApp({ config, db, storageDir, logStream })
   }, 300_000)

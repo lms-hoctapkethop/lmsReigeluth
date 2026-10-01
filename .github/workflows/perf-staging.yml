@@ -1,0 +1,23 @@
+name: perf-staging
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: PERF-01 … PERF-05
+        required: true
+        default: PERF-01
+permissions:
+  contents: read
+jobs:
+  perf:
+    runs-on: ubuntu-24.04
+    environment: staging
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Chưa chạy trên VPS khi chưa có SSH
+        run: |
+          if [[ -z "${{ secrets.STAGING_SSH_HOST }}" ]]; then
+            echo "Perf chạy trên VPS trong khung 22:00–05:00 qua entry perf. Ops chưa cấu hình SSH."
+            exit 0
+          fi
+          echo "scenario=${{ inputs.scenario }}"

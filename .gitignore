@@ -10,3 +10,4 @@ reports
 *.tsbuildinfo
 .pnpm-debug.log*
 /data/
+deploy/secrets/

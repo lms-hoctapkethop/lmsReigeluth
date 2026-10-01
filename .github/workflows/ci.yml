@@ -174,3 +174,19 @@ jobs:
           path: |
             playwright-report
             test-results
+
+  deploy-lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck, hadolint, compose config, policy-check
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+          curl -fsSL -o /tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+          echo "56de6d5e5ec427e17b74fa48d51271c7fc0d61244bf5c90e828aab8362d55010  /tmp/hadolint" | sha256sum -c -
+          sudo install -m 755 /tmp/hadolint /usr/local/bin/hadolint
+          shellcheck deploy/staging/bin/*.sh deploy/staging/*.sh deploy/keycloak/kc-entrypoint.sh
+          hadolint deploy/api/Dockerfile deploy/web/Dockerfile
+          bash deploy/staging/test/entry.test.sh
+          bash deploy/staging/test/policy-check.test.sh

@@ -73,6 +73,10 @@ describe.skipIf(!ready)('insight M8', () => {
       sessionMaxDays: 7,
       trustProxy: [],
       port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
     }
     app = await buildApp({ config, db: appDb })
   }, 300_000)

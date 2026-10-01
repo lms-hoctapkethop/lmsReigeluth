@@ -136,6 +136,10 @@ describe.skipIf(!ready)('HTTP tổ chức hai trường', () => {
     sessionMaxDays: 7,
     trustProxy: [],
     port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
   })
 
   beforeAll(async () => {

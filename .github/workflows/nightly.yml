@@ -1,0 +1,50 @@
+name: nightly
+on:
+  schedule:
+    - cron: '30 17 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browsers:
+    runs-on: ubuntu-24.04
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/hcn?sslmode=disable
+      OIDC_ISSUER: http://localhost:8081/realms/hcn
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Install dbmate 2.28.0
+        run: |
+          curl -fsSL -o /tmp/dbmate-linux-amd64 https://github.com/amacneil/dbmate/releases/download/v2.28.0/dbmate-linux-amd64
+          echo "4a3814fdb7253348d6b3cd60a2e315fba69e1a3a794a31ec75af2ca6019c835c  /tmp/dbmate-linux-amd64" | sha256sum -c -
+          install -m 755 /tmp/dbmate-linux-amd64 /usr/local/bin/dbmate
+      - run: docker compose -f deploy/compose.dev.yml up -d --wait
+      - name: Wait for Keycloak issuer
+        run: |
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:8081/realms/hcn/.well-known/openid-configuration && exit 0
+            sleep 2
+          done
+          exit 1
+      - run: pnpm db:migrate && pnpm db:seed:test
+      - name: Login role thuộc hcn_worker
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'hcn_e2e_worker') THEN
+              CREATE ROLE hcn_e2e_worker LOGIN PASSWORD 'hcn_e2e_worker' IN ROLE hcn_worker;
+            END IF;
+          END
+          $$;
+          SQL
+      - name: E2E đủ trình duyệt
+        run: |
+          pnpm exec playwright install --with-deps chromium firefox webkit
+          pnpm exec playwright test tests/e2e
+        env:
+          WORKER_DATABASE_URL: postgres://hcn_e2e_worker:hcn_e2e_worker@localhost:5432/hcn?sslmode=disable

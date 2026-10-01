@@ -1,0 +1,96 @@
+# Override staging. Luôn kèm -p hcn-staging (diễn tập: -p hcn-drill).
+# docker compose -p hcn-staging -f deploy/compose.yml -f deploy/compose.staging.yml --env-file ...
+name: hcn-staging
+
+services:
+  caddy:
+    image: hcn/web:${APP_VERSION}
+    pull_policy: never
+    ports: !override
+      - "127.0.0.1:18080:80"
+    environment:
+      APP_SITE_ADDRESS: http://${APP_DOMAIN}
+      ID_SITE_ADDRESS: http://${ID_DOMAIN}
+    deploy:
+      resources: { limits: { cpus: "0.25", memory: 128M } }
+
+  api:
+    image: hcn/api:${APP_VERSION}
+    pull_policy: never
+    environment:
+      HCN_ENV: staging
+      PORT: "3000"
+      METRICS_PORT: "9464"
+      TRUST_PROXY: 172.30.18.0/24
+      FEATURE_FLAGS: insight_read=true,ai=false
+    volumes:
+      - /var/lib/hcn-staging/metrics:/run/hcn-metrics:ro
+    deploy:
+      resources: { limits: { cpus: "1.0", memory: 768M } }
+
+  worker:
+    image: hcn/api:${APP_VERSION}
+    pull_policy: never
+    environment:
+      HCN_ENV: staging
+    deploy:
+      resources: { limits: { cpus: "0.5", memory: 512M } }
+
+  migrate:
+    image: ghcr.io/amacneil/dbmate:2@sha256:520c740c6e0ad73fde2cd1ea7e2b779aaf789d22aca8858f87a478e7094535fb
+
+  db:
+    image: hcn/postgres:18-${APP_VERSION}
+    pull_policy: never
+    env_file: /opt/hcn-staging/secrets/pgbackrest.env
+    command:
+      - postgres
+      - -c
+      - shared_buffers=384MB
+      - -c
+      - effective_cache_size=1GB
+      - -c
+      - max_connections=60
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_command=pgbackrest --stanza=hcn archive-push %p
+      - -c
+      - archive_timeout=300
+      - -c
+      - timezone=UTC
+    deploy:
+      resources: { limits: { cpus: "1.5", memory: 1536M } }
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85
+    environment:
+      JAVA_OPTS_KC_HEAP: -XX:MaxRAMPercentage=70
+    deploy:
+      resources: { limits: { cpus: "1.0", memory: 1024M } }
+
+  clamav:
+    image: clamav/clamav:1.4@sha256:57deb108fc4c72778aa83eafbca7bb7153e28c3f57c005afd38d31f16da86f23
+    deploy:
+      resources: { limits: { cpus: "0.5", memory: 1536M } }
+
+  node-exporter:
+    profiles: !override ["never"]
+
+  prometheus:
+    profiles: ["monitoring"]
+    image: prom/prometheus:v2.55.1@sha256:2659f4c2ebb718e7695cb9b25ffa7d6be64db013daba13e05c875451cf51b0d3
+    ports: ["127.0.0.1:19090:9090"]
+    networks: [internal]
+    deploy:
+      resources: { limits: { cpus: "0.25", memory: 256M } }
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: 172.30.18.0/24

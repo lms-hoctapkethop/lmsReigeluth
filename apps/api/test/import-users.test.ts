@@ -71,6 +71,10 @@ describe.skipIf(!ready)('importUsers', () => {
       sessionMaxDays: 7,
       trustProxy: [],
       port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
     }
     logs = []
     app = await buildApp({ config, db, idpAdmin: idp, logStream })
@@ -195,6 +199,10 @@ describe.skipIf(!ready)('importUsers', () => {
         sessionMaxDays: 7,
         trustProxy: [],
         port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
       },
       db,
       idpAdmin: localIdp,
@@ -231,6 +239,10 @@ describe.skipIf(!ready)('importUsers', () => {
         sessionMaxDays: 7,
         trustProxy: [],
         port: 4319,
+    hcnEnv: 'development',
+    metricsPort: 9464,
+    backupMetricsFile: '/run/hcn-metrics/backup.prom',
+    faultAfterCommit: null,
       },
       db,
       idpAdmin: new FakeIdpAdmin(),

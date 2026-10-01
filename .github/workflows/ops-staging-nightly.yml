@@ -1,0 +1,19 @@
+name: ops-staging-nightly
+on:
+  schedule:
+    - cron: '15 0 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  status:
+    runs-on: ubuntu-24.04
+    environment: staging
+    steps:
+      - name: Chưa có SSH thì bỏ qua
+        run: |
+          if [[ -z "${{ secrets.STAGING_SSH_HOST }}" ]]; then
+            echo "Ops chưa cấu hình environment staging. Xem docs/ops/staging-runbook.md."
+            exit 0
+          fi
+          echo "Khi đã có khóa, job này gọi hcn-staging status --json và ZAP baseline."

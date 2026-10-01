@@ -1,0 +1,7 @@
+[Unit]
+Description=Sao lưu staging Học cùng nhau
+[Service]
+Type=oneshot
+Nice=10
+ExecStart=/opt/hcn-staging/bin/hcn-staging
+Environment=SSH_ORIGINAL_COMMAND=backup diff

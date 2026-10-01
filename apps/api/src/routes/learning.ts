@@ -25,6 +25,7 @@ import {
   uploadFile,
   type Actor,
 } from '@hcn/domain'
+import { crashAfterCommit } from '../ops/fault.ts'
 import { uploadRateLimit, writeRateLimit } from '../plugins/rate-limit.ts'
 
 const uuid = z.string().uuid()
@@ -130,6 +131,7 @@ export function registerLearningRoutes(app: FastifyInstance, db: Kysely<Database
     const key = header(request, 'idempotency-key')
     if (!key) throw new DomainError('VALIDATION_FAILED', { reason: 'IDEMPOTENCY_KEY' })
     const receipt = await submitAssignment(db, meta(request), params.releaseId, params.itemId, { draftRevision: body.draftRevision, idempotencyKey: key })
+    crashAfterCommit('submitAssignment')
     return reply.code(201).send(receipt)
   })
 

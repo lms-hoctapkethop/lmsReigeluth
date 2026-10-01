@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Entry duy nhất CI được gọi. Đọc SSH_ORIGINAL_COMMAND.
+set -euo pipefail
+
+log() {
+  mkdir -p /var/log/hcn-staging 2>/dev/null || return 0
+  printf '%s %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" "${result:-start}" >> /var/log/hcn-staging/entry.log || true
+}
+
+cmd="${SSH_ORIGINAL_COMMAND:-${1:-}}"
+read -r -a parts <<< "$cmd"
+action="${parts[0]:-}"
+arg="${parts[1]:-}"
+sha_re='^[0-9a-f]{40}$'
+result=ok
+
+finish() {
+  local code=$?
+  trap - EXIT
+  if [[ $code -ne 0 ]]; then result="fail:$code"; else result=ok; fi
+  log "$action" "${arg:-}"
+  exit "$code"
+}
+trap finish EXIT
+
+case "$action" in
+  receive|deploy)
+    [[ "$arg" =~ $sha_re ]] || exit 64
+    ;;
+  rollback|seed|status)
+    ;;
+  perf)
+    [[ "$arg" =~ ^PERF-0[1-5]$ ]] || exit 64
+    ;;
+  drill)
+    [[ "$arg" == "restore" || "$arg" == "rel06" ]] || exit 64
+    ;;
+  backup)
+    [[ "$arg" == "full" || "$arg" == "diff" || "$arg" == "files" ]] || exit 64
+    ;;
+  *)
+    exit 64
+    ;;
+esac
+
+if [[ "${HCN_STAGING_DRY:-}" == "1" ]]; then
+  echo "dry $action ${arg:-}"
+  exit 0
+fi
+
+root=/opt/hcn-staging
+current="$(readlink -f "$root/current" 2>/dev/null || true)"
+compose() {
+  docker compose -p hcn-staging -f "$current/deploy/compose.yml" -f "$current/deploy/compose.staging.yml" --env-file "$root/env/staging.env" "$@"
+}
+
+lock() {
+  exec 9>/run/hcn-staging.lock
+  flock 9
+}
+
+case "$action" in
+  receive)
+    lock
+    mkdir -p "$root/releases/$arg"
+    tar -x -C "$root/releases/$arg"
+    ;;
+  deploy)
+    lock
+    export APP_VERSION="$arg"
+    export HCN_RELEASE_ROOT="$root/releases/$arg"
+    "$root/releases/$arg/deploy/staging/preflight.sh" --quick
+    "$root/bin/policy-check.sh" hcn-staging -f "$root/releases/$arg/deploy/compose.yml" -f "$root/releases/$arg/deploy/compose.staging.yml"
+    ln -sfn "$root/releases/$arg" "$root/current"
+    current="$root/releases/$arg"
+    compose up -d --no-build
+    ;;
+  rollback)
+    lock
+    prev="$(readlink -f "$root/previous" 2>/dev/null || true)"
+    [[ -n "$prev" ]] || exit 1
+    ln -sfn "$current" "$root/previous"
+    ln -sfn "$prev" "$root/current"
+    current="$prev"
+    compose up -d --no-build
+    ;;
+  status)
+    echo "{\"sha\":\"$(basename "$current")\"}"
+    ;;
+  seed)
+    compose exec -T api node apps/api/src/cli.ts seed-staging
+    ;;
+  perf)
+    hour="$(TZ=Asia/Ho_Chi_Minh date +%H)"
+    if (( 10#$hour >= 5 && 10#$hour < 22 )); then
+      exit 75
+    fi
+    echo "{\"scenario\":\"$arg\"}"
+    ;;
+  drill|backup)
+    echo "$action ${arg:-}"
+    ;;
+esac

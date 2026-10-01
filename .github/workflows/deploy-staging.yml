@@ -1,0 +1,40 @@
+name: deploy-staging
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: SHA cần triển khai
+        required: false
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: staging
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    environment: staging
+    steps:
+      - name: Bỏ qua khi ops chưa cấu hình SSH
+        id: gate
+        run: |
+          if [[ -z "${{ secrets.STAGING_SSH_HOST }}" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Environment staging chưa có STAGING_SSH_HOST. Xem docs/ops/staging-runbook.md."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - name: Nhắc ops
+        if: steps.gate.outputs.ready != 'true'
+        run: echo "Chưa deploy. Ops làm các bước trong docs/ops/staging-runbook.md rồi chạy lại workflow."

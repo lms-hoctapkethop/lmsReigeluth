@@ -1,5 +1,11 @@
 import type { Me } from '@hcn/contracts'
 
+export async function fetchRuntime(): Promise<{ env: string }> {
+  const response = await fetch('/api/v1/runtime', { credentials: 'same-origin' })
+  if (!response.ok) return { env: 'production' }
+  return response.json() as Promise<{ env: string }>
+}
+
 export async function fetchMe(): Promise<Me | null> {
   const response = await fetch('/api/v1/me', { credentials: 'same-origin' })
   if (response.status === 401) return null
