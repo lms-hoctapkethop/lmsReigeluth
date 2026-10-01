@@ -2,6 +2,7 @@ name: nightly
 on:
   schedule:
     - cron: '30 17 * * *'
+  pull_request:
   workflow_dispatch:
     inputs:
       only:
@@ -13,7 +14,7 @@ permissions:
   contents: read
 jobs:
   browsers:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'browsers' }}
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'browsers') }}
     runs-on: ubuntu-24.04
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/hcn?sslmode=disable
@@ -56,7 +57,7 @@ jobs:
         env:
           WORKER_DATABASE_URL: postgres://hcn_e2e_worker:hcn_e2e_worker@localhost:5432/hcn?sslmode=disable
   contract:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'contract' }}
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'contract') }}
     runs-on: ubuntu-24.04
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/hcn?sslmode=disable
@@ -127,7 +128,7 @@ jobs:
           name: schemathesis
           path: schemathesis.txt
   resilience:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'resilience' }}
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'resilience') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
