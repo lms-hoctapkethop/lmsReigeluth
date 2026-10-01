@@ -20,10 +20,15 @@ sha_re='^[0-9a-f]{40}$'
 result=ok
 root="${HCN_STAGING_ROOT:-/opt/hcn-staging}"
 release_dir=""
+drill_env_file=""
 
 finish() {
   local code=$?
   trap - EXIT
+  if [[ -n "$drill_env_file" ]]; then
+    rm -f "$drill_env_file"
+    drill_env_file=""
+  fi
   if [[ $code -ne 0 ]]; then result="fail:$code"; else result=ok; fi
   log "$action" "${arg:-}"
   exit "$code"
@@ -91,6 +96,8 @@ use_current() {
     echo "chưa có current" >&2
     exit 1
   }
+  APP_VERSION="$(basename "$release_dir")"
+  export APP_VERSION
 }
 
 image_ref() {
@@ -247,8 +254,8 @@ deploy_release() {
     release_dir="$old"
     export APP_VERSION
     APP_VERSION="$(basename "$old")"
-    if compose exec -T db pgbackrest --stanza=hcn info >/dev/null 2>&1; then
-      compose exec -T db pgbackrest --stanza=hcn --type=diff backup
+    if compose exec -u postgres -T db pgbackrest --stanza=hcn --repo=2 info >/dev/null 2>&1; then
+      compose exec -u postgres -T db pgbackrest --stanza=hcn --repo=2 --type=diff backup
     fi
   fi
   release_dir="$new"
@@ -431,36 +438,168 @@ drill_compose() {
   docker compose -p hcn-drill \
     -f "$release_dir/deploy/compose.yml" \
     -f "$release_dir/deploy/compose.staging.yml" \
+    -f "$release_dir/deploy/staging/compose.drill.yml" \
     --env-file "$root/env/staging.env" \
     "$@"
 }
 
+write_drill_env() {
+  local dest key
+  dest="$(mktemp)"
+  chmod 0600 "$dest"
+  for key in \
+    PGBACKREST_REPO2_S3_KEY \
+    PGBACKREST_REPO2_S3_KEY_SECRET \
+    PGBACKREST_REPO2_S3_ENDPOINT \
+    PGBACKREST_REPO2_S3_BUCKET \
+    PGBACKREST_REPO2_S3_REGION \
+    PGBACKREST_REPO2_S3_URI_STYLE \
+    PGBACKREST_REPO2_S3_PORT \
+    PGBACKREST_REPO2_S3_VERIFY_TLS \
+    PGBACKREST_REPO2_CIPHER_PASS \
+    RESTIC_REPOSITORY \
+    RESTIC_PASSWORD \
+    AWS_ACCESS_KEY_ID \
+    AWS_SECRET_ACCESS_KEY \
+    AWS_DEFAULT_REGION
+  do
+    if [[ -n "${!key:-}" ]]; then
+      printf '%s=%s\n' "$key" "${!key}" >> "$dest"
+    fi
+  done
+  drill_env_file="$dest"
+}
+
+discard_drill_env() {
+  if [[ -n "$drill_env_file" ]]; then
+    rm -f "$drill_env_file"
+    drill_env_file=""
+  fi
+}
+
+read_epoch() {
+  local raw status
+  set +e
+  raw="$("$@" | tail -n 1 | tr -d '[:space:]')"
+  status=$?
+  set -e
+  if [[ "$status" -ne 0 ]]; then
+    return "$status"
+  fi
+  if [[ "$raw" =~ ^[0-9]+$ ]]; then
+    printf '%s' "$raw"
+  else
+    printf '0'
+  fi
+}
+
+audit_epoch_sql="SET ROLE hcn_readonly; SELECT COALESCE(floor(extract(epoch from max(created_at)))::bigint, 0) FROM audit_log"
+
+pgbackrest_restore() {
+  local mode="$1"
+  shift
+  local -a env_args=()
+  local key
+  # docker compose run không có --env-file. Giá trị lấy từ escrow đã export;
+  # tệp 0600 vẫn dành cho restic (docker run --env-file).
+  for key in \
+    PGBACKREST_REPO2_S3_KEY \
+    PGBACKREST_REPO2_S3_KEY_SECRET \
+    PGBACKREST_REPO2_S3_ENDPOINT \
+    PGBACKREST_REPO2_S3_BUCKET \
+    PGBACKREST_REPO2_S3_REGION \
+    PGBACKREST_REPO2_S3_URI_STYLE \
+    PGBACKREST_REPO2_S3_PORT \
+    PGBACKREST_REPO2_S3_VERIFY_TLS \
+    PGBACKREST_REPO2_CIPHER_PASS
+  do
+    if [[ -n "${!key:-}" ]]; then
+      env_args+=(-e "$key")
+    fi
+  done
+  drill_compose run --rm --no-deps --user root --entrypoint chown db -R postgres:postgres /var/lib/postgresql /var/lib/pgbackrest
+  drill_compose run --rm --no-deps --user postgres --entrypoint pgbackrest "${env_args[@]}" db \
+    --stanza=hcn --repo=2 --type="$mode" "$@" restore
+}
+
+restic_restore_files() {
+  docker run --rm --env-file "$drill_env_file" \
+    -v hcn-drill_files:/data \
+    "$(image_ref 'restic/restic')" restore latest:/data --target /data
+}
+
+snapshot_release_ids() {
+  drill_compose exec -T db psql -U postgres -d hcn -v ON_ERROR_STOP=1 <<'SQL'
+CREATE TABLE release_id_snapshot (
+  source text,
+  id uuid,
+  module_release_id uuid,
+  module_version_id uuid
+);
+ALTER TABLE release_id_snapshot OWNER TO postgres;
+INSERT INTO release_id_snapshot (source, id, module_release_id, module_version_id)
+SELECT 'submissions', s.id, s.module_release_id, r.module_version_id
+FROM submissions s
+JOIN module_releases r ON r.id = s.module_release_id
+UNION ALL
+SELECT 'quiz_attempts', q.id, q.module_release_id, r.module_version_id
+FROM quiz_attempts q
+JOIN module_releases r ON r.id = q.module_release_id
+UNION ALL
+SELECT 'activity_progress', a.id, a.module_release_id, r.module_version_id
+FROM activity_progress a
+JOIN module_releases r ON r.id = a.module_release_id;
+SQL
+}
+
 drill_restore() {
-  local started rto
+  local started rto rpo staging_epoch restored_epoch
   [[ -n "${RESTORE_TARGET:-}" ]] || {
     echo "escrow thiếu RESTORE_TARGET" >&2
     exit 1
   }
   started="$(date +%s)"
-  drill_compose up -d --no-build db
-  drill_compose exec -T db pgbackrest --stanza=hcn --repo=2 --type=time --target="$RESTORE_TARGET" restore
-  docker run --rm --env-file "$root/secrets/restic.env" \
-    -v hcn-drill_files:/data \
-    "$(image_ref 'restic/restic')" restore latest --target /data
-  drill_compose up -d --no-build
-  drill_compose exec -T caddy wget -q -O - http://127.0.0.1/health/ready
+  staging_epoch="$(read_epoch compose exec -T db psql -U postgres -d hcn -tAc "$audit_epoch_sql")"
+  write_drill_env
+  pgbackrest_restore time --target="$RESTORE_TARGET" --target-action=promote
+  drill_compose up -d --wait --wait-timeout 180 --no-build db
+  restored_epoch="$(read_epoch drill_compose exec -T db psql -U postgres -d hcn -tAc "$audit_epoch_sql")"
+  rpo="$((staging_epoch - restored_epoch))"
+  if (( rpo < 0 )); then
+    rpo="$((-rpo))"
+  fi
+  restic_restore_files
+  discard_drill_env
+  drill_compose up -d --wait --wait-timeout 600 --no-build
+  local ready=0
+  for _ in $(seq 1 30); do
+    if drill_compose exec -T caddy wget -q -O - --header "Host: ${APP_DOMAIN}" http://127.0.0.1/health/ready; then
+      ready=1
+      break
+    fi
+    sleep 2
+  done
+  [[ "$ready" == "1" ]]
   drill_compose exec -T api node apps/api/src/cli.ts verify-files
   rto="$(( $(date +%s) - started ))"
-  printf '{"drill":"restore","rto_seconds":%s,"rpo_target":"%s"}\n' "$rto" "$RESTORE_TARGET"
+  python3 - "$rto" "$rpo" "$RESTORE_TARGET" <<'PY'
+import json, sys
+rto, rpo, target = sys.argv[1:]
+print(json.dumps({"drill": "restore", "rto_seconds": int(rto), "rpo_seconds": int(rpo), "rpo_target": target}, ensure_ascii=False, separators=(",", ":")))
+PY
   drill_compose down -v
 }
 
 drill_rel06() {
   local old="$extra"
-  drill_compose up -d --no-build db
-  drill_compose exec -T db pgbackrest --stanza=hcn --repo=2 --type=latest restore
+  write_drill_env
+  pgbackrest_restore latest
+  drill_compose up -d --wait --wait-timeout 180 --no-build db
+  snapshot_release_ids
   drill_compose --profile ops run --rm migrate up
-  APP_VERSION="$old" drill_compose up -d --no-build api worker
+  restic_restore_files
+  discard_drill_env
+  APP_VERSION="$old" drill_compose up -d --wait --wait-timeout 600 --no-build api worker
   drill_compose exec -T api node apps/api/src/cli.ts verify-files
   drill_compose exec -T db psql -U postgres -d hcn -v ON_ERROR_STOP=1 -f /dev/stdin < "$release_dir/db/checks/release_id_semantics.sql"
   printf '{"drill":"rel06","old_sha":"%s"}\n' "$old"
@@ -491,6 +630,17 @@ drill_run() {
     drill_rel06
   fi
 }
+
+if [[ -n "${HCN_STAGING_DUMP_CONFIG:-}" ]]; then
+  use_current
+  load_env
+  if [[ "$HCN_STAGING_DUMP_CONFIG" == "drill" ]]; then
+    drill_compose config --format json
+  else
+    compose config --format json
+  fi
+  exit 0
+fi
 
 case "$action" in
   receive)
@@ -523,11 +673,11 @@ case "$action" in
     load_env
     case "$arg" in
       full)
-        compose exec -T db pgbackrest --stanza=hcn --type=full backup
+        compose exec -u postgres -T db pgbackrest --stanza=hcn --repo=2 --type=full backup
         write_backup_metric pg_full
         ;;
       diff)
-        compose exec -T db pgbackrest --stanza=hcn --type=diff backup
+        compose exec -u postgres -T db pgbackrest --stanza=hcn --repo=2 --type=diff backup
         write_backup_metric pg_diff
         ;;
       files)

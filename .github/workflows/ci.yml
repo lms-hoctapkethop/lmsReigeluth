@@ -194,6 +194,7 @@ jobs:
           bash deploy/staging/test/workflow.test.sh
           bash deploy/staging/test/render.test.sh
           bash deploy/staging/test/perf-scripts.test.sh
+          bash deploy/staging/test/x01-x07.test.sh
 
   resilience:
     if: github.event_name == 'pull_request'

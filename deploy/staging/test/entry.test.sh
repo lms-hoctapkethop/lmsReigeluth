@@ -123,10 +123,10 @@ grep -F 'HCN_IMAGES_LOCK="$root/bin/images.lock"' "$entry" >/dev/null
 stub="$(mktemp -d)"
 cat > "$stub/docker" <<'EOF'
 #!/bin/bash
-printf '%s\n' "$*" >> "${HCN_DOCKER_LOG:?}"
-if [[ "${1:-}" == "load" ]]; then
+if [[ ! -t 0 ]]; then
   cat >/dev/null
 fi
+printf '%s\n' "$*" >> "${HCN_DOCKER_LOG:?}"
 exit 0
 EOF
 chmod 755 "$stub/docker"
@@ -203,7 +203,11 @@ out="$(entry_env "drill restore --escrow $work/escrow.env")"
 printf '%s\n' "$out" | grep -q '"drill":"restore"'
 grep -q 'hcn-drill' "$HCN_DOCKER_LOG"
 grep -q 'pgbackrest' "$HCN_DOCKER_LOG"
-grep -q 'restore latest' "$HCN_DOCKER_LOG"
+grep -q 'restore latest:/data' "$HCN_DOCKER_LOG"
+if grep -q 'secrets/restic.env' "$HCN_DOCKER_LOG" || grep -q 'secrets/pgbackrest.env' "$HCN_DOCKER_LOG"; then
+  echo "drill còn đọc secret của staging" >&2
+  exit 1
+fi
 grep -q 'verify-files' "$HCN_DOCKER_LOG"
 grep -q 'down -v' "$HCN_DOCKER_LOG" || grep -q 'down' "$HCN_DOCKER_LOG"
 
@@ -213,6 +217,11 @@ printf '%s\n' "$out" | grep -q '"drill":"rel06"'
 printf '%s\n' "$out" | grep -q "\"old_sha\":\"$old\""
 grep -q 'api worker' "$HCN_DOCKER_LOG"
 grep -q 'psql' "$HCN_DOCKER_LOG"
+grep -q 'CREATE TABLE release_id_snapshot' "$entry"
+if grep -q 'secrets/restic.env' "$HCN_DOCKER_LOG" || grep -q 'secrets/pgbackrest.env' "$HCN_DOCKER_LOG"; then
+  echo "rel06 còn đọc secret của staging" >&2
+  exit 1
+fi
 
 : > "$HCN_DOCKER_LOG"
 entry_env "backup files-maintain" >/dev/null
